@@ -8,11 +8,12 @@ local common = require('common')
 local state = require('state')
 
 function class.init(_aqo)
-	class.classOrder = {'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest'}
-	class.EPIC_OPTS = {always=1,shm=1,burn=1,never=1}
-
-	class.spellRotations = {melee={},caster={},meleedot={}, med={}}
-	class.DEFAULT_SPELLSET='melee'
+	class.classOrder = { 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
+	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
+	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1 }
+	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, med = {}, downtime = {} }
+	class.DEFAULT_SPELLSET = 'melee'
+	class.medleyIsRunning = false
 
 	class.initBase(_aqo, 'brd')
 
@@ -40,6 +41,55 @@ function class.init(_aqo)
 	class.selos = common.getAA('Selo\'s Sonata')
 end
 
+-- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
+function class.medley()
+	printf(logger.logLine('Starting Medley subroutine'))
+	-- If in combat, we use the chosen combat song
+	if mq.TLO.Me.CombatState() == 'COMBAT' and not state.loop.Invis and not class.medleyIsRunning then
+		if class.OPTS.MEDLEY_OPTS.value == 'melee' then
+			mq.cmd('/medley melee')
+		elseif class.OPTS.MEDLEY_OPTS.value == 'caster' then
+			mq.cmd('/medley caster')
+		elseif class.OPTS.MEDLEY_OPTS.value == 'meleedot' then
+			mq.cmd('/medley meleedot')
+		end
+	elseif not state.loop.Invis and not class.medleyIsRunning then
+		-- If not in combat, we use the downtime song
+		mq.cmd('/medley downtime')
+	end
+
+
+	if not state.loop.Invis then
+		-- Combat checks for clickies
+		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
+			if (class.OPTS.USEEPIC.value == 'always' or state.burnActive or (class.OPTS.USEEPIC.value == 'shm' and mq.TLO.Me.Song('Prophet\'s Gift of the Ruchu')())) then
+				if class.useEpic() then
+					mq.delay(250)
+					return true
+				end
+			end
+			for _, clicky in ipairs(class.castClickies) do
+				if clicky.TargetType == 'Single' then
+					-- if single target clicky then make sure in combat
+					if (clicky.Duration == 0 or not mq.TLO.Target.Buff(clicky.CheckFor)()) then
+						if clicky:use() then
+							mq.delay(250)
+							return true
+						end
+					end
+				elseif clicky.Duration == 0 or (not mq.TLO.Me.Buff(clicky.CheckFor)() and not mq.TLO.Me.Song(clicky.CheckFor)()) then
+					-- otherwise just use the clicky if its instant or we don't already have the buff/song
+					if clicky:use() then
+						mq.delay(250)
+						return true
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
 function class.initClassOptions()
 	class.addOption('USEEPIC', 'Epic', 'always', class.EPIC_OPTS, 'Set how to use bard epic', 'combobox', nil, 'UseEpic', 'string')
 	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
@@ -54,6 +104,8 @@ function class.initClassOptions()
 	class.addOption('USESWARM', 'Use Swarm', true, nil, 'Use swarm pet AAs', 'checkbox', nil, 'UseSwarm', 'bool')
 	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
 	class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
+	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
+	class.addOption('MEDLEYLINE', 'Medley Category', false, class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
 	class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil, 'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
 	class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil, 'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
 	class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil, 'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')
@@ -64,72 +116,70 @@ end
 function class.initSpellLines(_aqo)
 	-- All spells ID + Rank name
 	-- All spells ID + Rank name
-	class.addSpell('aura', {'Aura of Pli Xin Liako', 'Aura of Margidor', 'Aura of Begalru', 'Aura of the Muse', 'Aura of Insight'}) -- spell dmg, overhaste, flurry, triple atk
-	class.addSpell('composite', {'Ecliptic Psalm', 'Composite Psalm', 'Dissident Psalm', 'Dichotomic Psalm'}) -- DD+melee dmg bonus + small heal
-	class.addSpell('aria', {'Aria of Pli Xin Liako', 'Aria of Margidor', 'Aria of Begalru', }) -- spell dmg, overhaste, flurry, triple atk
-	class.addSpell('warmarch', {'War March of Centien Xi Va Xakra', 'War March of Radiwol', 'War March of Dekloaz'}) -- haste, atk, ds
-	class.addSpell('arcane', {'Arcane Harmony', 'Arcane Symphony', 'Arcane Ballad', 'Arcane Aria'}) -- spell dmg proc
-	class.addSpell('suffering', {'Shojralen\'s Song of Suffering', 'Omorden\'s Song of Suffering', 'Travenro\'s Song of Suffering', 'Storm Blade', 'Song of the Storm'}) -- melee dmg proc
-	class.addSpell('spiteful', {'Von Deek\'s Spiteful Lyric', 'Omorden\'s Spiteful Lyric', 'Travenro\' Spiteful Lyric'}) -- AC
-	class.addSpell('pulse', {'Pulse of Nikolas', 'Pulse of Vhal`Sera', 'Pulse of Xigarn', 'Cantata of Life', 'Chorus of Life', 'Wind of Marr', 'Chorus of Marr', 'Chorus of Replenishment', 'Cantata of Soothing'}, {opt='USEREGENSONG'}) -- heal focus + regen
-	class.addSpell('sonata', {'Xetheg\'s Spry Sonata', 'Kellek\'s Spry Sonata', 'Kluzen\'s Spry Sonata'}) -- spell shield, AC, dmg mitigation
-	class.addSpell('dirge', {'Dirge of the Onokiwan', 'Dirge of the Restless', 'Dirge of Lost Horizons'}) -- spell+melee dmg mitigation
-	class.addSpell('firenukebuff', {'Constance\'s Aria', 'Sontalak\'s Aria', 'Quinard\'s Aria', 'Rizlona\'s Fire', 'Rizlona\'s Embers'}) -- inc fire DD for instant nukes, not dots
-	class.addSpell('firemagicdotbuff', {'Fyrthek Fior\'s Psalm of Potency', 'Velketor\'s Psalm of Potency', 'Akett\'s Psalm of Potency'}) -- inc fire+mag dot
-	class.addSpell('crescendo', {'Zelinstein\'s Lively Crescendo', 'Zburator\'s Lively Crescendo', 'Jembel\'s Lively Crescendo'}) -- small heal hp, mana, end
-	class.addSpell('insult', {'Yelinak\'s Insult', 'Sathir\'s Insult'}) -- synergy DD
-	class.addSpell('insult2', {'Sogran\'s Insult', 'Omorden\'s Insult', 'Travenro\'s Insult'}) -- synergy DD 2
-	class.addSpell('chantflame', {'Shak Dathor\'s Chant of Flame', 'Sontalak\'s Chant of Flame', 'Quinard\'s Chant of Flame', 'Vulka\'s Chant of Flame', 'Tuyen\'s Chant of Fire', 'Tuyen\'s Chant of Flame'}, {opt='USEFIREDOTS'})
-	class.addSpell('chantfrost', {'Sylra Fris\' Chant of Frost', 'Yelinak\'s Chant of Frost', 'Ekron\'s Chant of Frost', 'Vulka\'s Chant of Frost', 'Tuyen\'s Chant of Ice', 'Tuyen\'s Chant of Frost'}, {opt='USEFROSTDOTS'})
-	class.addSpell('chantdisease', {'Coagulus\' Chant of Disease', 'Zlexak\'s Chant of Disease', 'Hoshkar\'s Chant of Disease', 'Vulka\'s Chant of Disease', 'Tuyen\'s Chant of the Plague', 'Tuyen\'s Chant of Disease'}, {opt='USEDISEASEDOTS'})
-	class.addSpell('chantpoison', {'Cruor\'s Chant of Poison', 'Malvus\'s Chant of Poison', 'Nexona\'s Chant of Poison', 'Vulka\'s Chant of Poison', 'Tuyen\'s Chant of Venom', 'Tuyen\'s Chant of Poison'}, {opt='USEPOISONDOTS'})
-	class.addSpell('alliance', {'Coalition of Sticks and Stones', 'Covenant of Sticks and Stones', 'Alliance of Sticks and Stones'})
-	class.addSpell('mezst', {'Slumber of the Diabo', 'Slumber of Zburator', 'Slumber of Jembel'})
-	class.addSpell('mezae', {'Wave of Nocturn', 'Wave of Sleep', 'Wave of Somnolence'})
+	class.addSpell('aura', { 'Aura of Pli Xin Liako', 'Aura of Margidor', 'Aura of Begalru', 'Aura of the Muse', 'Aura of Insight' }) -- spell dmg, overhaste, flurry, triple atk
+	class.addSpell('composite', { 'Ecliptic Psalm', 'Composite Psalm', 'Dissident Psalm', 'Dichotomic Psalm' }) -- DD+melee dmg bonus + small heal
+	class.addSpell('aria', { 'Aria of Pli Xin Liako', 'Aria of Margidor', 'Aria of Begalru', }) -- spell dmg, overhaste, flurry, triple atk
+	class.addSpell('warmarch', { 'War March of Centien Xi Va Xakra', 'War March of Radiwol', 'War March of Dekloaz' }) -- haste, atk, ds
+	class.addSpell('arcane', { 'Arcane Harmony', 'Arcane Symphony', 'Arcane Ballad', 'Arcane Aria' }) -- spell dmg proc
+	class.addSpell('suffering', { 'Shojralen\'s Song of Suffering', 'Omorden\'s Song of Suffering', 'Travenro\'s Song of Suffering', 'Storm Blade', 'Song of the Storm' }) -- melee dmg proc
+	class.addSpell('spiteful', { 'Von Deek\'s Spiteful Lyric', 'Omorden\'s Spiteful Lyric', 'Travenro\' Spiteful Lyric' }) -- AC
+	class.addSpell('pulse', { 'Pulse of Nikolas', 'Pulse of Vhal`Sera', 'Pulse of Xigarn', 'Cantata of Life', 'Chorus of Life', 'Wind of Marr', 'Chorus of Marr', 'Chorus of Replenishment', 'Cantata of Soothing' }, { opt = 'USEREGENSONG' }) -- heal focus + regen
+	class.addSpell('sonata', { 'Xetheg\'s Spry Sonata', 'Kellek\'s Spry Sonata', 'Kluzen\'s Spry Sonata' }) -- spell shield, AC, dmg mitigation
+	class.addSpell('dirge', { 'Dirge of the Onokiwan', 'Dirge of the Restless', 'Dirge of Lost Horizons' }) -- spell+melee dmg mitigation
+	class.addSpell('firenukebuff', { 'Constance\'s Aria', 'Sontalak\'s Aria', 'Quinard\'s Aria', 'Rizlona\'s Fire', 'Rizlona\'s Embers' }) -- inc fire DD for instant nukes, not dots
+	class.addSpell('firemagicdotbuff', { 'Fyrthek Fior\'s Psalm of Potency', 'Velketor\'s Psalm of Potency', 'Akett\'s Psalm of Potency' }) -- inc fire+mag dot
+	class.addSpell('crescendo', { 'Zelinstein\'s Lively Crescendo', 'Zburator\'s Lively Crescendo', 'Jembel\'s Lively Crescendo' }) -- small heal hp, mana, end
+	class.addSpell('insult', { 'Yelinak\'s Insult', 'Sathir\'s Insult' }) -- synergy DD
+	class.addSpell('insult2', { 'Sogran\'s Insult', 'Omorden\'s Insult', 'Travenro\'s Insult' }) -- synergy DD 2
+	class.addSpell('chantflame', { 'Shak Dathor\'s Chant of Flame', 'Sontalak\'s Chant of Flame', 'Quinard\'s Chant of Flame', 'Vulka\'s Chant of Flame', 'Tuyen\'s Chant of Fire', 'Tuyen\'s Chant of Flame' }, { opt = 'USEFIREDOTS' })
+	class.addSpell('chantfrost', { 'Sylra Fris\' Chant of Frost', 'Yelinak\'s Chant of Frost', 'Ekron\'s Chant of Frost', 'Vulka\'s Chant of Frost', 'Tuyen\'s Chant of Ice', 'Tuyen\'s Chant of Frost' }, { opt = 'USEFROSTDOTS' })
+	class.addSpell('chantdisease', { 'Coagulus\' Chant of Disease', 'Zlexak\'s Chant of Disease', 'Hoshkar\'s Chant of Disease', 'Vulka\'s Chant of Disease', 'Tuyen\'s Chant of the Plague', 'Tuyen\'s Chant of Disease' }, { opt = 'USEDISEASEDOTS' })
+	class.addSpell('chantpoison', { 'Cruor\'s Chant of Poison', 'Malvus\'s Chant of Poison', 'Nexona\'s Chant of Poison', 'Vulka\'s Chant of Poison', 'Tuyen\'s Chant of Venom', 'Tuyen\'s Chant of Poison' }, { opt = 'USEPOISONDOTS' })
+	class.addSpell('alliance', { 'Coalition of Sticks and Stones', 'Covenant of Sticks and Stones', 'Alliance of Sticks and Stones' })
+	class.addSpell('mezst', { 'Slumber of the Diabo', 'Slumber of Zburator', 'Slumber of Jembel' })
+	class.addSpell('mezae', { 'Wave of Nocturn', 'Wave of Sleep', 'Wave of Somnolence' })
 
 	-- haste song doesn't stack with enc haste?
-	class.addSpell('overhaste', {'Ancient: Call of Power', 'Warsong of the Vah Shir', 'Battlecry of the Vah Shir'})
-	class.addSpell('bardhaste', {'Verse of Veeshan', 'Psalm of Veeshan', 'Composition of Ervaj'})
-	class.addSpell('snare', {'Selo\'s Consonant Chain'}, {opt='USESNARE'})
-	class.addSpell('debuff', {'Harmony of Sound'})
+	class.addSpell('overhaste', { 'Ancient: Call of Power', 'Warsong of the Vah Shir', 'Battlecry of the Vah Shir' })
+	class.addSpell('bardhaste', { 'Verse of Veeshan', 'Psalm of Veeshan', 'Composition of Ervaj' })
+	class.addSpell('snare', { 'Selo\'s Consonant Chain' }, { opt = 'USESNARE' })
+	class.addSpell('debuff', { 'Harmony of Sound' })
 
 end
 
 function class.initSpellRotations(_aqo)
 
-		-- entries in the dots table are pairs of {spell id, spell name} in priority order
-		class.spellRotations.melee = {
-			class.spells.composite, class.spells.crescendo, class.spells.aria,
-			class.spells.spiteful, class.spells.suffering, class.spells.warmarch,
-			class.spells.pulse, class.spells.dirge
-		}
-		-- synergy, mezst, mstae
+	-- entries in the dots table are pairs of {spell id, spell name} in priority order
+	class.spellRotations.melee = {
+		class.spells.composite, class.spells.crescendo, class.spells.aria,
+		class.spells.spiteful, class.spells.suffering, class.spells.warmarch,
+		class.spells.pulse, class.spells.dirge
+	}
+	-- synergy, mezst, mstae
 
-		class.spellRotations.caster = {
-			class.spells.composite, class.spells.crescendo, class.spells.aria,
-			class.spells.arcane, class.spells.firenukebuff, class.spells.suffering,
-			class.spells.warmarch, class.spells.firemagicdotbuff, class.spells.pulse,
-			class.spells.dirge
-		}
-		-- synergy, mezst, mezae
+	class.spellRotations.caster = {
+		class.spells.composite, class.spells.crescendo, class.spells.aria,
+		class.spells.arcane, class.spells.firenukebuff, class.spells.suffering,
+		class.spells.warmarch, class.spells.firemagicdotbuff, class.spells.pulse,
+		class.spells.dirge
+	}
+	-- synergy, mezst, mezae
 
-		class.spellRotations.meleedot = {
-			class.spells.composite, class.spells.crescendo,
-			class.spells.aria, class.spells.warmarch,
-			class.spells.suffering, class.spells.pulse, class.spells.dirge,
-			class.spells.chatflame, class.spells.chantdisease, class.spells.chantfrost
-		}
-		-- synergy, mezst, mezae
-	end
-
+	class.spellRotations.meleedot = {
+		class.spells.composite, class.spells.crescendo,
+		class.spells.aria, class.spells.warmarch,
+		class.spells.suffering, class.spells.pulse, class.spells.dirge,
+		class.spells.chatflame, class.spells.chantdisease, class.spells.chantfrost
+	}
+	-- synergy, mezst, mezae
+end
 
 function class.initDPSAbilities(_aqo)
-	table.insert(class.DPSAbilities, common.getBestDisc({'Reflexive Rebuttal'}))
-	table.insert(class.DPSAbilities, common.getSkill('Intimidation', {opt='USEINTIMIDATE'}))
+	table.insert(class.DPSAbilities, common.getBestDisc({ 'Reflexive Rebuttal' }))
+	table.insert(class.DPSAbilities, common.getSkill('Intimidation', { opt = 'USEINTIMIDATE' }))
 	table.insert(class.DPSAbilities, common.getSkill('Kick'))
 
-
-	table.insert(class.AEDPSAbilities, common.getAA('Vainglorious Shout', {threshold=2}))
+	table.insert(class.AEDPSAbilities, common.getAA('Vainglorious Shout', { threshold = 2 }))
 end
 
 function class.initBurns(_aqo)
@@ -146,14 +196,14 @@ function class.initBurns(_aqo)
 	table.insert(class.burnAbilities, common.getAA('Dance of Blades'))
 	table.insert(class.burnAbilities, common.getAA('Flurry of Notes'))
 	table.insert(class.burnAbilities, common.getAA('Frenzied Kicks'))
-	table.insert(class.burnAbilities, common.getBestDisc({'Thousand Blades'}))
-	table.insert(class.burnAbilities, common.getAA('Cacophony', {opt='USECACOPHONY'}))
+	table.insert(class.burnAbilities, common.getBestDisc({ 'Thousand Blades' }))
+	table.insert(class.burnAbilities, common.getAA('Cacophony', { opt = 'USECACOPHONY' }))
 	-- Delay after using swarm pet AAs while pets are spawning
-	table.insert(class.burnAbilities, common.getAA('Lyrical Prankster', {opt='USESWARM', delay=1500}))
-	table.insert(class.burnAbilities, common.getAA('Song of Stone', {opt='USESWARM', delay=1500}))
+	table.insert(class.burnAbilities, common.getAA('Lyrical Prankster', { opt = 'USESWARM', delay = 1500 }))
+	table.insert(class.burnAbilities, common.getAA('Song of Stone', { opt = 'USESWARM', delay = 1500 }))
 
 	table.insert(class.burnAbilities, common.getAA('A Tune Stuck In Your Head'))
-	table.insert(class.burnAbilities, common.getBestDisc({'Puretone Discipline'}))
+	table.insert(class.burnAbilities, common.getBestDisc({ 'Puretone Discipline' }))
 end
 
 function class.initBuffs(_aqo)
@@ -164,20 +214,22 @@ end
 function class.initDefensiveAbilities(_aqo)
 	table.insert(class.defensiveAbilities, common.getAA('Shield of Notes'))
 	table.insert(class.defensiveAbilities, common.getAA('Hymn of the Last Stand'))
-	table.insert(class.defensiveAbilities, common.getBestDisc({'Deftdance Discipline'}))
+	table.insert(class.defensiveAbilities, common.getBestDisc({ 'Deftdance Discipline' }))
 
 	-- Aggro
-	local preFade = function() mq.cmd('/attack off') end
+	local preFade = function()
+		mq.cmd('/attack off')
+	end
 	local postFade = function()
 		mq.delay(1000)
 		mq.cmd('/multiline ; /makemevis ; /attack on')
 	end
-	table.insert(class.fadeAbilities, common.getAA('Fading Memories', {opt='USEFADE', precase=preFade, postcast=postFade}))
+	table.insert(class.fadeAbilities, common.getAA('Fading Memories', { opt = 'USEFADE', precase = preFade, postcast = postFade }))
 end
 
 function class.initRecoverAbilities(_aqo)
 	-- Mana Recovery AAs
-	class.rallyingsolo = common.getAA('Rallying Solo', {mana=true, endurance=true, threshold=20, combat=false, ooc=true})
+	class.rallyingsolo = common.getAA('Rallying Solo', { mana = true, endurance = true, threshold = 20, combat = false, ooc = true })
 	table.insert(class.recoverAbilities, class.rallyingsolo)
 	class.rallyingcall = common.getAA('Rallying Call')
 end
@@ -199,7 +251,7 @@ local function tryAlliance()
 		if mq.TLO.Spell(alliance).Mana() > mq.TLO.Me.CurrentMana() then
 			return false
 		end
-		if mq.TLO.Me.Gem(alliance)() and mq.TLO.Me.GemTimer(alliance)() == 0  and not mq.TLO.Target.Buff(alliance)() and mq.TLO.Spell(alliance).StacksTarget() then
+		if mq.TLO.Me.Gem(alliance)() and mq.TLO.Me.GemTimer(alliance)() == 0 and not mq.TLO.Target.Buff(alliance)() and mq.TLO.Spell(alliance).StacksTarget() then
 			class.spells.alliance:use()
 			return true
 		end
@@ -225,14 +277,20 @@ end
 
 local function isDotReady(spellId, spellName)
 	-- don't dot if i'm not attacking
-	if not spellName or not mq.TLO.Me.Combat() then return false end
-	local actualSpellName = spellName
-	if state.subscription ~= 'GOLD' then actualSpellName = spellName:gsub(' Rk%..*', '') end
-	local songDuration = 0
-	if not mq.TLO.Me.Gem(spellName)() or mq.TLO.Me.GemTimer(spellName)() ~= 0  then
+	if not spellName or not mq.TLO.Me.Combat() then
 		return false
 	end
-	if not mq.TLO.Target() or mq.TLO.Target.ID() ~= state.assistMobID or mq.TLO.Target.Type() == 'Corpse' then return false end
+	local actualSpellName = spellName
+	if state.subscription ~= 'GOLD' then
+		actualSpellName = spellName:gsub(' Rk%..*', '')
+	end
+	local songDuration = 0
+	if not mq.TLO.Me.Gem(spellName)() or mq.TLO.Me.GemTimer(spellName)() ~= 0 then
+		return false
+	end
+	if not mq.TLO.Target() or mq.TLO.Target.ID() ~= state.assistMobID or mq.TLO.Target.Type() == 'Corpse' then
+		return false
+	end
 
 	songDuration = mq.TLO.Target.MyBuffDuration(actualSpellName)()
 	if not common.isTargetDottedWith(spellId, actualSpellName) then
@@ -250,9 +308,13 @@ local function isDotReady(spellId, spellName)
 end
 
 local function isSongReady(spellId, spellName)
-	if not spellName then return false end
+	if not spellName then
+		return false
+	end
 	local actualSpellName = spellName
-	if state.subscription ~= 'GOLD' then actualSpellName = spellName:gsub(' Rk%..*', '') end
+	if state.subscription ~= 'GOLD' then
+		actualSpellName = spellName:gsub(' Rk%..*', '')
+	end
 	if mq.TLO.Spell(spellName).Mana() > mq.TLO.Me.CurrentMana() or (mq.TLO.Spell(spellName).Mana() > 1000 and state.loop.PctMana < state.minMana) then
 		return false
 	end
@@ -277,7 +339,7 @@ local function isSongReady(spellId, spellName)
 		return true
 	else
 		local cast_time = mq.TLO.Spell(spellName).MyCastTime()
-		if songDuration < cast_time +500 then
+		if songDuration < cast_time + 500 then
 			logger.debug(logger.flags.class.cast, 'song ready %s', spellName)
 		end
 		return songDuration < cast_time + 500
@@ -285,12 +347,17 @@ local function isSongReady(spellId, spellName)
 end
 
 local function findNextSong()
-	if tryAlliance() then return nil end
-	if castSynergy() then return nil end
+	if tryAlliance() then
+		return nil
+	end
+	if castSynergy() then
+		return nil
+	end
 	if not mq.TLO.Target.Snared() and class.isEnabled('USESNARE') and ((mq.TLO.Target.PctHPs() or 100) < 30) then
 		return class.spells.snare
 	end
-	for _,song in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do -- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
+	for _, song in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
+		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
 		local song_id = song.ID
 		local song_name = song.Name
 		if isSongReady(song_id, song_name) and class.isAbilityEnabled(song.opt) and not mq.TLO.Target.Buff(song.CheckFor)() then
@@ -303,13 +370,25 @@ local function findNextSong()
 end
 
 function class.cast()
-	if class.isEnabled('USETWIST') or mq.TLO.Me.Invis() then return false end
+	-- Don't touch songs if we're using mq2twist or mq2medley or we're invis
+	if class.isEnabled('USETWIST') or mq.TLO.Me.Invis() then
+		return false
+	end
+	if class.isEnabled('USEMEDLEY') then
+		class.medley()
+		return false
+	end
+
 	if not state.loop.Invis and class.doneSinging() then
+		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
 			if (class.OPTS.USEEPIC.value == 'always' or state.burnActive or (class.OPTS.USEEPIC.value == 'shm' and mq.TLO.Me.Song('Prophet\'s Gift of the Ruchu')())) then
-				if class.useEpic() then mq.delay(250) return true end
+				if class.useEpic() then
+					mq.delay(250)
+					return true
+				end
 			end
-			for _,clicky in ipairs(class.castClickies) do
+			for _, clicky in ipairs(class.castClickies) do
 				if clicky.TargetType == 'Single' then
 					-- if single target clicky then make sure in combat
 					if (clicky.Duration == 0 or not mq.TLO.Target.Buff(clicky.CheckFor)()) then
@@ -327,21 +406,6 @@ function class.cast()
 				end
 			end
 		end
-		local spell = findNextSong() -- find the first available dot to cast that is missing from the target
-		if spell then -- if a song was found
-			local didCast = false
-			if spell.TargetType == 'Single' and mq.TLO.Target.Type() == 'NPC' then
-				if mq.TLO.Me.CombatState() == 'COMBAT' then didCast = spell:use() end
-			else
-				didCast = spell:use()
-			end
-			if not mq.TLO.Me.Casting() then
-				-- not casting, so either we just played selos or missed a note, take some time for unknown reasons
-				mq.delay(500)
-			end
-			if spell.Name == (class.spells.crescendo and class.spells.crescendo.Name) then crescendoTimer:reset() end
-			return didCast
-		end
 	end
 	return false
 end
@@ -350,8 +414,12 @@ local fierceeye = common.getAA('Fierce Eye')
 local epic = common.getItem('Blade of Vesagran') or common.getItem('Prismatic Dragon Blade')
 function class.useEpic()
 	if not fierceeye or not epic then
-		if fierceeye then return fierceeye:use() end
-		if epic then return epic:use() end
+		if fierceeye then
+			return fierceeye:use()
+		end
+		if epic then
+			return epic:use()
+		end
 		return
 	end
 	local fierceeye_rdy = mq.TLO.Me.AltAbilityReady(fierceeye.Name)()
@@ -365,7 +433,9 @@ function class.useEpic()
 		return true
 	end
 end
-function class.burnClass() class.useEpic() end
+function class.burnClass()
+	class.useEpic()
+end
 
 function class.mashClass()
 	if class.isEnabled('USEBELLOW') and class.bellow and bellowTimer:timerExpired() and class.bellow:use() then
@@ -391,15 +461,21 @@ function class.invis()
 	mq.cmd('/stopcast')
 	mq.delay(1)
 	mq.cmd('/cast "selo\'s song of travel"')
-	mq.delay(3500, function() return mq.TLO.Me.Invis() end)
+	mq.delay(3500, function()
+		return mq.TLO.Me.Invis()
+	end)
 	state.loop.Invis = true
 end
 
-local composite_names = {['Composite Psalm']=true,['Dissident Psalm']=true,['Dichotomic Psalm']=true}
+local composite_names = { ['Composite Psalm'] = true, ['Dissident Psalm'] = true, ['Dichotomic Psalm'] = true }
 local checkSpellTimer = timer:new(30000)
 function class.checkSpellSet()
-	if not common.clearToBuff() or mq.TLO.Me.Moving() or class.isEnabled('BYOS') then return end
-	if not class.doneSinging() then return end
+	if not common.clearToBuff() or mq.TLO.Me.Moving() or class.isEnabled('BYOS') then
+		return
+	end
+	if not class.doneSinging() then
+		return
+	end
 	local spellSet = class.OPTS.SPELLSET.value
 	if state.spellSetLoaded ~= spellSet or checkSpellTimer:timerExpired() then
 		if spellSet == 'melee' then
@@ -447,7 +523,8 @@ function class.checkSpellSet()
 			abilities.swapSpell(class.spells.composite, 12, composite_names)
 			abilities.swapSpell(class.spells.dirge, 13)
 			state.spellSetLoaded = spellSet
-		else -- emu spellsets
+		else
+			-- emu spellsets
 			abilities.swapSpell(class.spells.emuaura, 1)
 			abilities.swapSpell(class.spells.pulse, 2)
 			abilities.swapSpell(class.spells.emuhaste, 3)
@@ -473,7 +550,9 @@ function class.pullCustom()
 end
 
 function class.doneSinging()
-	if class.isEnabled('USETWIST') then return true end
+	if class.isEnabled('USETWIST') or class.isEnabled('USEMEDLEY') then
+		return true
+	end
 	if mq.TLO.Me.CastTimeLeft() > 0 and not mq.TLO.Window('CastingWindow').Open() then
 		mq.delay(250)
 		mq.cmd('/stopsong')

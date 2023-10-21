@@ -10,6 +10,7 @@ local casting = {
 }
 
 function casting.cast(spell, targetID, interruptCheck)
+    printf(logger.logLine('In casting.cast'))
     if state.class == 'brd' and spell.MyCastTime <= 500 and spell.CastType == abilities.Types.Item then
         -- do nothing
     elseif state.class == 'brd' and spell.CastType == abilities.Types.Spell then
