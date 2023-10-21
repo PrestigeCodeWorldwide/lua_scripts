@@ -22,12 +22,8 @@ local commands = {
         {command='door', tip='Click the nearest door'},
         {command='ignore', tip='Adds the targeted mob to the ignore list for the current zone'},
         {command='unignore', tip='Removes the targeted mob from the ignore list for the current zone'},
-        {command='sell', tip='Sells items marked to be sold to the targeted or already opened vendor'},
-        {command='update', tip='Downloads the latest source zip'},
-        {command='docs', tip='Launches the documentation site in a browser window'},
-        {command='wiki', tip='Launches the Lazarus wiki in a browser window'},
-        {command='baz', tip='Launches the Lazarus Bazaar in a browser window'},
-        {command='manastone', tip='Spam manastone to get some mana back'},
+        {command='switchwithma', tip='Toggle switching target with MA'},
+        {command='assistat', tip='Sets mob hp for assist to start (0-100)'},
     }
 }
 
@@ -206,14 +202,6 @@ function commands.commandHandler(...)
         mq.cmdf('/dgga /say %s', repeatstring)
     elseif opt == 'force' then
         aqo.assist.forceAssist(new_value)
-    elseif opt == 'update' then
-        os.execute('start https://github.com/aquietone/aqobot/archive/refs/heads/emu.zip')
-    elseif opt == 'docs' then
-        os.execute('start https://aquietone.github.io/docs/aqobot/classes/'..aqo.state.class)
-    elseif opt == 'wiki' then
-        os.execute('start https://www.lazaruseq.com/Wiki/index.php/Main_Page')
-    elseif opt == 'baz' then
-        os.execute('start https://www.lazaruseq.com/Magelo/index.php?page=bazaar')
     elseif opt == 'door' then
         mq.cmd('/doortarget')
         mq.delay(50)
@@ -245,6 +233,10 @@ function commands.commandHandler(...)
         end
     elseif opt == 'armpets' then
         aqo.class.armPets()
+    elseif opt == 'switchwithma' then
+        state.switchWithMA = not state.switchWithMA
+    elseif opt == 'assistat' then
+
     else
         commands.classSettingsHandler(opt:upper(), new_value)
     end
