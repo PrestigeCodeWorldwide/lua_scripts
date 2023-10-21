@@ -8,11 +8,11 @@ local common = require('common')
 local constants = require('constants')
 local state = require('state')
 
-local aqo
+local zen
 local buff = {}
 
 function buff.init(_aqo)
-    aqo = _aqo
+    zen = _aqo
 end
 
 function buff.needsBuff(spell, buffTarget)
@@ -200,7 +200,7 @@ local function buffPet(base)
     if base.isEnabled('BUFFPET') and mq.TLO.Pet.ID() > 0 then
         local distance = mq.TLO.Pet.Distance3D() or 300
         if distance > 100 then return false end
-        if aqo.class.useCommonListProcessor then
+        if zen.class.useCommonListProcessor then
             common.processList(base.petBuffs, true)
             return
         end
@@ -225,7 +225,7 @@ function buff.reportBuffs()
         if songID then buffList = buffList .. songID .. '|' end
     end
     if buffList ~= '' then
-        mq.cmdf('/squelch /dga aqo /squelch /docommand /$\\{Me.Class.ShortName} bufflist %s %s %s', mq.TLO.Me.CleanName(), mq.TLO.Me.Class.ShortName(), buffList)
+        mq.cmdf('/squelch /dga zen /squelch /docommand /$\\{Me.Class.ShortName} bufflist %s %s %s', mq.TLO.Me.CleanName(), mq.TLO.Me.Class.ShortName(), buffList)
     end
 end
 
@@ -241,7 +241,7 @@ function buff.reportSick()
         sickList = sickList .. 'C_' .. mq.TLO.Me.Cursed() .. '_' .. mq.TLO.Me.CountersCurse() .. '|'
     end
     if sickList ~= '' then
-        mq.cmdf('/squelch /dga aqo /squelch /docommand /$\\{Me.Class.ShortName} sicklist %s %s', mq.TLO.Me.CleanName(), sickList)
+        mq.cmdf('/squelch /dga zen /squelch /docommand /$\\{Me.Class.ShortName} sicklist %s %s', mq.TLO.Me.CleanName(), sickList)
     end
 end
 

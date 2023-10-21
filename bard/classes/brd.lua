@@ -13,7 +13,7 @@ function class.init(_aqo)
 	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1 }
 	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, med = {}, downtime = {} }
 	class.DEFAULT_SPELLSET = 'melee'
-	class.medleyIsRunning = false
+	class.medleyRunning = 'none'
 
 	class.initBase(_aqo, 'brd')
 
@@ -41,25 +41,53 @@ function class.init(_aqo)
 	class.selos = common.getAA('Selo\'s Sonata')
 end
 
+function class.IsInvis()
+	return mq.TLO.Me.Invis() or state.loop.Invis
+end
+
+function class.StopMedley()
+	if class.medleyIsRunning then
+		mq.cmd('/medley stop')
+		-- Often need to call stop twice for it to fully take effect
+		mq.delay(10)
+		mq.cmd('/medley stop')
+		class.medleyRunning = 'none'
+	end
+end
+
+function info(strtoprint)
+	--printf(logger.logLine(strtoprint))
+	printf(logger.logLine('%s', strtoprint))
+end
+
 -- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
 function class.medley()
-	printf(logger.logLine('Starting Medley subroutine'))
-	-- If in combat, we use the chosen combat song
-	if mq.TLO.Me.CombatState() == 'COMBAT' and not state.loop.Invis and not class.medleyIsRunning then
-		if class.OPTS.MEDLEY_OPTS.value == 'melee' then
-			mq.cmd('/medley melee')
-		elseif class.OPTS.MEDLEY_OPTS.value == 'caster' then
-			mq.cmd('/medley caster')
-		elseif class.OPTS.MEDLEY_OPTS.value == 'meleedot' then
-			mq.cmd('/medley meleedot')
+	--info("In medley")
+
+	-- If in combat, we use the chosen combat song - states are ACTIVE, COMBAT, COOLDOWN
+	if mq.TLO.Me.CombatState() == 'COMBAT' and not class.IsInvis() then
+
+		if class.medleyRunning ~= class.OPTS.MEDLEYTYPE.value then
+			mq.cmd('/medley ' .. class.OPTS.MEDLEYTYPE.value)
+
+			class.medleyRunning = class.OPTS.MEDLEYTYPE.value
+
 		end
-	elseif not state.loop.Invis and not class.medleyIsRunning then
+	elseif not class.IsInvis() then
 		-- If not in combat, we use the downtime song
-		mq.cmd('/medley downtime')
+		if class.medleyRunning ~= 'downtime' then
+			mq.cmd('/medley downtime')
+			class.medleyRunning = 'downtime'
+		end
 	end
 
+	-- If we're invis, stop medley
+	if class.IsInvis() and class.medleyRunning ~= 'none' then
+		mq.cmd('/medley stop')
+		class.medleyRunning = 'none'
+	end
 
-	if not state.loop.Invis then
+	if not class.IsInvis() then
 		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
 			if (class.OPTS.USEEPIC.value == 'always' or state.burnActive or (class.OPTS.USEEPIC.value == 'shm' and mq.TLO.Me.Song('Prophet\'s Gift of the Ruchu')())) then
@@ -105,7 +133,8 @@ function class.initClassOptions()
 	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
 	class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
 	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
-	class.addOption('MEDLEYLINE', 'Medley Category', false, class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
+	-- base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype)
+	class.addOption('MEDLEYTYPE', 'Medley Type', 'melee', class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'combobox', nil, 'MedleyType', 'string')
 	class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil, 'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
 	class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil, 'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
 	class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil, 'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')

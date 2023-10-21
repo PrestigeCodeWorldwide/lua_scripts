@@ -65,9 +65,9 @@ local Ability = {
     CastType = AbilityTypes.Spell,
 }
 
-local aqo
+local zen
 function Ability.init(_aqo)
-    aqo = _aqo
+    zen = _aqo
 end
 
     ---Initialize a new ability istance.
@@ -201,15 +201,15 @@ function Ability.use(theAbility, doSwap)
     logger.debug(logger.flags.ability.all, 'ENTER Ability.use \ag%s\ax', theAbility.Name)
     if not theAbility.timer:timerExpired() then return result end
     if mq.TLO.Me.Casting() and (state.class ~= 'BRD' or theAbility.MyCastTime >= 500) then return result end
-    if (theAbility:isReady() or (theAbility.CastType == AbilityTypes.Spell and doSwap)) and (not theAbility.condition or theAbility.condition(theAbility)) and aqo.class.isAbilityEnabled(theAbility.opt) then
+    if (theAbility:isReady() or (theAbility.CastType == AbilityTypes.Spell and doSwap)) and (not theAbility.condition or theAbility.condition(theAbility)) and zen.class.isAbilityEnabled(theAbility.opt) then
         if theAbility.CastType == AbilityTypes.Spell and doSwap then
             result = Ability.swapAndCast(theAbility, state.swapGem)
         else
-            --if theAbility.pause then mq.cmd('/squelch /dga aqo /squelch /aqo pauseforbuffs') end
+            --if theAbility.pause then mq.cmd('/squelch /dga zen /squelch /zen pauseforbuffs') end
             if theAbility.precast then theAbility.precast() end
             result = theAbility:execute()
             if theAbility.postcast then theAbility.postcast() end
-            --if theAbility.pause then state.queuedAction = function() mq.cmd('/squelch /dga aqo /squelch /aqo resumeforbuffs') end end
+            --if theAbility.pause then state.queuedAction = function() mq.cmd('/squelch /dga zen /squelch /zen resumeforbuffs') end end
         end
     end
     return result

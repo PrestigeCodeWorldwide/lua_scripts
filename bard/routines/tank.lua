@@ -11,7 +11,7 @@ local state = require('state')
 
 local tank = {}
 
-function tank.init(aqo)
+function tank.init(zen)
 
 end
 

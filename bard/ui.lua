@@ -39,12 +39,12 @@ local RED = ImVec4(1, 0, 0, 1)
 local LIGHT_BLUE = ImVec4(.6, .8, 1, 1)
 local ORANGE = ImVec4(1, .65, 0, 1)
 
-local aqo
+local zen
 local ui = {}
 
 function ui.init(_aqo)
-    aqo = _aqo
-    mq.imgui.init('AQO Bot 1.0', ui.main)
+    zen = _aqo
+    mq.imgui.init('ZEN Bot 1.0', ui.main)
 end
 
 function ui.toggleGUI(open)
@@ -201,12 +201,12 @@ local function drawSkillsTab()
     local yOffset = y
     local maxY = yOffset
     local _, yAvail = ImGui.GetContentRegionAvail()
-    for _,key in ipairs(aqo.class.OPTS) do
+    for _,key in ipairs(zen.class.OPTS) do
         if key ~= 'USEGLYPH' and key ~= 'USEINTENSITY' then
-            local option = aqo.class.OPTS[key]
+            local option = zen.class.OPTS[key]
             if option.type == 'checkbox' then
                 option.value = ui.drawCheckBox(option.label, '##'..key, option.value, option.tip, xOffset, yOffset)
-                if option.value and option.exclusive then aqo.class.OPTS[option.exclusive].value = false end
+                if option.value and option.exclusive then zen.class.OPTS[option.exclusive].value = false end
             elseif option.type == 'combobox' then
                 option.value = ui.drawComboBox(option.label, option.value, option.options, true, option.tip, xOffset, yOffset)
             elseif option.type == 'inputint' then
@@ -238,7 +238,7 @@ local function drawBurnTab()
         mq.cmdf('/%s burnnow long', state.class)
     end
     drawConfigurationForCategory(config.getByCategory('Burn'))
-    if aqo.class.drawBurnTab then aqo.class.drawBurnTab() end
+    if zen.class.drawBurnTab then zen.class.drawBurnTab() end
 end
 
 local function drawPullTab()
@@ -279,11 +279,11 @@ end
 local function drawDebugTab()
     local x,_ = ImGui.GetContentRegionAvail()
     local buttonWidth = (x / 2)
-    if ImGui.Button('Restart AQO', buttonWidth, BUTTON_HEIGHT) then
-        mq.cmd('/multiline ; /lua stop aqo ; /timed 10 /lua run aqo')
+    if ImGui.Button('Restart ZEN', buttonWidth, BUTTON_HEIGHT) then
+        mq.cmd('/multiline ; /lua stop zen ; /timed 10 /lua run zen')
     end
     ImGui.SameLine()
-    if ImGui.Button('Update AQO', buttonWidth, BUTTON_HEIGHT) then
+    if ImGui.Button('Update ZEN', buttonWidth, BUTTON_HEIGHT) then
         os.execute('start https://github.com/aquietone/aqobot/archive/refs/heads/emu.zip')
     end
     if ImGui.Button('View Ability Lists', x, BUTTON_HEIGHT) then
@@ -389,7 +389,7 @@ local function drawHeader()
     helpMarker('Pause/Resume')
     ImGui.SameLine()
     if ImGui.Button(lists.icons.FA_SAVE, buttonWidth, BUTTON_HEIGHT) then
-        aqo.class.saveSettings()
+        zen.class.saveSettings()
     end
     helpMarker('Save Settings')
     ImGui.SameLine()
@@ -451,14 +451,14 @@ local function drawAbilityInspector()
         abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(('Ability Inspector##AQOBOTUI%s'):format(state.class), abilityGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
         if shouldDrawAbilityGUI then
             if ImGui.TreeNode('Class Order') then
-                for _,routine in ipairs(aqo.class.classOrder) do
+                for _,routine in ipairs(zen.class.classOrder) do
                     ImGui.Text(routine)
                 end
                 ImGui.TreePop()
             end
             if mq.TLO.Me.Class.CanCast() then
                 if ImGui.TreeNode('Spells') then
-                    for alias,spell in pairs(aqo.class.spells) do
+                    for alias,spell in pairs(zen.class.spells) do
                         if ImGui.TreeNode(alias..'##spellalias') then
                             ImGui.Text('Name: %s', spell.Name)
                             for opt,value in pairs(spell) do
@@ -472,7 +472,7 @@ local function drawAbilityInspector()
                     ImGui.TreePop()
                 end
                 if ImGui.TreeNode('Spell Sets') then
-                    for spellSetName,spellSet in pairs(aqo.class.spellRotations) do
+                    for spellSetName,spellSet in pairs(zen.class.spellRotations) do
                         if ImGui.TreeNode(spellSetName..'##spellset') then
                             for _,spell in ipairs(spellSet) do
                                 ImGui.Text(spell.Name)
@@ -485,14 +485,14 @@ local function drawAbilityInspector()
             end
             if ImGui.TreeNode('Lists') then
                 for i, list in ipairs(lists.classLists) do
-                    if #aqo.class[list] > 0 then
+                    if #zen.class[list] > 0 then
                         if ImGui.TreeNode(list..'##lists'..i) then
-                            for j,ability in ipairs(aqo.class[list]) do
+                            for j,ability in ipairs(zen.class[list]) do
                                 if ImGui.TreeNode(ability.Name..'##list'..list..i..j) then
                                     for opt,value in pairs(ability) do
                                         if opt ~= 'Name' and (type(value) == 'number' or type(value) == 'string' or type(value) == 'boolean') then
                                             local color = WHITE
-                                            if opt == 'opt' then if aqo.class.isEnabled(value) then color = GREEN else color = RED end end
+                                            if opt == 'opt' then if zen.class.isEnabled(value) then color = GREEN else color = RED end end
                                             ImGui.TextColored(color, '%s: %s', opt, value)
                                         end
                                     end
@@ -503,19 +503,19 @@ local function drawAbilityInspector()
                         end
                     elseif list == 'clickies' then
                         if ImGui.TreeNode(list..'##lists'..i) then
-                            for clickyName,clickyType in pairs(aqo.class.clickies) do
+                            for clickyName,clickyType in pairs(zen.class.clickies) do
                                 ImGui.Text('%s (%s)', clickyName, clickyType)
                             end
                             ImGui.TreePop()
                         end
                     end
                 end
-                if aqo.class.rezAbility then
+                if zen.class.rezAbility then
                     if ImGui.TreeNode('rezAbility') then
-                        for opt,value in pairs(aqo.class.rezAbility) do
+                        for opt,value in pairs(zen.class.rezAbility) do
                             if (type(value) == 'number' or type(value) == 'string' or type(value) == 'boolean') then  -- opt ~= 'Name' and 
                                 local color = WHITE
-                                if opt == 'opt' then if aqo.class.isEnabled(value) then color = GREEN else color = RED end end
+                                if opt == 'opt' then if zen.class.isEnabled(value) then color = GREEN else color = RED end end
                                 ImGui.TextColored(color, '%s: %s', opt, value)
                             end
                         end
@@ -531,12 +531,12 @@ end
 
 local function drawHelpWindow()
     if helpGUIOpen then
-        helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('AQO Help##AQOBOTUI%s'):format(state.class), helpGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
+        helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('ZEN Help##AQOBOTUI%s'):format(state.class), helpGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
         if shouldDrawHelpGUI then
             ImGui.PushTextWrapPos(750)
             if ImGui.TreeNode('General Commands') then
                 for _,command in ipairs(commands.help) do
-                    ImGui.TextColored(YELLOW, '/aqo '..command.command) ImGui.SameLine() ImGui.Text(command.tip)
+                    ImGui.TextColored(YELLOW, '/zen '..command.command) ImGui.SameLine() ImGui.Text(command.tip)
                 end
                 ImGui.TreePop()
             end
@@ -546,7 +546,7 @@ local function drawHelpWindow()
                     for _,key in ipairs(categoryConfigs) do
                         local cfg = config[key]
                         if type(cfg) == 'table' then
-                            ImGui.TextColored(YELLOW, '/aqo ' .. key .. ' <' .. type(cfg.value) .. '>')
+                            ImGui.TextColored(YELLOW, '/zen ' .. key .. ' <' .. type(cfg.value) .. '>')
                             ImGui.SameLine()
                             ImGui.Text(cfg.tip)
                         end
@@ -555,10 +555,10 @@ local function drawHelpWindow()
                 end
             end
             if ImGui.TreeNode('Class Configuration') then
-                for key,value in pairs(aqo.class.OPTS) do
+                for key,value in pairs(zen.class.OPTS) do
                     local valueType = type(value.value)
                     if valueType == 'string' or valueType == 'number' or valueType == 'boolean' then
-                        ImGui.TextColored(YELLOW, '/aqo ' .. key .. ' <' .. valueType .. '>')
+                        ImGui.TextColored(YELLOW, '/zen ' .. key .. ' <' .. valueType .. '>')
                         ImGui.SameLine()
                         ImGui.Text('%s', value.tip)
                     end
@@ -575,7 +575,7 @@ local function drawHelpWindow()
             if ImGui.TreeNode('Buff Begging  (WARNING*: Characters accounce requests to group or raid chat!') then
                 ImGui.TextColored(YELLOW, '/tell <name> <alias>')
                 ImGui.TextColored(YELLOW, 'Aliases:')
-                for alias,_ in pairs(aqo.class.requestAliases) do
+                for alias,_ in pairs(zen.class.requestAliases) do
                     ImGui.Text(alias)
                 end
                 ImGui.TreePop()
@@ -590,7 +590,7 @@ end
 function ui.main()
     if not openGUI then return end
     pushStyle(uiTheme)
-    openGUI, shouldDrawGUI = ImGui.Begin(string.format('AQO Bot 1.0 - %s###AQOBOTUI%s', state.class, state.class), openGUI, 0)
+    openGUI, shouldDrawGUI = ImGui.Begin(string.format('ZEN Bot 1.0 - %s###AQOBOTUI%s', state.class, state.class), openGUI, 0)
     if shouldDrawGUI then
         drawHeader()
         drawBody()

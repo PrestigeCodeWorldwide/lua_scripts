@@ -17,27 +17,27 @@ local constants = require('constants')
 local mode = require('mode')
 local state = require('state')
 
-local aqo = {}
+local zen = {}
 
 local routines = {'assist','buff','camp','conditions','cure','debuff','events','heal','mez','pull','tank'}
 for _,routine in ipairs(routines) do
-    aqo[routine] = require('routines.'..routine)
-    aqo[routine].init(aqo)
+    zen[routine] = require('routines.'..routine)
+    zen[routine].init(zen)
 end
 
 local function init()
     -- Initialize class specific functions
-    aqo.class = require('classes.'..state.class)
-    aqo.class.init(aqo)
-    aqo.events.initClassBasedEvents()
-    ability.init(aqo)
+    zen.class = require('classes.'..state.class)
+    zen.class.init(zen)
+    zen.events.initClassBasedEvents()
+    ability.init(zen)
 
     -- Initialize binds
-    mq.cmd('/squelch /djoin aqo')
-    commands.init(aqo)
+    mq.cmd('/squelch /djoin zen')
+    commands.init(zen)
 
     -- Initialize UI
-    ui.init(aqo)
+    ui.init(zen)
 
     state.currentZone = mq.TLO.Zone.ID()
     state.subscription = mq.TLO.Me.Subscription()
@@ -59,14 +59,14 @@ local function init()
     mq.cmd('/squelch /autodrink 5000')
     mq.cmdf('/setwintitle %s (Level %s %s)', mq.TLO.Me.CleanName(), mq.TLO.Me.Level(), state.class)
 
-    --tlo.init(aqo)
+    --tlo.init(zen)
 end
 
 ---Check if the current game state is not INGAME, and exit the script if it is.
 ---Otherwise, update state for the current loop so we don't have to go to the TLOs every time.
 local function updateLoopState()
     if mq.TLO.MacroQuest.GameState() ~= 'INGAME' then
-        print(logger.logLine('Not in game, stopping aqo.'))
+        print(logger.logLine('Not in game, stopping zen.'))
         mq.exit()
     end
     state.actionTaken = false
@@ -124,8 +124,8 @@ end
 ---Remove harmful buffs such as lich if HP is getting low, regardless of paused state
 local torporLandedInCombat = false
 local function buffSafetyCheck()
-    if state.class == 'nec' and state.loop.PctHPs < 40 and aqo.class.spells.lich then
-        mq.cmdf('/removebuff %s', aqo.class.spells.lich.Name)
+    if state.class == 'nec' and state.loop.PctHPs < 40 and zen.class.spells.lich then
+        mq.cmdf('/removebuff %s', zen.class.spells.lich.Name)
     end
     if not torporLandedInCombat and mq.TLO.Me.Song('Transcendent Torpor')() and mq.TLO.Me.CombatState() == 'COMBAT' then
         torporLandedInCombat = true
@@ -171,7 +171,7 @@ function fsm.IDLE()
     
 end
 function fsm.TANK_SCAN()
-    aqo.tank.findMobToTank()
+    zen.tank.findMobToTank()
 end
 function fsm.TANK_ENGAGE() end
 function fsm.PULL_SCAN() end
@@ -203,7 +203,7 @@ local function main()
     -- Main Loop
     while true do
         if state.debug and debugTimer:timerExpired() then
-            logger.debug(logger.flags.aqo.main, 'Start Main Loop')
+            logger.debug(logger.flags.zen.main, 'Start Main Loop')
             debugTimer:reset()
         end
 
@@ -212,7 +212,7 @@ local function main()
         buffSafetyCheck()
         if not state.paused and common.inControl() then
             if not handleStates() then
-                aqo.camp.cleanTargets()
+                zen.camp.cleanTargets()
                 checkTarget()
                 if not state.loop.Invis and not common.isBlockingWindowOpen() then
                     -- do active combat assist things when not paused and not invis
@@ -222,16 +222,16 @@ local function main()
                         doLooting()
                     end
                     if not state.actionTaken then
-                        aqo.class.mainLoop()
+                        zen.class.mainLoop()
                     end
                     mq.delay(50)
                 else
                     -- stay in camp or stay chasing chase target if not paused but invis
                     local pet_target_id = mq.TLO.Pet.Target.ID() or 0
                     if mq.TLO.Pet.ID() > 0 and pet_target_id > 0 then mq.cmd('/pet back') end
-                    aqo.camp.mobRadar()
-                    if (mode:isTankMode() and state.mobCount > 0) or (mode:isAssistMode() and aqo.assist.shouldAssist()) or mode:getName() == 'huntertank' then mq.cmd('/makemevis') end
-                    aqo.camp.checkCamp()
+                    zen.camp.mobRadar()
+                    if (mode:isTankMode() and state.mobCount > 0) or (mode:isAssistMode() and zen.assist.shouldAssist()) or mode:getName() == 'huntertank' then mq.cmd('/makemevis') end
+                    zen.camp.checkCamp()
                     common.checkChase()
                     common.rest()
                     mq.delay(50)
@@ -249,7 +249,7 @@ local function main()
             mq.delay(500)
         end
         -- broadcast some buff and poison/disease/curse state around netbots style
-        aqo.buff.broadcast()
+        zen.buff.broadcast()
     end
 end
 

@@ -3,7 +3,7 @@ local mq = require('mq')
 
 local cure = {}
 
-function cure.init(aqo)
+function cure.init(zen)
 
 end
 

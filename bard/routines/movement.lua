@@ -6,7 +6,7 @@ local spawnNavOptions = '| log=off'
 
 local movement = {}
 
-function movement.init(aqo)
+function movement.init(zen)
 
 end
 

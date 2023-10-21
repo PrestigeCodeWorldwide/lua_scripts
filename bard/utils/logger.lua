@@ -4,13 +4,13 @@ local logger = {
         class={ae=false,aggro=false,burn=false,cast=false,findspell=false,managepet=false,mash=false,ohshit=false,recover=false,rest=false},
         ability={validation=false,all=false,spell=false,aa=false,disc=false,item=false,skill=false},
         common={chase=false,cast=false,memspell=false,misc=false,loot=false},
-        aqo={main=false,commands=false,configuration=false},
+        zen={main=false,commands=false,configuration=false},
         announce={spell=true,aa=true,disc=true,item=true,skill=true},
     },
     timestamps = false,
 }
 
-local log_prefix = '\a-t[\ax\ayAQOBot\ax\a-t]\ax \aw'
+local log_prefix = '\a-t[\ax\ayZenBot\ax\a-t]\ax \aw'
 
 function logger.logLine(...)
     local timestampPrefix = logger.timestamps and '\a-w['..os.date('%X')..']\ax' or ''

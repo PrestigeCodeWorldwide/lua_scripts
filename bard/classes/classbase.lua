@@ -19,7 +19,7 @@ local constants = require('constants')
 local mode = require('mode')
 local state = require('state')
 
-local aqo
+local zen
 ---@class base
 ---@field classOrder table #All possible class routine methods
 ---@field OPTS table #Collection of options for the class which appear in the Skills tab
@@ -99,7 +99,7 @@ local base = {
 }
 
 function base.initBase(_aqo, class)
-    aqo = _aqo
+    zen = _aqo
     base.class = class
     base.addCommonOptions()
     base.addCommonAbilities()
@@ -378,7 +378,7 @@ local function doCombatLoop(list, burn_type)
     end
 end
 
--- Consumable clickies that are likely not present when AQO starts so don't add as item lookups, plus used for all classes
+-- Consumable clickies that are likely not present when ZEN starts so don't add as item lookups, plus used for all classes
 local function doMashClickies()
     for _,clicky in ipairs(constants.ddClickies) do
         local clickyItem = mq.TLO.FindItem('='..clicky)

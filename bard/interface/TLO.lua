@@ -3,7 +3,7 @@ local config = require('interface.configuration')
 local mode = require('mode')
 local state = require('state')
 
-local aqo
+local zen
 local AQOType
 local TLO = {}
 
@@ -18,7 +18,7 @@ local function AQOTLO(index)
 end
 
 function TLO.init(_aqo)
-    aqo = _aqo
+    zen = _aqo
 
     for k,v in pairs(config) do
         if type(v) == 'table' and v.tlo and v.tlotype then
@@ -29,7 +29,7 @@ function TLO.init(_aqo)
         end
     end
 
-    for k,v in pairs(aqo.class.OPTS) do
+    for k,v in pairs(zen.class.OPTS) do
         if v.tlo and v.tlotype then
             tlomembers[v.tlo] = function() return v.tlotype, v.value end
         end
@@ -39,10 +39,10 @@ function TLO.init(_aqo)
         Members = tlomembers
     })
     function AQOType.ToString()
-        return ('AQO Running = %s, Mode = %s'):format(not state.paused, mode.currentMode:getName())
+        return ('ZEN Running = %s, Mode = %s'):format(not state.paused, mode.currentMode:getName())
     end
 
-    mq.AddTopLevelObject('AQO', AQOTLO)
+    mq.AddTopLevelObject('ZEN', AQOTLO)
 end
 
 return TLO

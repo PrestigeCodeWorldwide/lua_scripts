@@ -7,7 +7,7 @@ local state = require('state')
 
 local healing = {}
 
-function healing.init(aqo)
+function healing.init(zen)
 
 end
 

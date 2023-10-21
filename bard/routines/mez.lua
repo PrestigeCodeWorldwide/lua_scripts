@@ -8,7 +8,7 @@ local state = require('state')
 
 local mez = {}
 
-function mez.init(aqo)
+function mez.init(zen)
 
 end
 

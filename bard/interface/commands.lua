@@ -13,13 +13,13 @@ local constants = require('constants')
 local mode = require('mode')
 local state = require('state')
 
-local aqo
+local zen
 local commands = {}
 
 function commands.init(_aqo)
-    aqo = _aqo
+    zen = _aqo
 
-    mq.bind('/aqo', commands.commandHandler)
+    mq.bind('/zen', commands.commandHandler)
     mq.bind(('/%s'):format(state.class), commands.commandHandler)
     mq.bind('/nowcast', commands.nowcastHandler)
 end
@@ -28,7 +28,7 @@ end
 local function showHelp()
     local myClass = mq.TLO.Me.Class.ShortName():lower()
     local prefix = '\n- /'..state.class..' '
-    local output = logger.logLine('AQO Bot 1.0\n')
+    local output = logger.logLine('ZEN Bot 1.0\n')
     output = output .. '\ayCommands:\aw'
     for _,command in ipairs(constants.commandHelp) do
         output = output .. prefix .. command.command .. ' -- ' .. command.tip
@@ -44,7 +44,7 @@ local function showHelp()
         end
     end
     output = output .. '\n\ayClass Configuration\aw'
-    for key,value in pairs(aqo.class.OPTS) do
+    for key,value in pairs(zen.class.OPTS) do
         local valueType = type(value.value)
         if valueType == 'string' or valueType == 'number' or valueType == 'boolean' then
             output = output .. prefix .. key .. ' <' .. valueType .. '>'
@@ -53,7 +53,7 @@ local function showHelp()
     end
     output = output .. '\n\ayGear Check:\aw /tell <name> gear <slotname> -- Slot Names: ' .. constants.slotList
     output = output .. '\n\ayBuff Begging:\aw /tell <name> <alias> -- Aliases: '
-    for alias,_ in pairs(aqo.class.requestAliases) do
+    for alias,_ in pairs(zen.class.requestAliases) do
         output = output .. alias .. ', '
     end
     output = (output .. '\ax'):gsub('cls', state.class)
@@ -76,7 +76,7 @@ function commands.commandHandler(...)
     if opt == 'HELP' then
         showHelp()
     elseif opt == 'RESTART' then
-        mq.cmd('/multiline ; /lua stop aqo ; /timed 5 /lua run aqo')
+        mq.cmd('/multiline ; /lua stop zen ; /timed 5 /lua run zen')
     elseif opt == 'DEBUG' then
         local section = args[2]
         local subsection = args[3]
@@ -92,7 +92,7 @@ function commands.commandHandler(...)
             state.burn_type = new_value
         end
     elseif opt == 'PREBURN' then
-        if aqo.class.preburn then aqo.class.preburn() end
+        if zen.class.preburn then zen.class.preburn() end
     elseif opt == 'PAUSE' then
         if not new_value then
             state.paused = not state.paused
@@ -170,28 +170,28 @@ function commands.commandHandler(...)
         end
         if itemName then
             local clicky = {name=itemName, clickyType=clickyType, summonMinimum=summonMinimum, opt=useif}
-            aqo.class.addClicky(clicky)
-            aqo.class.saveSettings()
+            zen.class.addClicky(clicky)
+            zen.class.saveSettings()
         else
             print(logger.logLine('addclicky Usage:\n\tPlace clicky item on cursor\n\t/%s addclicky category\n\tCategories: burn, mash, heal, buff', state.class))
         end
     elseif opt == 'REMOVECLICKY' then
         local itemName = mq.TLO.Cursor()
         if itemName then
-            aqo.class.removeClicky(itemName)
-            aqo.class.saveSettings()
+            zen.class.removeClicky(itemName)
+            zen.class.saveSettings()
         else
             print(logger.logLine('removeclicky Usage:\n\tPlace clicky item on cursor\n\t/%s removeclicky', state.class))
         end
     elseif opt == 'LISTCLICKIES' then
         local clickies = ''
-        for clickyName,clicky in pairs(aqo.class.clickies) do
+        for clickyName,clicky in pairs(zen.class.clickies) do
             clickies = clickies .. '\n- ' .. clickyName .. ' (' .. clicky.clickyType .. ')'
         end
         print(logger.logLine('Clickies: %s', clickies))
     elseif opt == 'INVIS' then
-        if aqo.class.invis then
-            aqo.class.invis()
+        if zen.class.invis then
+            zen.class.invis()
         end
     elseif opt == 'TRIBUTE' then
         mq.cmd('/keypress TOGGLE_TRIBUTEBENEFITWIN')
@@ -242,7 +242,7 @@ function commands.commandHandler(...)
             state.holdForBuffs = nil
         end
     elseif opt == 'ARMPETS' then
-        aqo.class.armPets()
+        zen.class.armPets()
     else
         commands.classSettingsHandler(opt, new_value)
     end
@@ -250,41 +250,41 @@ end
 
 function commands.classSettingsHandler(opt, new_value)
     if new_value then
-        if opt == 'SPELLSET' and aqo.class.OPTS.SPELLSET ~= nil then
-            if aqo.class.spellRotations[new_value] then
+        if opt == 'SPELLSET' and zen.class.OPTS.SPELLSET ~= nil then
+            if zen.class.spellRotations[new_value] then
                 print(logger.logLine('Setting %s to: %s', opt, new_value))
-                aqo.class.OPTS.SPELLSET.value = new_value
+                zen.class.OPTS.SPELLSET.value = new_value
             end
-        elseif opt == 'USEEPIC' and aqo.class.OPTS.USEEPIC ~= nil then
-            if aqo.class.EPIC_OPTS[new_value] then
+        elseif opt == 'USEEPIC' and zen.class.OPTS.USEEPIC ~= nil then
+            if zen.class.EPIC_OPTS[new_value] then
                 print(logger.logLine('Setting %s to: %s', opt, new_value))
-                aqo.class.OPTS.USEEPIC.value = new_value
+                zen.class.OPTS.USEEPIC.value = new_value
             end
-        elseif opt == 'AURA1' and aqo.class.OPTS.AURA1 ~= nil then
-            if aqo.class.AURAS[new_value] then
+        elseif opt == 'AURA1' and zen.class.OPTS.AURA1 ~= nil then
+            if zen.class.AURAS[new_value] then
                 print(logger.logLine('Setting %s to: %s', opt, new_value))
-                aqo.class.OPTS.AURA1.value = new_value
+                zen.class.OPTS.AURA1.value = new_value
             end
-        elseif opt == 'AURA2' and aqo.class.OPTS.AURA2 ~= nil then
-            if aqo.class.AURAS[new_value] then
+        elseif opt == 'AURA2' and zen.class.OPTS.AURA2 ~= nil then
+            if zen.class.AURAS[new_value] then
                 print(logger.logLine('Setting %s to: %s', opt, new_value))
-                aqo.class.OPTS.AURA2.value = new_value
+                zen.class.OPTS.AURA2.value = new_value
             end
-        elseif aqo.class.OPTS[opt] and type(aqo.class.OPTS[opt].value) == 'boolean' then
+        elseif zen.class.OPTS[opt] and type(zen.class.OPTS[opt].value) == 'boolean' then
             if constants.booleans[new_value] == nil then return end
-            aqo.class.OPTS[opt].value = constants.booleans[new_value]
+            zen.class.OPTS[opt].value = constants.booleans[new_value]
             print(logger.logLine('Setting %s to: %s', opt, constants.booleans[new_value]))
-        elseif aqo.class.OPTS[opt] and type(aqo.class.OPTS[opt].value) == 'number' then
+        elseif zen.class.OPTS[opt] and type(zen.class.OPTS[opt].value) == 'number' then
             if tonumber(new_value) then
                 print(logger.logLine('Setting %s to: %s', opt, tonumber(new_value)))
-                if aqo.class.OPTS[opt].value ~= nil then aqo.class.OPTS[opt].value = tonumber(new_value) end
+                if zen.class.OPTS[opt].value ~= nil then zen.class.OPTS[opt].value = tonumber(new_value) end
             end
         else
             print(logger.logLine('Unsupported command line option: %s %s', opt, new_value))
         end
     else
-        if aqo.class.OPTS[opt] ~= nil then
-            print(logger.logLine('%s: %s', opt:lower(), aqo.class.OPTS[opt].value))
+        if zen.class.OPTS[opt] ~= nil then
+            print(logger.logLine('%s: %s', opt:lower(), zen.class.OPTS[opt].value))
         else
             print(logger.logLine('Unrecognized option: %s', opt))
         end
@@ -292,7 +292,7 @@ function commands.classSettingsHandler(opt, new_value)
 end
 
 function commands.nowcastHandler(...)
-    aqo.class.nowCast({...})
+    zen.class.nowCast({...})
 end
 
 return commands
