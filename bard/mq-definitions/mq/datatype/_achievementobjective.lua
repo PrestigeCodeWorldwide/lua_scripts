@@ -1,0 +1,8 @@
+---@meta
+---@class achievementobj
+---@field ID MQInt
+---@field Description MQString
+---@field Count MQInt
+---@field RequiredCount MQString
+---@field Completed MQBoolean
+---@field Index MQInt

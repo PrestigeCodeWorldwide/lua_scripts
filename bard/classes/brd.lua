@@ -14,6 +14,7 @@ function class.init(_aqo)
 	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, med = {}, downtime = {} }
 	class.DEFAULT_SPELLSET = 'melee'
 	class.medleyRunning = 'none'
+	class.priorMedley = 'none'
 
 	class.initBase(_aqo, 'brd')
 
@@ -30,6 +31,12 @@ function class.init(_aqo)
 	class.initDefensiveAbilities(_aqo)
 	class.initRecoverAbilities(_aqo)
 
+	class.doSingleMez()
+	class.doAEMez()
+	class.medley()
+	class.stopMedley()
+
+
 	-- Bellow handled separately as we want it to run its course and not be refreshed early
 	class.bellow = common.getAA('Boastful Bellow')
 
@@ -45,8 +52,9 @@ function class.IsInvis()
 	return mq.TLO.Me.Invis() or state.loop.Invis
 end
 
-function class.StopMedley()
+function class.stopMedley()
 	if class.medleyIsRunning then
+		class.priorMedley = class.medleyRunning
 		mq.cmd('/medley stop')
 		-- Often need to call stop twice for it to fully take effect
 		mq.delay(10)
@@ -58,6 +66,53 @@ end
 function info(strtoprint)
 	--printf(logger.logLine(strtoprint))
 	printf(logger.logLine('%s', strtoprint))
+end
+
+function class.doSingleMez()
+	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then return end
+	for id,mobdata in pairs(state.targets) do
+		if state.debug then
+			logger.debug(logger.flags.routines.mez, '[%s] meztimer: %s, currentTime: %s, timerExpired: %s', id, mobdata['meztimer'].start_time, mq.gettime(), mobdata['meztimer']:timerExpired())
+		end
+		if id ~= state.assistMobID and (mobdata['meztimer'].start_time == 0 or mobdata['meztimer']:timerExpired()) then
+			local mob = mq.TLO.Spawn('id '..id)
+			if mob() and not state.mezImmunes[mob.CleanName()] then
+				local spellData = mq.TLO.Spell(mez_spell.CastName)
+				local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
+				if id ~= state.assistMobID and mob.Level() <= maxLevel and mob.Type() == 'NPC' then
+					mq.cmd('/attack off')
+					mq.delay(100, function() return not mq.TLO.Me.Combat() end)
+					mob.DoTarget()
+					mq.delay(1000, function() return mq.TLO.Target.BuffsPopulated() end)
+					local pct_hp = mq.TLO.Target.PctHPs()
+					if mq.TLO.Target() and mq.TLO.Target.Type() == 'Corpse' then
+						state.targets[id] = nil
+					elseif pct_hp and pct_hp > 85 then
+						local assist_spawn = assist.getAssistSpawn()
+						if assist_spawn == -1 or assist_spawn.ID() ~= id then
+							state.mezTargetName = mob.CleanName()
+							state.mezTargetID = id
+							print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
+							if mez_spell.precast then mez_spell.precast() end
+							-- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
+							-- Maybe make a concrete mez subroutine?
+							--abilities.use(mez_spell)
+
+							logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
+							state.targets[id].meztimer:reset()
+							mq.doevents('eventMezImmune')
+							mq.doevents('eventMezResist')
+							state.mezTargetID = 0
+							state.mezTargetName = nil
+							return true
+						end
+					end
+				elseif mob.Type() == 'Corpse' then
+					state.targets[id] = nil
+				end
+			end
+		end
+	end
 end
 
 -- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting

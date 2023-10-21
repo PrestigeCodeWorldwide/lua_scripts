@@ -42,6 +42,11 @@ function mez.doAE(mez_spell, ae_count)
     end
 end
 
+function info(strtoprint)
+    --printf(logger.logLine(strtoprint))
+    printf(logger.logLine('%s', strtoprint))
+end
+
 ---Cast single target mez spell if adds in camp.
 ---@param mez_spell table @The name of the single target mez spell to cast.
 function mez.doSingle(mez_spell)
@@ -70,6 +75,8 @@ function mez.doSingle(mez_spell)
                             state.mezTargetID = id
                             print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
                             if mez_spell.precast then mez_spell.precast() end
+                            -- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
+                            -- Maybe make a concrete mez subroutine?
                             abilities.use(mez_spell)
                             logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
                             state.targets[id].meztimer:reset()
