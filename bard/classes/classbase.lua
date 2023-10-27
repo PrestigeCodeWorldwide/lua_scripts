@@ -64,6 +64,11 @@ local zen
 ---@field rezAbility? Ability #
 ---@field epic? string # name of epic
 ---@field useCommonListProcessor? boolean #
+-- Bard specific
+---@field doSingleMez? function 
+---@field doAEMez? function
+---@field medley? function
+---@field stopMedley? function
 local base = {
     -- All possible class routine methods
     OPTS = {},

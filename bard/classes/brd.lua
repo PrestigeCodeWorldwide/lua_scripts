@@ -30,13 +30,8 @@ function class.init(_aqo)
 	class.initBuffs(_aqo)
 	class.initDefensiveAbilities(_aqo)
 	class.initRecoverAbilities(_aqo)
-
-	class.doSingleMez()
-	class.doAEMez()
-	class.medley()
-	class.stopMedley()
-
-
+	
+	
 	-- Bellow handled separately as we want it to run its course and not be refreshed early
 	class.bellow = common.getAA('Boastful Bellow')
 
@@ -53,13 +48,20 @@ function class.IsInvis()
 end
 
 function class.stopMedley()
-	if class.medleyIsRunning then
+	if class.medleyRunning ~= 'none' then
 		class.priorMedley = class.medleyRunning
 		mq.cmd('/medley stop')
 		-- Often need to call stop twice for it to fully take effect
 		mq.delay(10)
 		mq.cmd('/medley stop')
 		class.medleyRunning = 'none'
+	end
+end
+
+function class.startMedley()
+	if not class.IsInvis() then
+		mq.cmd('/medley')
+		class.medleyRunning = class.priorMedley
 	end
 end
 
@@ -97,6 +99,14 @@ function class.doSingleMez()
 							-- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
 							-- Maybe make a concrete mez subroutine?
 							--abilities.use(mez_spell)
+							class.stopMedley()
+							info("Casting mez:")
+							info(mez_spell)
+							abilities.use(mez_spell)
+							info("Mez cast, delaying 6000")
+							mq.delay(6000)
+							info("Mez delay over, restarting prior medley")
+							class.startMedley()
 
 							logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 							state.targets[id].meztimer:reset()

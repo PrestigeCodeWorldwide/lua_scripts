@@ -275,9 +275,10 @@ function assist.engage()
         -- pin, behindonce, behind, front, !front
         local maxRangeTo = mq.TLO.Target.MaxRangeTo() or 0
         if config.get('ASSIST') == 'manual' then
-            mq.cmdf('/squelch /stick snaproll moveback behind %s uw', math.min(maxRangeTo*.75, 25))
+            mq.cmdf('/squelch /stick snaproll moveback front %s uw', math.min(maxRangeTo*.75, 25))
         else
-            mq.cmdf('/squelch /stick !front uw')
+						-- TODO: Zen: Add a config option for this
+            mq.cmdf('/squelch /stick front uw')
         end
         stickTimer:reset()
     end
