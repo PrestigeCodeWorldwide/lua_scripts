@@ -77,23 +77,29 @@ function mez.doSingle(mez_spell)
 	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then return end
 		
 	for id, mobdata in pairs(state.targets) do		
+	  local mobName = mq.TLO.Spawn(id).Name()
 	  -- What we instead want to do is iterate each mob in camp and check the TLO to see if it has slumber
-		--if state.debug then
+		if state.debug then
 			logger.debug(logger.flags.announce.spell, '[%s] meztimer: %s, currentTime: %s, timerExpired: %s', id,
 				mobdata['meztimer'].start_time, mq.gettime(), mobdata['meztimer']:timerExpired())
-		--end
-		--if id ~= state.assistMobID and (mobdata['meztimer'].start_time == 0 or mobdata['meztimer']:timerExpired()) then
-		--local duration = mq.TLO.Spawn(id).BuffDuration['Slumber']
-		local duration = mq.TLO.Spawn(id).BuffDuration[Slumber]()
+		end
 		
-		print("duration: ", dump(duration), " type: ", type(duration))
+		
+		-- We must use mq.parse here because we need to use EXACTLY the .BuffDuration[Slumber] string to get the duration properly
+		-- And it can't be done with lua alone.  
+		-- If you try to use mq.TLO.Spawn(id).BuffDuration[Slumber] it will return the first buff
+		-- If you try to use mq.TLO.Spawn(id).BuffDuration['Slumber'] it will return nil
+		local mez_stmt = '${Spawn[%s].BuffDuration[Slumber]}'
+		-- Parse returns a STRING, not a number, so we need to convert it to a number manually via tonumber()
+		local duration = mq.parse(mez_stmt:format(id))
+				
+		print("Name: ", mobName, "ID: ", id, " duration: ", duration, " dump:", dump(duration),  " type: ", type(duration))
 		
 
 		-- when something's mezzed, it has type(duration) == number and evaluates to an integer
 		-- unmezzed, the duration type is nil
-		if id ~= state.assistMobID and ((type(duration) == "number" and duration < 3000) or duration == nil ) then
-			local mob = mq.TLO.Spawn('id ' .. id)
-			logger.debug(logger.flags.announce.spell, 'mezzing mob: %s', id)
+		if id ~= state.assistMobID and (duration == nil or duration == "NULL" or tonumber(duration) < 4500 ) then
+			local mob = mq.TLO.Spawn('id ' .. id)			
 			if mob() and not state.mezImmunes[mob.CleanName()] then
 				local spellData = mq.TLO.Spell(mez_spell.CastName)
 				local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
