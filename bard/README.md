@@ -25,7 +25,7 @@ This bot makes use of 5 different medley lineups for different situations.
 3. Melee - Combat lineup to play in melee group.  This is selected in the GUI as one of the dropdown options
 4. MeleeDot - Combat lineup with a couple melee buffs and all personal dots.  This is selected in the GUI as one of the dropdown options
 5. Caster - Combat lineup to play in caster groups.  This is selected in the GUI as one of the dropdown options
-
+6. Tank - Played in Tank groups
 You need to configure these in an ini file.  Inside your MQ2 installation directory is a config directory.  Inside of it will be an ini file named like `server_character.ini`  For example, `test_kodajii.ini`
 
 Inside that file, add the following sections wherever and change to suit your lineups.  Mine are semi optimized for 120 already:
@@ -82,4 +82,15 @@ songIF=!${Me.Invis}
 song1=Zelinstein's Lively Crescendo^45^1
 song2=Pulse of Nikolas^30^1
 song3=Chorus of Shei Vinitras^30^1
+songIF=!${Me.Invis}
+
+[MQ2Medley-tank]
+song1=Xetheg's Spry Sonata^30^1
+song2=Aria of Pli Xin Liako^27^1
+song3=Blade of Vesagran^180^${Me.Combat}
+song4=War March of Centien Xi Va Xakra^30^1
+song5=Unified Phoenix Feather^30^(!${Group} || ${SpawnCount[group radius 250]}==${Group.GroupSize}) && !${Me.Song[Grace of Unity].ID} && ${Me.CombatState.Equal[COMBAT]} && ${Me.PctEndurance} < 95
+song6=Shojralen's Song of Suffering^24^1
+song7=Ecliptic Psalm^60^${Me.Combat} && (${Target.PctHPs} > 50 || ${Target.Named} || ${Me.XTarget} > 1)
+song8=Zelinstein's Lively Crescendo^30^${Group.LowMana[95]} > 0
 songIF=!${Me.Invis}
