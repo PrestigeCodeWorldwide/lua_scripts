@@ -198,6 +198,8 @@ end
 
 local function main()
     init()
+	-- force debug state for dev
+	state.debug = true
 
     local debugTimer = timer:new(3000)
     -- Main Loop
