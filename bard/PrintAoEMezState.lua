@@ -1,4 +1,6 @@
-﻿--- @type Mq
+﻿-- IGNORE ME, this is just a testing playground
+
+--- @type Mq
 local mq = require 'mq'
 
 function getBuffDurationFromParseStmt(id, mezStmt, debuglabel)

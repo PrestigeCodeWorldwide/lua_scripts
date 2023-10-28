@@ -30,17 +30,37 @@ function mez.initMezTimers(mez_spell)
 	end
 end
 
+-- Checks the duration of buff buffName on npc ID
+function getBuffDurationFromId(id, buffName)
+	local duration = mq.TLO.Spawn('id ' .. id).Buff(buffName).Duration()
+	if duration == nil or duration == "NULL" then
+		duration = 0
+	end
+	return duration
+end
+
 ---Cast AE mez spell if AE Mez condition (>=3 mobs) is met.
 ---@param mez_spell table @The name of the AE mez spell to cast.
 ---@param ae_count number @The mob threshold for using AE mez.
 function mez.doAE(mez_spell, ae_count)
 	if state.mobCount >= ae_count and mez_spell then
-		if mq.TLO.Me.Gem(mez_spell.CastName)() and mq.TLO.Me.GemTimer(mez_spell.CastName)() == 0 then
+		
+		-- loop thru mobs and count how many are mezzed with single target
+		local mezzedCount = 0
+		for id, _ in pairs(state.targets) do
+			local durationSingle = getBuffDurationFromId(id, "Slumber of the Diabo")
+			if durationSingle > 4500 then
+				mezzedCount = mezzedCount + 1
+			end
+		end
+		
+		-- If we can cast AoE Mez and we have many unmezzed mobs, cast it
+		if mq.TLO.Me.Gem(mez_spell.CastName)() and mq.TLO.Me.GemTimer(mez_spell.CastName)() == 0 and mezzedCount < 1 then
 			print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
 			mq.cmd("/medley off")
-			mq.delay(50)
+			mq.delay(10)
 			mq.cmd("/medley off")
-			mq.delay(50)
+			mq.delay(10)
 			abilities.use(mez_spell)
 			mez.initMezTimers()
 			mq.delay(4500)
@@ -74,14 +94,7 @@ function dump(o)
 	end
 end
 
--- Checks the duration of buff buffName on npc ID
-function getBuffDurationFromId(id, buffName)
-	local duration = mq.TLO.Spawn('id ' .. id).Buff(buffName).Duration()
-	if duration == nil or duration == "NULL" then
-		duration = 0
-	end
-	return duration
-end
+
 
 ---Cast single target mez spell if adds in camp.
 ---@param mez_spell table @The name of the single target mez spell to cast.
