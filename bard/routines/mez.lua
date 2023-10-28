@@ -34,7 +34,6 @@ end
 ---@param mez_spell table @The name of the AE mez spell to cast.
 ---@param ae_count number @The mob threshold for using AE mez.
 function mez.doAE(mez_spell, ae_count)
-	printf("In mez aoe with mobCount: %d", state.mobCount)
 	if state.mobCount >= ae_count and mez_spell then
 		if mq.TLO.Me.Gem(mez_spell.CastName)() and mq.TLO.Me.GemTimer(mez_spell.CastName)() == 0 then
 			print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
@@ -75,22 +74,12 @@ function dump(o)
 	end
 end
 
-function getBuffDurationFromParseStmt(id, mezStmt, debuglabel)
-	formattedMez = mezStmt:format(id)
-	print("Formatted mez statement is: ", formattedMez)
-	local durationString = mq.parse(formattedMez)
-	if durationString == nil or durationString == "NULL" then
-		-- Return zero if null/nil, as we want to mez anything that doesn't already have a mez on it
-		print("Duration string is null or nil, returning 0")
-		return 0
+-- Checks the duration of buff buffName on npc ID
+function getBuffDurationFromId(id, buffName)
+	local duration = mq.TLO.Spawn('id ' .. id).Buff(buffName).Duration()
+	if duration == nil or duration == "NULL" then
+		duration = 0
 	end
-	--print("Duration string is: ", durationString, " ", debuglabel)
-	--print("Type of duration string is: ", type(durationString))
-	local duration = tonumber(durationString)
-	--print("Duration after tonumber is: ", duration, " ", debuglabel)
-	-- tonumber should always succeed since we've checked for null/nil, but just in case....
-	--assert(duration ~= nil)
-	printf('%d - Duration being returned is: %s - %s', id, duration, debuglabel)
 	return duration
 end
 
@@ -104,13 +93,8 @@ function mez.doSingle(mez_spell)
 	end
 	
 	for id, mobdata in pairs(state.targets) do
-		printf("Iterating with ID: %d", id)
+		
 		local mobName = mq.TLO.Spawn(id).Name()
-		-- What we instead want to do is iterate each mob in camp and check the TLO to see if it has slumber
-		--if state.debug then
-		--	logger.debug(logger.flags.announce.spell, '[%s] meztimer: %s, currentTime: %s, timerExpired: %s', id,
-		--		mobdata['meztimer'].start_time, mq.gettime(), mobdata['meztimer']:timerExpired())
-		--end
 		local mob = mq.TLO.Spawn('id ' .. id)
 		-- This is where we spin waiting on buffs to load.  We'll then check to see if they include aoe AFTER this returns
 		--mq.delay(5000, function()
@@ -120,32 +104,8 @@ function mez.doSingle(mez_spell)
 		--end)
 		-- This is to let buffs populate, as BuffsPopulated() does not work
 		
-		local mezDuration = mq.TLO.Spawn('id ' .. id).Buff("Slumber of the Diabo").Duration()
-		-- We must use mq.parse here because we need to use EXACTLY the .BuffDuration[Slumber] string to get the duration properly
-		-- And it can't be done with lua alone.
-		-- If you try to use mq.TLO.Spawn(id).BuffDuration[Slumber] it will return the first buff
-		-- If you try to use mq.TLO.Spawn(id).BuffDuration['Slumber'] it will return nil
-		--local mezStmt = '${Spawn[%s].BuffDuration[Slumber]}'
-		-- Parse returns a STRING, not a number, so we need to convert it to a number manually via tonumber()
-		-- local durationString = mq.parse(mezStmt:format(id))
-		-- local duration = tonumber(durationString)
-		-- Check for AoE mez too!
-		--local mezStmtAoE = '${Spawn[%s].BuffDuration[Wave of Nocturn]}'
-		local mezStmtAoE = '${Target.BuffDuration[Wave of Nocturn]}'
-		-- Parse returns a STRING, not a number, so we need to convert it to a number manually via tonumber()
-		--local durationStringAoE = mq.parse(mezStmtAoE:format(id))
-		--local durationAoE = tonumber(durationStringAoE)
-		--print("Name: ", mobName, "ID: ", id, " duration: ", duration, " dump:", dump(duration), " type: ", type(duration))
+		local mezDuration = getBuffDurationFromId(id, "Slumber of the Diabo")
 		
-		
-		
-		local durationSingle = getBuffDurationFromParseStmt(id, mezStmt, "Single")
-		------- Checking for this DOES NOT work without targeting each mob to cache its buffs
-		local durationAoE = getBuffDurationFromParseStmt(id, mezStmtAoE, "AoE")
-		--printf("id %d - DurationAoE: %s and as number %d ", id, durationAoE, tonumber(durationAoE))
-		--printf("Type of aoe return: %s ", type(durationAoE))
-		local duration = math.max(durationSingle, durationAoE)
-		printf("Final Duration for %d is %d", id, duration)
 		local earlyReturn = false
 		-- if the id is not assist mob id, mez
 		-- if duration and durationAoE are nil/null then mez
@@ -157,7 +117,7 @@ function mez.doSingle(mez_spell)
 		-- The duration seems to expire a tick *before* the mez actually breaks in-game
 		-- I'm using 4500 duration check anyway because I'd rather recast mez a bit early than have one break
 		if not earlyReturn then
-			if id ~= state.assistMobID and duration < 4500 then
+			if id ~= state.assistMobID and mezDuration < 4500 then
 				if mob() and not state.mezImmunes[mob.CleanName()] then
 					local spellData = mq.TLO.Spell(mez_spell.CastName)
 					local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
@@ -167,51 +127,44 @@ function mez.doSingle(mez_spell)
 							return not mq.TLO.Me.Combat()
 						end)
 						mob.DoTarget()
-						print("Waiting up to 5 seconds for buffs to populate")
-						-- This is where we spin waiting on buffs to load.  We'll then check to see if they include aoe AFTER this returns
-						mq.delay(500)
 						
-						-- CHECK FOR AE MEZ HERE once we've targeted the mob (this is outdated comment i think)
-						durationAoE = getBuffDurationFromParseStmt(id, mezStmtAoE, "AoE")
-						local iAmAoEMezzed = durationAoE > 4500
-						printf("Checked AoE Mezzed, duration AoE %d and iAmMezzed %s ", durationAoE, iAmAoEMezzed)
-						if not iAmAoEMezzed then
-							local pct_hp = mq.TLO.Target.PctHPs()
-							if mq.TLO.Target() and mq.TLO.Target.Type() == 'Corpse' then
-								state.targets[id] = nil
-							elseif pct_hp and pct_hp > 85 then
-								local assist_spawn = assist.getAssistSpawn()
-								if assist_spawn == -1 or assist_spawn.ID() ~= id then
-									state.mezTargetName = mob.CleanName()
-									state.mezTargetID = id
-									print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
-									if mez_spell.precast then
-										mez_spell.precast()
-									end
-									--Zen: Actual mez being "cast", need to pause medley, cast, then re-enable medley
-									mq.cmd("/medley off")
-									mq.delay(50)
-									mq.cmd("/medley off")
-									mq.delay(50)
-									
-									abilities.use(mez_spell)
-									-- Zen: Wait on mez to finish casting
-									mq.delay(4500)
-									
-									logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
-									if state.targets[id] then
-										state.targets[id].meztimer:reset()
-									end
-									
-									mq.doevents('eventMezImmune')
-									mq.doevents('eventMezResist')
-									state.mezTargetID = 0
-									state.mezTargetName = nil
-									
-									--Zen: Turn medley back on
-									mq.cmd("/medley")
-									return true
+						local pct_hp = mq.TLO.Target.PctHPs()
+						if mq.TLO.Target() and mq.TLO.Target.Type() == 'Corpse' then
+							state.targets[id] = nil
+						elseif pct_hp and pct_hp > 85 then
+							local assist_spawn = assist.getAssistSpawn()
+							if assist_spawn == -1 or assist_spawn.ID() ~= id then
+								state.mezTargetName = mob.CleanName()
+								state.mezTargetID = id
+								print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
+								if mez_spell.precast then
+									mez_spell.precast()
 								end
+								--Zen: Actual mez being "cast", need to pause medley, cast, then re-enable medley
+								mq.cmd("/medley off")
+								mq.delay(20)
+								mq.cmd("/medley off")
+								mq.delay(20)
+								
+								abilities.use(mez_spell)
+								-- Zen: Wait on mez to finish casting
+								mq.delay(4500, function()
+									return not mq.TLO.Me.Casting()
+								end)
+								
+								logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
+								if state.targets[id] then
+									state.targets[id].meztimer:reset()
+								end
+								
+								mq.doevents('eventMezImmune')
+								mq.doevents('eventMezResist')
+								state.mezTargetID = 0
+								state.mezTargetName = nil
+								
+								--Zen: Turn medley back on
+								mq.cmd("/medley")
+								return true
 							end
 						end
 					
