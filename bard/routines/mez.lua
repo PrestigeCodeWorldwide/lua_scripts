@@ -99,36 +99,19 @@ end
 ---Cast single target mez spell if adds in camp.
 ---@param mez_spell table @The name of the single target mez spell to cast.
 function mez.doSingle(mez_spell)
-	--	print("In mez")
-	--logger.debug(logger.flags.announce.spell, 'In Mez')
 	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then
 		return
 	end
 	
-	for id, mobdata in pairs(state.targets) do
+	for id, _ in pairs(state.targets) do
 		
-		local mobName = mq.TLO.Spawn(id).Name()
 		local mob = mq.TLO.Spawn('id ' .. id)
-		-- This is where we spin waiting on buffs to load.  We'll then check to see if they include aoe AFTER this returns
-		--mq.delay(5000, function()
-		--	buffsPop = mq.TLO.Target.BuffsPopulated()
-		--	print("Buffs populated: ", buffsPop)
-		--	return buffsPop
-		--end)
-		-- This is to let buffs populate, as BuffsPopulated() does not work
+	
 		
 		local mezDuration = getBuffDurationFromId(id, "Slumber of the Diabo")
-		
+		-- This is only used to short circuit hte fn while testing.  Lua will not let you return early.
 		local earlyReturn = false
-		-- if the id is not assist mob id, mez
-		-- if duration and durationAoE are nil/null then mez
-		-- 	if either or both has a value, if the largest of those values is less than 4500, then mez
-		-- otherwise don't mez
-		
-		-- When something is mezzed, the duration counts down in milliseconds.
-		-- unmezzed, the duration type is nil
-		-- The duration seems to expire a tick *before* the mez actually breaks in-game
-		-- I'm using 4500 duration check anyway because I'd rather recast mez a bit early than have one break
+	
 		if not earlyReturn then
 			if id ~= state.assistMobID and mezDuration < 4500 then
 				if mob() and not state.mezImmunes[mob.CleanName()] then
