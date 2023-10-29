@@ -8,13 +8,11 @@ local common = require('common')
 local state = require('state')
 
 function class.init(_aqo)
-	class.classOrder = { 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
+	class.classOrder = { 'assist', 'medley', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
 	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
-	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1 }
-	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, med = {}, downtime = {}, tank = {} }
-	class.DEFAULT_SPELLSET = 'melee'
-	class.medleyRunning = 'none'
-	class.priorMedley = 'none'
+	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, test = 1 }
+	class.medleyRunning = false
+	
 
 	class.initBase(_aqo, 'brd')
 
@@ -60,8 +58,10 @@ end
 
 function class.startMedley()
 	if not class.IsInvis() then
-		mq.cmd('/medley')
-		class.medleyRunning = class.priorMedley
+		local medleyType = class.OPTS.MEDLEYTYPE.value
+		print("STARTING MEDLEY: " .. medleyType)
+		mq.cmd('/medley ' .. medleyType)
+		class.medleyRunning = medleyType
 	end
 end
 
@@ -99,15 +99,11 @@ function class.doSingleMez()
 							-- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
 							-- Maybe make a concrete mez subroutine?
 							--abilities.use(mez_spell)
-							class.stopMedley()
-							info("Casting mez:")
-							info(mez_spell)
-							abilities.use(mez_spell)
-							info("Mez cast, delaying 6000")
-							mq.delay(6000)
-							info("Mez delay over, restarting prior medley")
-							class.startMedley()
-
+							
+							mq.cmd('/medley queue "Slumber of the Diabo" -interrupt')
+							info("Mez cast, delaying 4500")
+							mq.delay(4500)
+							
 							logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 							state.targets[id].meztimer:reset()
 							mq.doevents('eventMezImmune')
@@ -127,7 +123,7 @@ end
 
 -- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
 function class.medley()
-	--info("In medley")
+	printf("In medley with combat state: %s", mq.TLO.Me.CombatState())
 
 	-- If in combat, we use the chosen combat song - states are ACTIVE, COMBAT, COOLDOWN
 	if mq.TLO.Me.CombatState() == 'COMBAT' and not class.IsInvis() then
@@ -190,6 +186,7 @@ function class.initClassOptions()
 	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
 	class.addOption('MEZAE', 'Mez AE', true, nil, 'Mez AOE', 'checkbox', nil, 'MezAE', 'bool')
 	class.addOption('MEZAECOUNT', 'Mez AE Count', 3, nil, 'Threshold to use AE Mez ability', 'inputint', nil, 'MezAECount', 'int')
+	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
 	class.addOption('MEDLEYTYPE', 'Medley Type', 'melee', class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'combobox', nil, 'MedleyType', 'string')
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil, 'UseSelos', 'bool')
 	--class.addOption('USEINSULTS', 'Use Insults', true, nil, 'Use insult songs', 'checkbox', nil, 'UseInsults', 'bool')
@@ -207,7 +204,7 @@ function class.initClassOptions()
 	--class.addOption('USEDISEASEDOTS', 'Use Disease DoT', false, nil, 'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs', 'bool')
 	--class.addOption('USEREGENSONG', 'Use Regen Song', false, nil, 'Toggle use of hp/mana regen song line', 'checkbox', nil, 'UseRegenSong', 'bool')
 	--class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
-	--class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
+	
 	
 	
 end
@@ -300,8 +297,7 @@ function class.initBurns(_aqo)
 	-- Delay after using swarm pet AAs while pets are spawning
 	table.insert(class.burnAbilities, common.getAA('Lyrical Prankster', { opt = 'USESWARM', delay = 1500 }))
 	table.insert(class.burnAbilities, common.getAA('Song of Stone', { opt = 'USESWARM', delay = 1500 }))
-
-	table.insert(class.burnAbilities, common.getAA('A Tune Stuck In Your Head'))
+	
 	table.insert(class.burnAbilities, common.getBestDisc({ 'Puretone Discipline' }))
 end
 
@@ -469,11 +465,14 @@ local function findNextSong()
 end
 
 function class.cast()
+	print("In class.cast()")
 	-- Don't touch songs if we're using mq2twist or mq2medley or we're invis
 	if class.isEnabled('USETWIST') or mq.TLO.Me.Invis() then
+		print("Skipping medley because USETWIST enabled or i'm invis")
 		return false
 	end
 	if class.isEnabled('USEMEDLEY') then
+		print("Calling medley subroutine")
 		class.medley()
 		return false
 	end

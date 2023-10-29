@@ -116,6 +116,9 @@ function commands.commandHandler(...)
 			if zen.state.paused then
 				zen.state.resetCombatState()
 				mq.cmd('/stopcast')
+				mq.cmd('/medley stop')
+				mq.delay(5)
+				mq.cmd('/medley stop')
 			end
 		else
 			if lists.booleans[new_value] == nil then
