@@ -344,7 +344,7 @@ local uiTabs = {
     --{label='HUD', draw=drawHUD},
     {label='General', draw=drawAssistTab},
     {label='Skills', draw=drawSkillsTab},
-    {label=lists.icons.FA_HEART..' Heal', draw=drawHealTab, color=LIGHT_BLUE},
+    --{label=lists.icons.FA_HEART..' Heal', draw=drawHealTab, color=LIGHT_BLUE},
     {label=lists.icons.FA_FIRE..' Burn', draw=drawBurnTab, color=ORANGE},
     {label='Pull', draw=drawPullTab},
     {label='Rest', draw=drawRestTab},

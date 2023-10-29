@@ -81,6 +81,7 @@ function mez.doAE(mez_spell, ae_count)
 		if mq.TLO.Me.Gem(mez_spell.CastName)() and mq.TLO.Me.GemTimer(mez_spell.CastName)() == 0 and mezzedCount < 1 then
 			print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
 			mq.cmd('/medley queue "Wave of Nocturn" -interrupt')
+			mq.delay(4500)
 			--mq.cmd("/medley off")
 			--mq.delay(10)
 			--mq.cmd("/medley off")
@@ -151,7 +152,7 @@ function mez.doSingle(mez_spell)
 								--	return not mq.TLO.Me.Casting()
 								--end)
 								mq.cmd('/medley queue "Slumber of the Diabo" -interrupt -targetid|' .. id)
-								
+								mq.delay(4500)
 								logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 								if state.targets[id] then
 									state.targets[id].meztimer:reset()

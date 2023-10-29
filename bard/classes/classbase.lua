@@ -59,7 +59,6 @@ local zen
 ---@field ohShitClass? function #Function to perform class specific ohshit logic
 ---@field aggroClass? function #Function to perform class specific aggro logic
 ---@field recoverClass? function #Function to perform class specific recover logic
----@field checkSpellSet? function #Function to load class spell sets
 ---@field swapSpells? function #Function to perform class specific checks for spell swapping in combat (necro stuff)
 ---@field rezAbility? Ability #
 ---@field epic? string # name of epic
@@ -710,63 +709,6 @@ function base.nowCast(args)
     end
 end
 
-local function handleRequests()
-    if #base.requests > 0 then
-        local request = base.requests[1]
-        if request.expiration:timerExpired() then
-            print(logger.logLine('Request timer expired for \ag%s\ax from \at%s\at', request.requested.Name, request.requester))
-            table.remove(base.requests, 1)
-        else
-            local requesterSpawn = '='..request.requester
-            if tonumber(request.requester) then
-                requesterSpawn = 'id '..request.requester
-            end
-            local requesterSpawn = mq.TLO.Spawn(requesterSpawn)
-            if (requesterSpawn.Distance3D() or 300) < 100 then
-                if request.requested == 'armpet' and state.class == 'mag' then
-                    base.armPetRequest(request.requester)
-                    table.remove(base.requests, 1)
-                    return
-                end
-                local restoreGem
-                if request.requested.CastType == abilities.Types.Spell and not mq.TLO.Me.Gem(request.requested.Name)() then
-                    restoreGem = {Name=mq.TLO.Me.Gem(state.swapGem)()}
-                    abilities.swapSpell(request.requested, state.swapGem)
-                    mq.delay(5000, function() return mq.TLO.Me.SpellReady(request.requested.Name)() end)
-                end
-                if request.requested:isReady() then
-                    local tranquilUsed = '/g Casting'
-                    if request.tranquil then
-                        if (not mq.TLO.Me.AltAbilityReady('Tranquil Blessings')() or mq.TLO.Me.CombatState() == 'COMBAT') then
-                            return
-                        elseif base.tranquil and mq.TLO.Me.AltAbilityReady('Tranquil Blessings')() then
-                            --if base.tranquil:use() then tranquilUsed = '/rs MGB\'ing' end
-                            mq.cmdf('/alt act %s', base.tranquil.ID)
-                            tranquilUsed = '/rs MGB\'ing'
-                        end
-                    elseif request.mgb then
-                        if not mq.TLO.Me.AltAbilityReady('Mass Group Buff')() then
-                            return
-                        elseif base.mgb then
-                            if base.mgb:use() then tranquilUsed = '/rs MGB\'ing' end
-                        end
-                    end
-                    movement.stop()
-                    if request.requested.TargetType == 'Single' then
-                        requesterSpawn.DoTarget()
-                    end
-                    mq.delay(250)
-                    mq.cmdf('%s %s for %s', tranquilUsed, request.requested.Name, request.requester)
-                    request.requested:use()
-                    table.remove(base.requests, 1)
-                end
-                if restoreGem then
-                    abilities.swapSpell(restoreGem, state.swapGem)
-                end
-            end
-        end
-    end
-end
 
 local function lifesupport()
     if mq.TLO.Me.CombatState() == 'COMBAT' and not state.loop.Invis and not mq.TLO.Me.Casting() and mq.TLO.Me.Standing() and state.loop.PctHPs < 60 then
@@ -793,31 +735,14 @@ function base.useEpic()
 end
 
 function base.mainLoop()
-    if config.get('LOOTMOBS') and state.assistMobID > 0 and not state.lootBeforePull then
-        -- some attempt at forcing a round of looting before beginning another pull,
-        -- otherwise, depending where we are in the loop when a mob dies, we might go
-        -- directly into another pull before trying to loot what we just killed.
-        state.lootBeforePull = true
-    end
     if not state.pullStatus then
         lifesupport()
-        handleRequests()
         -- get mobs in camp
         camp.mobRadar()
-        if mode.currentMode:isTankMode() then
-            base.tank()
-            -- tank check may determine pull return interrupted / ended early for some reason, and put us back
-            -- into pull return to try to get back to camp
-            if state.pullStatus then return end
-        end
-        if base.checkSpellSet then base.checkSpellSet() end
+        
         if not base.hold() then
             for _,routine in ipairs(base.classOrder) do
                 if not state.actionTaken then base[routine]() end
-                -- handling for primarily necro in combat spell swaps
-                if routine == 'cast' and not state.actionTaken and base.swapSpells then
-                    base.swapSpells()
-                end
             end
         end
         -- check whether we need to return to camp, only while not assisting

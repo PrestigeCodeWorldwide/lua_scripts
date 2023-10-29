@@ -139,32 +139,7 @@ local function buffSafetyCheck()
     end
 end
 
-local lootMyCorpseTimer = timer:new(5000)
-local function doLooting()
-    local myCorpse = mq.TLO.Spawn('pccorpse '..mq.TLO.Me.CleanName()..'\'s corpse radius 100')
-    if myCorpse() and lootMyCorpseTimer:timerExpired() then
-        lootMyCorpseTimer:reset()
-        myCorpse.DoTarget()
-        if mq.TLO.Target.Type() == 'Corpse' then
-            mq.cmd('/keypress CONSIDER')
-            mq.delay(500)
-            mq.doevents('eventCannotRez')
-            if state.cannotRez then
-                state.cannotRez = nil
-                mq.cmd('/corpse')
-                movement.navToTarget(nil, 10000)
-                if (mq.TLO.Target.Distance3D() or 100) > 10 then return end
-                loot.lootMyCorpse()
-                state.actionTaken = true
-                return
-            end
-        end
-    end
-    if config.get('LOOTMOBS') and (mq.TLO.Me.CombatState() ~= 'COMBAT' or config.get('LOOTCOMBAT')) and not state.pullStatus then
-        state.actionTaken = loot.lootMobs(1)
-        if state.lootBeforePull then state.lootBeforePull = false end
-    end
-end
+
 
 local fsm = {}
 function fsm.IDLE()
@@ -220,9 +195,7 @@ local function main()
                     -- do active combat assist things when not paused and not invis
                     checkFD()
                     common.checkCursor()
-                    if state.emu then
-                        doLooting()
-                    end
+                   
                     if not state.actionTaken then
                         zen.class.mainLoop()
                     end

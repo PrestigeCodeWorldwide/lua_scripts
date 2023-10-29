@@ -10,7 +10,7 @@ local state = require('state')
 function class.init(_aqo)
 	class.classOrder = { 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
 	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
-	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1 }
+	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1 }
 	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, med = {}, downtime = {}, tank = {} }
 	class.DEFAULT_SPELLSET = 'melee'
 	class.medleyRunning = 'none'
@@ -194,12 +194,13 @@ function class.initClassOptions()
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil, 'UseSelos', 'bool')
 	--class.addOption('USEINSULTS', 'Use Insults', true, nil, 'Use insult songs', 'checkbox', nil, 'UseInsults', 'bool')
 	--class.addOption('USEINTIMIDATE', 'Use Intimidate', false, nil, 'Use Intimidate (It may fear mobs without the appropriate AA\'s)', 'checkbox', nil, 'UseIntimidate', 'bool')
-	--class.addOption('USEBELLOW', 'Use Bellow', true, nil, 'Use Boastful Bellow AA', 'checkbox', nil, 'UseBellow', 'bool')
+	class.addOption('USEBELLOW', 'Use Bellow', true, nil, 'Use Boastful Bellow AA', 'checkbox', nil, 'UseBellow', 'bool')
+	-- Caco not worth debuff slot anymore
 	--class.addOption('USECACOPHONY', 'Use Cacophony', true, nil, 'Use Cacophony AA', 'checkbox', nil, 'UseCacophony', 'bool')
 	class.addOption('USEFADE', 'Use Fade', false, nil, 'Fade when aggro', 'checkbox', nil, 'UseFade', 'bool')
 	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup', 'bool')
 	class.addOption('USESWARM', 'Use Swarm', true, nil, 'Use swarm pet AAs', 'checkbox', nil, 'UseSwarm', 'bool')
-	--class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
+	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
 	--class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil, 'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
 	--class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil, 'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
 	--class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil, 'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')
@@ -567,80 +568,7 @@ function class.invis()
 	state.loop.Invis = true
 end
 
-local composite_names = { ['Composite Psalm'] = true, ['Dissident Psalm'] = true, ['Dichotomic Psalm'] = true }
-local checkSpellTimer = timer:new(30000)
 
--- Currently removed as bards do not need swapping automatically.  Leave em spells alone bruh
-function class.checkSpellSet()
-	--if not common.clearToBuff() or mq.TLO.Me.Moving() or class.isEnabled('BYOS') then
-	--	return
-	--end
-	--if not class.doneSinging() then
-	--	return
-	--end
-	--local spellSet = class.OPTS.SPELLSET.value
-	--if state.spellSetLoaded ~= spellSet or checkSpellTimer:timerExpired() then
-	--	if spellSet == 'melee' then
-	--		abilities.swapSpell(class.spells.aria, 1)
-	--		abilities.swapSpell(class.spells.arcane, 2)
-	--		abilities.swapSpell(class.spells.spiteful, 3)
-	--		abilities.swapSpell(class.spells.suffering, 4)
-	--		abilities.swapSpell(class.spells.insult, 5)
-	--		abilities.swapSpell(class.spells.warmarch, 6)
-	--		abilities.swapSpell(class.spells.sonata, 7)
-	--		abilities.swapSpell(class.spells.mezst, 8)
-	--		abilities.swapSpell(class.spells.mezae, 9)
-	--		abilities.swapSpell(class.spells.crescendo, 10)
-	--		abilities.swapSpell(class.spells.pulse, 11)
-	--		abilities.swapSpell(class.spells.composite, 12, composite_names)
-	--		abilities.swapSpell(class.spells.dirge, 13)
-	--		state.spellSetLoaded = spellSet
-	--	elseif spellSet == 'caster' then
-	--		abilities.swapSpell(class.spells.aria, 1)
-	--		abilities.swapSpell(class.spells.arcane, 2)
-	--		abilities.swapSpell(class.spells.firenukebuff, 3)
-	--		abilities.swapSpell(class.spells.suffering, 4)
-	--		abilities.swapSpell(class.spells.insult, 5)
-	--		abilities.swapSpell(class.spells.warmarch, 6)
-	--		abilities.swapSpell(class.spells.firemagicdotbuff, 7)
-	--		abilities.swapSpell(class.spells.mezst, 8)
-	--		abilities.swapSpell(class.spells.mezae, 9)
-	--		abilities.swapSpell(class.spells.crescendo, 10)
-	--		abilities.swapSpell(class.spells.pulse, 11)
-	--		abilities.swapSpell(class.spells.composite, 12, composite_names)
-	--		abilities.swapSpell(class.spells.dirge, 13)
-	--		state.spellSetLoaded = spellSet
-	--	elseif spellSet == 'meleedot' then
-	--		abilities.swapSpell(class.spells.aria, 1)
-	--		abilities.swapSpell(class.spells.chantflame, 2)
-	--		abilities.swapSpell(class.spells.chantfrost, 3)
-	--		abilities.swapSpell(class.spells.suffering, 4)
-	--		abilities.swapSpell(class.spells.insult, 5)
-	--		abilities.swapSpell(class.spells.warmarch, 6)
-	--		abilities.swapSpell(class.spells.chantdisease, 7)
-	--		abilities.swapSpell(class.spells.mezst, 8)
-	--		abilities.swapSpell(class.spells.mezae, 9)
-	--		abilities.swapSpell(class.spells.crescendo, 10)
-	--		abilities.swapSpell(class.spells.pulse, 11)
-	--		abilities.swapSpell(class.spells.composite, 12, composite_names)
-	--		abilities.swapSpell(class.spells.dirge, 13)
-	--		state.spellSetLoaded = spellSet
-	--	else
-	--		-- emu spellsets
-	--		abilities.swapSpell(class.spells.emuaura, 1)
-	--		abilities.swapSpell(class.spells.pulse, 2)
-	--		abilities.swapSpell(class.spells.emuhaste, 3)
-	--		abilities.swapSpell(class.spells.suffering, 4)
-	--		abilities.swapSpell(class.spells.firenukebuff, 5)
-	--		abilities.swapSpell(class.spells.bardhaste, 6)
-	--		abilities.swapSpell(class.spells.overhaste, 7)
-	--		abilities.swapSpell(class.spells.selos, 8)
-	--		--abilities.swapSpell(class.spells.snare, 9)
-	--		--abilities.swapSpell(class.spells.chantflame, 10)
-	--	end
-	--	checkSpellTimer:reset()
-	--end
-end
 -- aura, chorus, war march, storm, rizlonas, verse, ancient,selos, chant flame, echoes, nivs
 
 function class.pullCustom()
