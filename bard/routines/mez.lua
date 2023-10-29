@@ -12,6 +12,29 @@ function mez.init(zen)
 
 end
 
+function info(strtoprint)
+	--printf(logger.logLine(strtoprint))
+	printf(logger.logLine('%s', strtoprint))
+end
+
+function dump(o)
+	if o == nil then
+		return "nil"
+	end
+	if type(o) == 'table' then
+		local s = '{ '
+		for k, v in pairs(o) do
+			if type(k) ~= 'number' then
+				k = '"' .. k .. '"'
+			end
+			s = s .. '[' .. k .. '] = ' .. dump(v) .. ','
+		end
+		return s .. '} '
+	else
+		return tostring(o)
+	end
+end
+
 ---Scan mobs in camp and reset mez timers to current time
 function mez.initMezTimers(mez_spell)
 	camp.mobRadar()
@@ -57,42 +80,22 @@ function mez.doAE(mez_spell, ae_count)
 		-- If we can cast AoE Mez and we have many unmezzed mobs, cast it
 		if mq.TLO.Me.Gem(mez_spell.CastName)() and mq.TLO.Me.GemTimer(mez_spell.CastName)() == 0 and mezzedCount < 1 then
 			print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
-			mq.cmd("/medley off")
-			mq.delay(10)
-			mq.cmd("/medley off")
-			mq.delay(10)
-			abilities.use(mez_spell)
-			mez.initMezTimers()
-			mq.delay(4500)
-			mq.cmd("/medley")
+			mq.cmd('/medley queue "Wave of Nocturn" -interrupt')
+			--mq.cmd("/medley off")
+			--mq.delay(10)
+			--mq.cmd("/medley off")
+			--mq.delay(10)
+			--abilities.use(mez_spell)
+			--mez.initMezTimers()
+			--mq.delay(4500)
+			--mq.cmd("/medley")
 			
 			return true
 		end
 	end
 end
 
-function info(strtoprint)
-	--printf(logger.logLine(strtoprint))
-	printf(logger.logLine('%s', strtoprint))
-end
 
-function dump(o)
-	if o == nil then
-		return "nil"
-	end
-	if type(o) == 'table' then
-		local s = '{ '
-		for k, v in pairs(o) do
-			if type(k) ~= 'number' then
-				k = '"' .. k .. '"'
-			end
-			s = s .. '[' .. k .. '] = ' .. dump(v) .. ','
-		end
-		return s .. '} '
-	else
-		return tostring(o)
-	end
-end
 
 
 
@@ -137,16 +140,17 @@ function mez.doSingle(mez_spell)
 									mez_spell.precast()
 								end
 								--Zen: Actual mez being "cast", need to pause medley, cast, then re-enable medley
-								mq.cmd("/medley off")
-								mq.delay(20)
-								mq.cmd("/medley off")
-								mq.delay(20)
-								
-								abilities.use(mez_spell)
-								-- Zen: Wait on mez to finish casting
-								mq.delay(4500, function()
-									return not mq.TLO.Me.Casting()
-								end)
+								--mq.cmd("/medley off")
+								--mq.delay(20)
+								--mq.cmd("/medley off")
+								--mq.delay(20)
+								--
+								--abilities.use(mez_spell)
+								---- Zen: Wait on mez to finish casting
+								--mq.delay(4500, function()
+								--	return not mq.TLO.Me.Casting()
+								--end)
+								mq.cmd('/medley queue "Slumber of the Diabo" -interrupt -targetid|' .. id)
 								
 								logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 								if state.targets[id] then
@@ -158,8 +162,8 @@ function mez.doSingle(mez_spell)
 								state.mezTargetID = 0
 								state.mezTargetName = nil
 								
-								--Zen: Turn medley back on
-								mq.cmd("/medley")
+								----Zen: Turn medley back on
+								--mq.cmd("/medley")
 								return true
 							end
 						end

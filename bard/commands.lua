@@ -31,6 +31,8 @@ function commands.init(_aqo)
 	zen = _aqo
 
 	mq.bind('/zen', commands.commandHandler)
+	mq.bind('/brd', commands.commandHandler)
+	mq.bind('/cwtn', commands.commandHandler)
 	mq.bind(('/%s'):format(zen.state.class), commands.commandHandler)
 	mq.bind('/nowcast', commands.nowcastHandler)
 end
