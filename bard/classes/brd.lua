@@ -13,7 +13,6 @@ function class.init(_aqo)
 	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, downtime = 1, test = 1 }
 	class.medleyRunning = false
 	
-
 	class.initBase(_aqo, 'brd')
 
 	-- resets stick to default
@@ -31,7 +30,6 @@ function class.init(_aqo)
 	class.initBuffs(_aqo)
 	class.initDefensiveAbilities(_aqo)
 	class.initRecoverAbilities(_aqo)
-	
 	
 	-- Bellow handled separately as we want it to run its course and not be refreshed early
 	class.bellow = common.getAA('Boastful Bellow')
