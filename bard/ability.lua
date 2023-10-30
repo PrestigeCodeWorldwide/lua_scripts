@@ -66,8 +66,8 @@ local Ability = {
 }
 
 local zen
-function Ability.init(_aqo)
-    zen = _aqo
+function Ability.init(_zen)
+    zen = _zen
 end
 
     ---Initialize a new ability istance.

@@ -9,8 +9,8 @@ local debuff = {}
 debuff.SLOW_IMMUNES = {}
 debuff.SNARE_IMMUNES = {}
 
-function debuff.init(_aqo)
-    zen = _aqo
+function debuff.init(_zen)
+    zen = _zen
 end
 
 function debuff.shouldUseDebuff(ability)

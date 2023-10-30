@@ -12,8 +12,8 @@ local state = require('state')
 local assist = {}
 local zen
 
-function assist.init(_aqo)
-	zen = _aqo
+function assist.init(_zen)
+	zen = _zen
 end
 
 state.enrageTimer = timer:new(10000)
@@ -272,7 +272,7 @@ function assist.getCombatPosition()
 		return false
 	end
 	-- Check option for hardcamp here
-	if not class.OPTS.CAMPHARD.value then
+	if not zen.class.OPTS.CAMPHARD.value then
 		print("Navving to target bc not camping hard")
 		movement.navToTarget('dist=' .. max_range_to * .6)
 	else

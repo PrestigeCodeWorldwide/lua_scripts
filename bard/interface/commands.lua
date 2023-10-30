@@ -16,13 +16,12 @@ local state = require('state')
 local zen
 local commands = {}
 
-function commands.init(_aqo)
-	zen = _aqo
+function commands.init(_zen)
+	zen = _zen
 	
 	mq.bind('/zen', commands.commandHandler)
 	mq.bind(('/%s'):format(state.class), commands.commandHandler)
 	mq.bind('/nowcast', commands.nowcastHandler)
-	mq.bind('/twist', commands.commandHandler)
 end
 
 ---Display help information for the script.
@@ -106,6 +105,9 @@ function commands.commandHandler(...)
 			if state.paused then
 				state.resetCombatState()
 				mq.cmd('/stopcast')
+				mq.cmd('/stopmedley')
+				mq.delay(10)
+				mq.cmd('/stopmedley')
 			end
 		else
 			if constants.booleans[new_value] == nil then
@@ -115,6 +117,9 @@ function commands.commandHandler(...)
 			if state.paused then
 				state.resetCombatState()
 				mq.cmd('/stopcast')
+				mq.cmd('/stopmedley')
+				mq.delay(10)
+				mq.cmd('/stopmedley')
 			else
 				camp.setCamp()
 			end
@@ -222,14 +227,7 @@ function commands.commandHandler(...)
 		mq.cmdf('/dgga /say %s', repeatstring)
 	elseif opt == 'FORCE' then
 		assist.forceAssist(new_value)
-	elseif opt == 'UPDATE' then
-		os.execute('start https://github.com/aquietone/aqobot/archive/refs/heads/emu.zip')
-	elseif opt == 'DOCS' then
-		os.execute('start https://aquietone.github.io/docs/aqobot/classes/' .. state.class)
-	elseif opt == 'WIKI' then
-		os.execute('start https://www.lazaruseq.com/Wiki/index.php/Main_Page')
-	elseif opt == 'BAZ' then
-		os.execute('start https://www.lazaruseq.com/Magelo/index.php?page=bazaar')
+
 	elseif opt == 'DOOR' then
 		mq.cmd('/doortarget')
 		mq.delay(50)

@@ -11,8 +11,8 @@ local state = require('state')
 local zen
 local buff = {}
 
-function buff.init(_aqo)
-    zen = _aqo
+function buff.init(_zen)
+    zen = _zen
 end
 
 function buff.needsBuff(spell, buffTarget)

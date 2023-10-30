@@ -14,8 +14,8 @@ local zen
 local events = {}
 
 ---Initialize common event handlers.
-function events.init(_aqo)
-    zen = _aqo
+function events.init(_zen)
+    zen = _zen
 
     mq.event('zoned', 'You have entered #*#', events.zoned)
     mq.event('cannotSee', '#*#cannot see your target#*#', events.movecloser)

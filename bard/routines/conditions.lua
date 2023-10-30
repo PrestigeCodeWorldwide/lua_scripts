@@ -7,8 +7,8 @@ local state = require('state')
 local zen
 local conditions = {}
 
-function conditions.init(_aqo)
-    zen = _aqo
+function conditions.init(_zen)
+    zen = _zen
 end
 
 function conditions.isEnabled(ability)

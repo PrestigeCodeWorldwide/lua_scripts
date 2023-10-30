@@ -5,7 +5,7 @@ local logger = require('utils.logger')
 local modes = require('mode')
 
 local config = {
-    SETTINGS_FILE = ('%s/aqobot_%s_%s.lua'):format(mq.configDir, mq.TLO.EverQuest.Server(), mq.TLO.Me.CleanName()),
+    SETTINGS_FILE = ('%s/zenbot_%s_%s.lua'):format(mq.configDir, mq.TLO.EverQuest.Server(), mq.TLO.Me.CleanName()),
 
     -- General settings
     MODE = {
@@ -526,14 +526,14 @@ local ignores = {}
 
 ---Load mob ignore lists file
 function config.loadIgnores()
-    local ignore_file = ('%s/%s'):format(mq.configDir, 'aqo_ignore.lua')
+    local ignore_file = ('%s/%s'):format(mq.configDir, 'zen_ignore.lua')
     if config.fileExists(ignore_file) then
         ignores = assert(loadfile(ignore_file))()
     end
 end
 
 function config.saveIgnores()
-    local ignore_file = ('%s/%s'):format(mq.configDir, 'aqo_ignore.lua')
+    local ignore_file = ('%s/%s'):format(mq.configDir, 'zen_ignore.lua')
     persistence.store(ignore_file, ignores)
 end
 

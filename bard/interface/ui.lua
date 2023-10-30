@@ -41,8 +41,8 @@ local ORANGE = ImVec4(1, .65, 0, 1)
 local zen
 local ui = {}
 
-function ui.init(_aqo)
-	zen = _aqo
+function ui.init(_zen)
+	zen = _zen
 	mq.imgui.init('ZEN Bot 1.0', ui.main)
 end
 
@@ -326,9 +326,6 @@ local function drawDebugTab()
 		mq.cmd('/multiline ; /lua stop zen ; /timed 10 /lua run zen')
 	end
 	ImGui.SameLine()
-	if ImGui.Button('Update ZEN', buttonWidth, BUTTON_HEIGHT) then
-		os.execute('start https://github.com/aquietone/aqobot/archive/refs/heads/emu.zip')
-	end
 	if ImGui.Button('View Ability Lists', x, BUTTON_HEIGHT) then
 		abilityGUIOpen = true
 	end
@@ -418,7 +415,7 @@ local function drawBody()
 end
 
 local function drawHeader()
-	local x, y = ImGui.GetContentRegionAvail()
+	local x, _ = ImGui.GetContentRegionAvail()
 	local buttonWidth = (x / 2) - 22
 	if state.paused then
 		if ImGui.Button(constants.icons.FA_PLAY, buttonWidth, BUTTON_HEIGHT) then
@@ -495,7 +492,7 @@ end
 
 local function drawAbilityInspector()
 	if abilityGUIOpen then
-		abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(('Ability Inspector##AQOBOTUI%s'):format(state.class), abilityGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
+		abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(('Ability Inspector##ZENBOTUI%s'):format(state.class), abilityGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
 		if shouldDrawAbilityGUI then
 			if ImGui.TreeNode('Class Order') then
 				for _, routine in ipairs(zen.class.classOrder) do
@@ -591,7 +588,7 @@ end
 
 local function drawHelpWindow()
 	if helpGUIOpen then
-		helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('ZEN Help##AQOBOTUI%s'):format(state.class), helpGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
+		helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('ZEN Help##ZENBOTUI%s'):format(state.class), helpGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
 		if shouldDrawHelpGUI then
 			ImGui.PushTextWrapPos(750)
 			if ImGui.TreeNode('General Commands') then
@@ -657,7 +654,7 @@ function ui.main()
 		return
 	end
 	pushStyle(uiTheme)
-	openGUI, shouldDrawGUI = ImGui.Begin(string.format('ZEN Bot 1.0 - %s###AQOBOTUI%s', state.class, state.class), openGUI, 0)
+	openGUI, shouldDrawGUI = ImGui.Begin(string.format('ZEN Bot 1.0 - %s###ZENBOTUI%s', state.class, state.class), openGUI, 0)
 	if shouldDrawGUI then
 		drawHeader()
 		drawBody()

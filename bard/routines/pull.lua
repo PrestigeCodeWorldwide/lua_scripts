@@ -15,8 +15,8 @@ local state = require('state')
 local zen
 local pull = {}
 
-function pull.init(_aqo)
-    zen = _aqo
+function pull.init(_zen)
+    zen = _zen
 end
 
 -- Pull Functions

@@ -102,8 +102,8 @@ local base = {
     --pet
 }
 
-function base.initBase(_aqo, class)
-    zen = _aqo
+function base.initBase(_zen, class)
+    zen = _zen
     base.class = class
     base.addCommonOptions()
     base.addCommonAbilities()

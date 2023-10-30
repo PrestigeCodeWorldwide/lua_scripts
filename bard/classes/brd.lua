@@ -7,13 +7,13 @@ local abilities = require('ability')
 local common = require('common')
 local state = require('state')
 
-function class.init(_aqo)
+function class.init(_zen)
 	class.classOrder = { 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
 	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
 	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, downtime = 1, test = 1 }
 	class.medleyRunning = false
 	
-	class.initBase(_aqo, 'brd')
+	class.initBase(_zen, 'brd')
 
 	-- resets stick to default
 	mq.cmd('/squelch /stick off')
@@ -23,13 +23,13 @@ function class.init(_aqo)
 
 	class.initClassOptions()
 	class.loadSettings()
-	class.initSpellLines(_aqo)
-	class.initSpellRotations(_aqo)
-	class.initDPSAbilities(_aqo)
-	class.initBurns(_aqo)
-	class.initBuffs(_aqo)
-	class.initDefensiveAbilities(_aqo)
-	class.initRecoverAbilities(_aqo)
+	class.initSpellLines(_zen)
+	class.initSpellRotations(_zen)
+	class.initDPSAbilities(_zen)
+	class.initBurns(_zen)
+	class.initBuffs(_zen)
+	class.initDefensiveAbilities(_zen)
+	class.initRecoverAbilities(_zen)
 	
 	-- Bellow handled separately as we want it to run its course and not be refreshed early
 	class.bellow = common.getAA('Boastful Bellow')
@@ -231,7 +231,7 @@ function class.initClassOptions()
 	
 end
 
-function class.initSpellLines(_aqo)
+function class.initSpellLines(_zen)
 	-- All spells ID + Rank name
 	-- All spells ID + Rank name
 	class.addSpell('aura', { 'Aura of Pli Xin Liako', 'Aura of Margidor', 'Aura of Begalru', 'Aura of the Muse', 'Aura of Insight' }) -- spell dmg, overhaste, flurry, triple atk
@@ -265,7 +265,7 @@ function class.initSpellLines(_aqo)
 
 end
 
-function class.initSpellRotations(_aqo)
+function class.initSpellRotations(_zen)
 
 	-- entries in the dots table are pairs of {spell id, spell name} in priority order
 	class.spellRotations.melee = {
@@ -292,7 +292,7 @@ function class.initSpellRotations(_aqo)
 	-- synergy, mezst, mezae
 end
 
-function class.initDPSAbilities(_aqo)
+function class.initDPSAbilities(_zen)
 	table.insert(class.DPSAbilities, common.getBestDisc({ 'Reflexive Rebuttal' }))
 	table.insert(class.DPSAbilities, common.getSkill('Intimidation', { opt = 'USEINTIMIDATE' }))
 	table.insert(class.DPSAbilities, common.getSkill('Kick'))
@@ -300,7 +300,7 @@ function class.initDPSAbilities(_aqo)
 	table.insert(class.AEDPSAbilities, common.getAA('Vainglorious Shout', { threshold = 2 }))
 end
 
-function class.initBurns(_aqo)
+function class.initBurns(_zen)
 	table.insert(class.burnAbilities, common.getItem(mq.TLO.InvSlot('Chest').Item.Name()))
 	table.insert(class.burnAbilities, common.getItem('Rage of Rolfron'))
 	table.insert(class.burnAbilities, common.getAA('Quick Time'))
@@ -319,12 +319,12 @@ function class.initBurns(_aqo)
 	table.insert(class.burnAbilities, common.getBestDisc({ 'Puretone Discipline' }))
 end
 
-function class.initBuffs(_aqo)
+function class.initBuffs(_zen)
 	table.insert(class.auras, class.spells.aura)
 	table.insert(class.selfBuffs, common.getAA('Sionachie\'s Crescendo'))
 end
 
-function class.initDefensiveAbilities(_aqo)
+function class.initDefensiveAbilities(_zen)
 	table.insert(class.defensiveAbilities, common.getAA('Shield of Notes'))
 	table.insert(class.defensiveAbilities, common.getAA('Hymn of the Last Stand'))
 	table.insert(class.defensiveAbilities, common.getBestDisc({ 'Deftdance Discipline' }))
@@ -340,7 +340,7 @@ function class.initDefensiveAbilities(_aqo)
 	table.insert(class.fadeAbilities, common.getAA('Fading Memories', { opt = 'USEFADE', precase = preFade, postcast = postFade }))
 end
 
-function class.initRecoverAbilities(_aqo)
+function class.initRecoverAbilities(_zen)
 	-- Mana Recovery AAs
 	class.rallyingsolo = common.getAA('Rallying Solo', { mana = true, endurance = true, threshold = 20, combat = false, ooc = true })
 	table.insert(class.recoverAbilities, class.rallyingsolo)

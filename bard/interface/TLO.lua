@@ -4,7 +4,7 @@ local mode = require('mode')
 local state = require('state')
 
 local zen
-local AQOType
+local ZENType
 local TLO = {}
 
 local tlomembers = {
@@ -13,12 +13,12 @@ local tlomembers = {
     end,
 }
 
-local function AQOTLO(index)
-    return AQOType, {}
+local function ZENTLO(index)
+    return ZENType, {}
 end
 
-function TLO.init(_aqo)
-    zen = _aqo
+function TLO.init(_zen)
+    zen = _zen
 
     for k,v in pairs(config) do
         if type(v) == 'table' and v.tlo and v.tlotype then
@@ -35,14 +35,14 @@ function TLO.init(_aqo)
         end
     end
 
-    AQOType = mq.DataType.new('AQOType', {
+    ZENType = mq.DataType.new('ZENType', {
         Members = tlomembers
     })
-    function AQOType.ToString()
+    function ZENType.ToString()
         return ('ZEN Running = %s, Mode = %s'):format(not state.paused, mode.currentMode:getName())
     end
 
-    mq.AddTopLevelObject('ZEN', AQOTLO)
+    mq.AddTopLevelObject('ZEN', ZENTLO)
 end
 
 return TLO
