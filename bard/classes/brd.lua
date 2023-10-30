@@ -42,7 +42,7 @@ function class.init(_aqo)
 end
 
 function class.IsInvis()
-	return mq.TLO.Me.Invis() or state.loop.Invis
+	return mq.TLO.Me.Invis() or (state.loop.Invis or false)
 end
 
 function class.stopMedley()

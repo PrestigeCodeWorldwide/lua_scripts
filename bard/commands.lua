@@ -29,12 +29,39 @@ local commands = {
 
 function commands.init(_aqo)
 	zen = _aqo
-
+	
+	--void CwtnControl::Pause() {
+	--	boxrRunCommandf("/{} pause on", GetClassCommand());
+	--}
+	--
+	--void CwtnControl::Unpause() {
+	--	boxrRunCommandf("/{} pause off", GetClassCommand());
+	--}
+	--
+	--void CwtnControl::Chase() {
+	--	boxrRunCommandf("/{} mode chase", GetClassCommand());
+	--}
+	--
+	--void CwtnControl::Camp() {
+	--	boxrRunCommandf("/{} mode assist", GetClassCommand());
+	--	boxrRunCommandf("/{} resetcamp", GetClassCommand());
+	--}
+	--
+	--void CwtnControl::Manual() {
+	--	boxrRunCommandf("/{} mode manual", GetClassCommand());
+	--}
+	--
+	--void CwtnControl::BurnNow() {
+	--	boxrRunCommandf("/{} BurnNow", GetClassCommand());
+	--}
+	
 	mq.bind('/zen', commands.commandHandler)
 	mq.bind('/brd', commands.commandHandler)
-	mq.bind('/cwtn', commands.commandHandler)
-	mq.bind(('/%s'):format(zen.state.class), commands.commandHandler)
+	--mq.bind('/cwtn', commands.commandHandler)
+	--mq.bind(('/%s'):format(zen.state.class), commands.commandHandler)
 	mq.bind('/nowcast', commands.nowcastHandler)
+	
+	
 end
 
 ---Display help information for the script.
@@ -311,6 +338,7 @@ function commands.classSettingsHandler(opt, new_value)
 end
 
 function commands.nowcastHandler(...)
+	print("In nowcast")
 	zen.class.nowCast({ ... })
 end
 
