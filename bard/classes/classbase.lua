@@ -142,6 +142,7 @@ function base.addCommonOptions()
     --if constants.manaClasses[base.class] then
         base.addOption('USEMELEE', 'Use Melee', false, nil, 'Toggle attacking mobs with melee', 'checkbox', nil, 'UseMelee', 'bool')
     --end
+    
     --if constants.petClasses[base.class] then
     --    base.addOption('SUMMONPET', 'Summon Pet', true, nil, 'Summon a pet', 'checkbox', nil, 'SummonPet', 'bool')
     --    base.addOption('BUFFPET', 'Buff Pet', true, nil, 'Use pet buffs', 'checkbox', nil, 'BuffPet', 'bool')
@@ -196,7 +197,7 @@ function base.addSpell(spellGroup, spellList, options)
     local foundSpell = common.getBestSpell(spellList, options)
     base.spells[spellGroup] = foundSpell
     if foundSpell then
-        print(logger.logLine('[%s] Found spell: %s (%s)', spellGroup, foundSpell.Name, foundSpell.ID))
+        --print(logger.logLine('[%s] Found spell: %s (%s)', spellGroup, foundSpell.Name, foundSpell.ID))
     else
         print(logger.logLine('[%s] Could not find spell!', spellGroup))
     end

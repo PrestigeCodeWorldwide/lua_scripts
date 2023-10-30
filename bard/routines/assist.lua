@@ -297,6 +297,23 @@ function assist.checkLOS()
 	end
 end
 
+function applyProperStickHow(config)
+	local stickhow = zen.class.OPTS.STICKHOW.value
+	if stickhow == nil then
+		printf(logger.logLine("StickHOW is empty, can't stick!"))
+	else
+		--mq.cmdf('/squelch /stick snaproll moveback front %s uw', math.min(maxRangeTo * .75, 25))
+		
+		printf(logger.logLine("Sticking with: %s", stickhow))
+		-- https://discord.com/channels/511690098136580097/840375268685119499/1168603138291400784
+		-- Need to set HoTT properly for stick front to work
+		mq.cmd("/stick set nohottfront on")
+		local command = "/stick " .. stickhow
+		mq.cmd(command)
+	end
+	
+end
+
 function assist.engage()
 	if mq.TLO.Navigation.Active() then
 		mq.cmd('/squelch /nav stop')
@@ -305,11 +322,11 @@ function assist.engage()
 		mq.cmd('/squelch /face fast')
 		-- pin, behindonce, behind, front, !front
 		local maxRangeTo = mq.TLO.Target.MaxRangeTo() or 0
+		-- Zen: This is pretty useless at the moment, but leaving for later impl
 		if config.get('ASSIST') == 'manual' then
-			mq.cmdf('/squelch /stick snaproll moveback front %s uw', math.min(maxRangeTo * .75, 25))
+			applyProperStickHow(config)
 		else
-			-- TODO: Zen: Add a config option for this
-			mq.cmdf('/squelch /stick front uw')
+			applyProperStickHow(config)
 		end
 		stickTimer:reset()
 	end
@@ -397,15 +414,9 @@ function assist.attack(skip_no_los)
 	if mode.currentMode:getName() ~= 'manual' and not mq.TLO.Stick.Active() and stickTimer:timerExpired() then
 		mq.cmd('/squelch /face fast')
 		-- pin, behindonce, behind, front, !front
-		--mq.cmd('/stick snaproll uw')
-		--mq.delay(200, function() return mq.TLO.Stick.Behind() and mq.TLO.Stick.Stopped() end)
-		local maxRangeTo = mq.TLO.Target.MaxRangeTo() or 0
-		--mq.cmdf('/squelch /stick hold moveback behind %s uw', math.min(maxRangeTo*.75, 25))
-		if config.get('ASSIST') == 'manual' then
-			mq.cmdf('/squelch /stick snaproll moveback behind %s uw', math.min(maxRangeTo * .75, 25))
-		else
-			mq.cmdf('/squelch /stick !front uw')
-		end
+		--local maxRangeTo = mq.TLO.Target.MaxRangeTo() or 0
+		
+		applyProperStickHow(config)
 		stickTimer:reset()
 	end
 	if not mq.TLO.Me.Combat() and mq.TLO.Target() and not state.dontAttack then

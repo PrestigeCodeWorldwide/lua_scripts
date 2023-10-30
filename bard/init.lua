@@ -190,7 +190,7 @@ end
 local function main()
 	init()
 	-- force debug state for dev
-	state.debug = true
+	--state.debug = true
 	
 	local debugTimer = timer:new(3000)
 	-- Main Loop
@@ -213,10 +213,10 @@ local function main()
 					common.checkCursor()
 					
 					if not state.actionTaken then
-						print("Entering mainloop because no action taken")
+						--print("Entering mainloop because no action taken")
 						zen.class.mainLoop()
-					else
-						print("Action taken, skipping main loop")
+					--else
+						--print("Action taken, skipping main loop")
 					end
 					mq.delay(50)
 				else

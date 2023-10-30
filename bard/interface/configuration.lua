@@ -83,6 +83,15 @@ local config = {
         tlo = 'SwitchWithMA',
         tlotype = 'bool',
     },
+    STICKHOW = {
+        value = '!front snaproll moveback 10 uw',
+        tip = 'Phrase to send to /stick, like !front loose snaproll',
+        alias = 'stickhowphrase',
+        label = 'Stick How',
+        type = 'inputtext',
+        tlo = 'StickHow',
+        tlotype = 'string',
+    },
 
     -- Heal settings
     HEALPCT = {
@@ -454,7 +463,7 @@ function config.categories()
 end
 
 local configByCategory = {
-    Assist={'ASSIST','AUTOASSISTAT','ASSISTNAMES','SWITCHWITHMA','RESISTSTOPCOUNT'},
+    Assist={'ASSIST','AUTOASSISTAT','ASSISTNAMES','SWITCHWITHMA','STICKHOW','RESISTSTOPCOUNT'},
     Camp={'CAMPRADIUS','CHASETARGET','CHASEDISTANCE','CHASEPAUSED'},
     Burn={'BURNALWAYS','BURNALLNAMED','BURNCOUNT','BURNPCT','USEGLYPH','USEINTENSITY'},
     Pull={'PULLRADIUS','PULLLOW','PULLHIGH','PULLMINLEVEL','PULLMAXLEVEL','PULLARC','GROUPWATCHWHO','PULLWITH'},

@@ -8,16 +8,19 @@ local common = require('common')
 local state = require('state')
 
 function class.init(_aqo)
-	class.classOrder = { 'assist', 'medley', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
+	class.classOrder = { 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
 	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
-	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, test = 1 }
+	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, downtime = 1, test = 1 }
 	class.medleyRunning = false
 	
 
 	class.initBase(_aqo, 'brd')
 
 	-- resets stick to default
+	mq.cmd('/squelch /stick off')
 	mq.cmd('/squelch /stick mod 0')
+	-- Let /stick front work for non-tanks
+	mq.cmd('/squelch /stick set nohottfront on')
 
 	class.initClassOptions()
 	class.loadSettings()
@@ -39,10 +42,17 @@ function class.init(_aqo)
 	class.fluxstaff = common.getItem('Staff of Viral Flux')
 
 	class.selos = common.getAA('Selo\'s Sonata')
+	
+	if mq.TLO.Me.Combat() then
+		class.startMedley()
+	else
+		class.startMedleyByName("downtime")
+	end
+	
 end
 
 function class.IsInvis()
-	return mq.TLO.Me.Invis() or (state.loop.Invis or false)
+	return mq.TLO.Me.Invis() or ((state.loop and state.loop.Invis) or false)
 end
 
 function class.stopMedley()
@@ -56,18 +66,26 @@ function class.stopMedley()
 	end
 end
 
+function class.startMedleyByName(medleyName)
+	if not class.IsInvis() then
+		mq.cmd('/medley ' .. medleyName)
+		class.medleyRunning = medleyName
+	end
+end
+
 function class.startMedley()
 	if not class.IsInvis() then
 		local medleyType = class.OPTS.MEDLEYTYPE.value
-		print("STARTING MEDLEY: " .. medleyType)
+		
 		mq.cmd('/medley ' .. medleyType)
 		class.medleyRunning = medleyType
 	end
 end
 
-function info(strtoprint)
+function info(...)
+	local args = {...}
 	--printf(logger.logLine(strtoprint))
-	printf(logger.logLine('%s', strtoprint))
+	printf(logger.logLine(args))
 end
 
 function class.doSingleMez()
@@ -123,7 +141,7 @@ end
 
 -- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
 function class.medley()
-	printf("In medley with combat state: %s", mq.TLO.Me.CombatState())
+	--printf("In medley with combat state: %s", mq.TLO.Me.CombatState())
 
 	-- If in combat, we use the chosen combat song - states are ACTIVE, COMBAT, COOLDOWN
 	if mq.TLO.Me.CombatState() == 'COMBAT' and not class.IsInvis() then
@@ -144,8 +162,7 @@ function class.medley()
 
 	-- If we're invis, stop medley
 	if class.IsInvis() and class.medleyRunning ~= 'none' then
-		mq.cmd('/medley stop')
-		class.medleyRunning = 'none'
+		class.stopMedley()
 	end
 
 	if not class.IsInvis() then
@@ -181,6 +198,7 @@ end
 
 function class.initClassOptions()
 	-- base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype)
+	
 	class.addOption('CAMPHARD', 'Camp Hard (never move)', false, nil, 'If checked, character will not move or navigate', 'checkbox', nil, 'CampHard', 'bool')
 	class.addOption('USEEPIC', 'Epic', 'always', class.EPIC_OPTS, 'Set how to use bard epic', 'combobox', nil, 'UseEpic', 'string')
 	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
@@ -188,7 +206,13 @@ function class.initClassOptions()
 	class.addOption('MEZAECOUNT', 'Mez AE Count', 3, nil, 'Threshold to use AE Mez ability', 'inputint', nil, 'MezAECount', 'int')
 	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
 	class.addOption('MEDLEYTYPE', 'Medley Type', 'melee', class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'combobox', nil, 'MedleyType', 'string')
+	--class.addOption('STICKHOW', 'Stick How', 'front snaproll moveback uw loose', nil, 'MQ2MoveUtils /stick command', 'inputtext', nil, 'StickHow', 'string' )
+	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil, 'StickHowTLO', 'string' )
+	
+	
+	
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil, 'UseSelos', 'bool')
+	class.addOption('USEFUNERALDIRGE', 'Use Funeral Dirge', true, nil, 'Use Funeral Dirge during burns automatically', 'checkbox', nil, 'UseFuneralDirge', 'bool')
 	--class.addOption('USEINSULTS', 'Use Insults', true, nil, 'Use insult songs', 'checkbox', nil, 'UseInsults', 'bool')
 	--class.addOption('USEINTIMIDATE', 'Use Intimidate', false, nil, 'Use Intimidate (It may fear mobs without the appropriate AA\'s)', 'checkbox', nil, 'UseIntimidate', 'bool')
 	class.addOption('USEBELLOW', 'Use Bellow', true, nil, 'Use Boastful Bellow AA', 'checkbox', nil, 'UseBellow', 'bool')
@@ -282,12 +306,8 @@ function class.initBurns(_aqo)
 	table.insert(class.burnAbilities, common.getItem(mq.TLO.InvSlot('Chest').Item.Name()))
 	table.insert(class.burnAbilities, common.getItem('Rage of Rolfron'))
 	table.insert(class.burnAbilities, common.getAA('Quick Time'))
-	table.insert(class.burnAbilities, common.getAA('Funeral Dirge'))
-	if state.emu then
-		table.insert(class.burnAbilities, common.getAA('Third Spire of the Minstrels'))
-	else
-		table.insert(class.burnAbilities, common.getAA('Spire of the Minstrels'))
-	end
+	table.insert(class.burnAbilities, common.getAA('Funeral Dirge', { opt = 'USEFUNERALDIRGE' }))
+	table.insert(class.burnAbilities, common.getAA('Spire of the Minstrels'))
 	table.insert(class.burnAbilities, common.getAA('Bladed Song'))
 	table.insert(class.burnAbilities, common.getAA('Dance of Blades'))
 	table.insert(class.burnAbilities, common.getAA('Flurry of Notes'))
@@ -465,14 +485,14 @@ local function findNextSong()
 end
 
 function class.cast()
-	print("In class.cast()")
+	--print("In class.cast()")
 	-- Don't touch songs if we're using mq2twist or mq2medley or we're invis
 	if class.isEnabled('USETWIST') or mq.TLO.Me.Invis() then
 		print("Skipping medley because USETWIST enabled or i'm invis")
 		return false
 	end
 	if class.isEnabled('USEMEDLEY') then
-		print("Calling medley subroutine")
+		--print("Calling medley subroutine")
 		class.medley()
 		return false
 	end
