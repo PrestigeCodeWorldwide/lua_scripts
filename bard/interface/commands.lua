@@ -105,9 +105,9 @@ function commands.commandHandler(...)
 			if state.paused then
 				state.resetCombatState()
 				mq.cmd('/stopcast')
-				mq.cmd('/stopmedley')
+				mq.cmd('/medley stop')
 				mq.delay(10)
-				mq.cmd('/stopmedley')
+				mq.cmd('/medley stop')
 			end
 		else
 			if constants.booleans[new_value] == nil then
@@ -117,9 +117,9 @@ function commands.commandHandler(...)
 			if state.paused then
 				state.resetCombatState()
 				mq.cmd('/stopcast')
-				mq.cmd('/stopmedley')
+				mq.cmd('/medley stop')
 				mq.delay(10)
-				mq.cmd('/stopmedley')
+				mq.cmd('/medley stop')
 			else
 				camp.setCamp()
 			end
