@@ -44,14 +44,12 @@ local function init()
 	common.setSwapGem()
 	config.loadIgnores()
 	
-	if state.emu then
-		mq.cmd('/hidecorpse looted')
-	else
-		mq.cmd('/hidecorpse alwaysnpc')
-	end
+	
+	mq.cmd('/hidecorpse alwaysnpc')	
 	mq.cmd('/multiline ; /pet ghold on')
 	mq.cmd('/squelch /stick set verbflags 0')
 	mq.cmd('/squelch /plugin melee unload noauto')
+	mq.cmd('/squelch /plugin twist unload noauto')
 	mq.cmd('/squelch /rez accept on')
 	mq.cmd('/squelch /rez pct 90')
 	mq.cmd('/squelch /assist off')
