@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="mq" type="Lua">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../mq-definitions/mq" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

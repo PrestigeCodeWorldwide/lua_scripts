@@ -132,6 +132,7 @@ end
 -- /tgg is group travel command, then returns to previous mode
 -- /tgs is solo travel command, then returns to previous mode
 
+mq.bind('/tgg', commandHandlerGroup)
 mq.bind('/tga', commandHandlerGroup)
 mq.bind('/tgs', commandHandlerSolo)
 
