@@ -17,6 +17,25 @@ function logger.logLine(...)
     return string.format(timestampPrefix..log_prefix..string.format(...)..'\ax')
 end
 
+function logger.info(...)
+    local timestampPrefix = logger.timestamps and '\a-w['..os.date('%X')..']\ax' or ''
+    local output = string.format(timestampPrefix..log_prefix..string.format(...)..'\ax')
+    print(output)
+    return output
+end
+
+function logger.dump(data, depth)
+    if type(data) == 'table' then
+        local output = '{'
+        for key, value in pairs(data) do
+            output = output .. string.format('\n%s%s = %s', string.rep(' ', depth or 4), key, logger.dump(value, (depth or 4) + 4))
+        end
+        return output .. '\n' .. string.rep(' ', depth or 4) .. '}'
+    else
+        return tostring(data)
+    end
+end
+
 function logger.putLogData(message, key, value, separator)
     return string.format('%s%s%s=%s', message, separator or ' ', key, value)
 end
