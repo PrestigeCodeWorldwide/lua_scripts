@@ -1,12 +1,12 @@
 --- @type Mq
-local mq        = require 'mq'
-local class     = require('classes.classbase')
-local logger    = require('utils.logger')
-local timer     = require('utils.timer')
+local mq = require 'mq'
+local class = require('classes.classbase')
+local logger = require('utils.logger')
+local timer = require('utils.timer')
 local abilities = require('ability')
-local common    = require('common')
-local state     = require('state')
-local assist    = require('routines.assist')
+local common = require('common')
+local state = require('state')
+local assist = require('routines.assist')
 
 local zen
 
@@ -20,23 +20,23 @@ function class.spellRotationChangeCheck()
 end
 
 function class.init(_zen)
-	zen                         = _zen
-	class.classOrder            = { 'sitCheck', 'spellRotationChangeCheck', 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
-	class.EPIC_OPTS             = { always = 1, shm = 1, burn = 1, never = 1 }
-	class.MEDLEY_OPTS           = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, downtime = 1, test = 1 }
-	class.medleyRunning         = false
-	class.spellRotations        = { melee = {}, caster = {}, meleedot = {}, raidtank = {}, downtime = {} }
-	class.DEFAULT_SPELLSET      = 'meleedot'
+	zen = _zen
+	class.classOrder = { 'sitCheck', 'spellRotationChangeCheck', 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
+	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
+	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, downtime = 1, test = 1 }
+	class.medleyRunning = false
+	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, raidtank = {}, downtime = {} }
+	class.DEFAULT_SPELLSET = 'meleedot'
 	class.spellRotationsChanged = true
-
+	
 	class.initBase(_zen, 'brd')
-
+	
 	-- resets stick to default
 	mq.cmd('/squelch /stick off')
 	mq.cmd('/squelch /stick mod 0')
 	-- Let /stick front work for non-tanks DO NOT REMOVE
 	mq.cmd('/squelch /stick set nohottfront on')
-
+	
 	class.initClassOptions()
 	class.loadSettings()
 	class.initSpellLines(_zen)
@@ -46,17 +46,17 @@ function class.init(_zen)
 	class.initBuffs(_zen)
 	class.initDefensiveAbilities(_zen)
 	class.initRecoverAbilities(_zen)
-
+	
 	-- Bellow handled separately as we want it to run its course and not be refreshed early
-	class.bellow    = common.getAA('Boastful Bellow')
-
+	class.bellow = common.getAA('Boastful Bellow')
+	
 	-- aa mez
-	class.dirge     = common.getAA('Dirge of the Sleepwalker')
-	class.sonic     = common.getAA('Sonic Disturbance')
+	class.dirge = common.getAA('Dirge of the Sleepwalker')
+	class.sonic = common.getAA('Sonic Disturbance')
 	class.fluxstaff = common.getItem('Staff of Viral Flux')
-
-	class.selos     = common.getAA('Selo\'s Sonata')
-
+	
+	class.selos = common.getAA('Selo\'s Sonata')
+	
 	if mq.TLO.Me.Combat() then
 		class.startMedley()
 	else
@@ -67,13 +67,13 @@ end
 
 function dump(t, indent)
 	indent = indent or '  '
-
+	
 	-- Base case: if t is not a table, print and return
 	if type(t) ~= "table" then
 		print(indent .. tostring(t))
 		return
 	end
-
+	
 	-- Recursive case: iterate through the table and call dump() for each element
 	for k, v in pairs(t) do
 		if type(v) == "table" then
@@ -87,24 +87,24 @@ end
 
 function class.sitCheck()
 	-- get main assist
-	local myAssist  = assist.getMainAssist()
+	local myAssist = assist.getMainAssist()
 	-- see if he's sitting
 	local isSitting = myAssist.Sitting()
 	local meSitting = mq.TLO.Me.Sitting()
-
+	
 	if isSitting and not meSitting then
 		-- turn off medley/songs
 		if class.OPTS.USEMEDLEY.value then
 			class.stopMedley()
 		end
-
+		
 		-- sit
 		mq.cmd('/sit')
 		-- Delay long enough the TLO starts returning True for Sitting()
 		mq.delay(3500, function()
 			return mq.TLO.Me.Sitting()
 		end)
-
+	
 	elseif not isSitting and mq.TLO.Me.Sitting() then
 		mq.cmd("/stand")
 	end
@@ -130,7 +130,7 @@ function class.startMedley(medleyName)
 		if not medleyName or medleyName == '' then
 			medleyName = class.OPTS.MEDLEYTYPE.value
 		end
-
+		
 		mq.cmd('/medley ' .. medleyName)
 		class.medleyRunning = medleyName
 	end
@@ -154,7 +154,7 @@ function class.doSingleMez()
 			local mob = mq.TLO.Spawn('id ' .. id)
 			if mob() and not state.mezImmunes[mob.CleanName()] then
 				local spellData = mq.TLO.Spell(mez_spell.CastName)
-				local maxLevel  = spellData.Max(1)() or mq.TLO.Me.Level()
+				local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
 				if id ~= state.assistMobID and mob.Level() <= maxLevel and mob.Type() == 'NPC' then
 					mq.cmd('/attack off')
 					mq.delay(100, function()
@@ -171,7 +171,7 @@ function class.doSingleMez()
 						local assist_spawn = assist.getAssistSpawn()
 						if assist_spawn == -1 or assist_spawn.ID() ~= id then
 							state.mezTargetName = mob.CleanName()
-							state.mezTargetID   = id
+							state.mezTargetID = id
 							print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
 							if mez_spell.precast then
 								mez_spell.precast()
@@ -179,16 +179,16 @@ function class.doSingleMez()
 							-- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
 							-- Maybe make a concrete mez subroutine?
 							--abilities.use(mez_spell)
-
+							
 							mq.cmd('/medley queue "Slumber of the Diabo" -interrupt')
 							info("Mez cast, delaying 4500")
 							mq.delay(4500)
-
+							
 							logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 							state.targets[id].meztimer:reset()
 							mq.doevents('eventMezImmune')
 							mq.doevents('eventMezResist')
-							state.mezTargetID   = 0
+							state.mezTargetID = 0
 							state.mezTargetName = nil
 							return true
 						end
@@ -204,34 +204,34 @@ end
 -- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
 function class.medley()
 	--printf("In medley with combat state: %s", mq.TLO.Me.CombatState())
-
+	
 	-- If in combat, we use the chosen combat song - states are ACTIVE, COMBAT, COOLDOWN
 	if mq.TLO.Me.CombatState() == 'COMBAT' and not class.IsInvis() then
 		if class.OPTS.USEMEDLEY.value then
 			if class.medleyRunning ~= class.OPTS.MEDLEYTYPE.value then
 				mq.cmd('/medley ' .. class.OPTS.MEDLEYTYPE.value)
-
+				
 				class.medleyRunning = class.OPTS.MEDLEYTYPE.value
-
+			
 			end
 		end
 	elseif not class.IsInvis() and not mq.TLO.Me.Sitting() then
 		-- If not in combat, we use the downtime song
 		if class.OPTS.USEMEDLEY.value then
-
+			
 			if class.medleyRunning ~= 'downtime' then
 				mq.cmd('/medley downtime')
 				class.medleyRunning = 'downtime'
 			end
-
+		
 		end
 	end
-
+	
 	-- If we're invis, stop medley
 	if class.IsInvis() and class.medleyRunning ~= 'none' then
 		class.stopMedley()
 	end
-
+	
 	if not class.IsInvis() then
 		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
@@ -265,7 +265,7 @@ end
 
 function class.initClassOptions()
 	-- base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype)
-
+	
 	class.addOption('CAMPHARD', 'Camp Hard (never move)', false, nil, 'If checked, character will not move or navigate', 'checkbox', nil, 'CampHard', 'bool')
 	class.addOption('USEEPIC', 'Epic', 'always', class.EPIC_OPTS, 'Set how to use bard epic', 'combobox', nil, 'UseEpic', 'string')
 	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
@@ -274,7 +274,7 @@ function class.initClassOptions()
 	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
 	class.addOption('MEDLEYTYPE', 'Medley Type', 'melee', class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'combobox', nil, 'MedleyType', 'string')
 	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil, 'StickHowTLO', 'string')
-
+	
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil, 'UseSelos', 'bool')
 	class.addOption('USEFUNERALDIRGE', 'Use Funeral Dirge', true, nil, 'Use Funeral Dirge during burns automatically', 'checkbox', nil, 'UseFuneralDirge', 'bool')
 	--class.addOption('USEINSULTS', 'Use Insults', true, nil, 'Use insult songs', 'checkbox', nil, 'UseInsults', 'bool')
@@ -329,13 +329,13 @@ function class.initSpellLines(_zen)
 	class.addSpell('alliance', { 'Coalition of Sticks and Stones', 'Covenant of Sticks and Stones', 'Alliance of Sticks and Stones' })
 	class.addSpell('mezst', { 'Slumber of the Diabo', 'Slumber of Zburator', 'Slumber of Jembel' })
 	class.addSpell('mezae', { 'Wave of Nocturn', 'Wave of Sleep', 'Wave of Somnolence' })
-
+	
 	-- haste song doesn't stack with enc haste?
 	class.addSpell('overhaste', { 'Ancient: Call of Power', 'Warsong of the Vah Shir', 'Battlecry of the Vah Shir' })
 	class.addSpell('bardhaste', { 'Verse of Veeshan', 'Psalm of Veeshan', 'Composition of Ervaj' })
 	class.addSpell('snare', { 'Selo\'s Consonant Chain' }, { opt = 'USESNARE' })
 	class.addSpell('debuff', { 'Harmony of Sound' })
-
+	
 	-- Older songs still frequently used
 	class.addSpell('amplify', { 'Amplification' }, { opt = 'USEAMPLIFY' })
 	class.addSpell('caretaker', { 'Jonthan\'s Mightful Caretaker' }, { opt = 'USECARETAKER' })
@@ -353,7 +353,7 @@ function class.initSpellRotations(_zen)
 	class.spellRotations.melee = {
 		class.spells.aria, class.spells.warmarch
 	}
-	local gemsUsed             = 2
+	local gemsUsed = 2
 	if class.OPTS.USEPULSE.value then
 		table.insert(class.spellRotations.melee, class.spells.pulse)
 		gemsUsed = gemsUsed + 1
@@ -385,11 +385,11 @@ function class.initSpellRotations(_zen)
 	if gemsUsed > 10 then
 		print(logger.logLine("WARNING: You have %d gems used in your melee rotation, which doesn't leave room for synergy/mezst/mezae.  Please select fewer.", gemsUsed))
 	end
-
+	
 	local possibilities = {
 		class.spells.arcane, class.spells.suffering, class.spells.spiteful, class.spells.dirge
 	}
-
+	
 	-- Loop through possibilities and fill until you reach 13 gems
 	for i, spell in ipairs(possibilities) do
 		if gemsUsed < 13 then
@@ -399,20 +399,20 @@ function class.initSpellRotations(_zen)
 			break
 		end
 	end
-
+	
 	-- If you still didn't reach 13 gems, handle it (optional)
 	if gemsUsed < 13 then
 		print(logger.logLine("WARNING: Only %d gems are being used, which is less than the maximum of 13.", gemsUsed))
 	end
-
-	class.spellRotations.caster   = {
+	
+	class.spellRotations.caster = {
 		class.spells.composite, class.spells.crescendo, class.spells.aria,
 		class.spells.arcane, class.spells.firenukebuff, class.spells.suffering,
 		class.spells.warmarch, class.spells.firemagicdotbuff, class.spells.pulse,
 		class.spells.dirge
 	}
 	-- synergy insult, mezst, mezae
-
+	
 	class.spellRotations.meleedot = {
 		class.spells.composite, class.spells.crescendo,
 		class.spells.aria, class.spells.warmarch,
@@ -426,7 +426,7 @@ function class.initDPSAbilities(_zen)
 	table.insert(class.DPSAbilities, common.getBestDisc({ 'Reflexive Rebuttal' }))
 	table.insert(class.DPSAbilities, common.getSkill('Intimidation', { opt = 'USEINTIMIDATE' }))
 	table.insert(class.DPSAbilities, common.getSkill('Kick'))
-
+	
 	table.insert(class.AEDPSAbilities, common.getAA('Vainglorious Shout', { threshold = 2 }))
 end
 
@@ -445,7 +445,7 @@ function class.initBurns(_zen)
 	-- Delay after using swarm pet AAs while pets are spawning
 	table.insert(class.burnAbilities, common.getAA('Lyrical Prankster', { opt = 'USESWARM', delay = 1500 }))
 	table.insert(class.burnAbilities, common.getAA('Song of Stone', { opt = 'USESWARM', delay = 1500 }))
-
+	
 	table.insert(class.burnAbilities, common.getBestDisc({ 'Puretone Discipline' }))
 end
 
@@ -458,9 +458,9 @@ function class.initDefensiveAbilities(_zen)
 	table.insert(class.defensiveAbilities, common.getAA('Shield of Notes'))
 	table.insert(class.defensiveAbilities, common.getAA('Hymn of the Last Stand'))
 	table.insert(class.defensiveAbilities, common.getBestDisc({ 'Deftdance Discipline' }))
-
+	
 	-- Aggro
-	local preFade  = function()
+	local preFade = function()
 		mq.cmd('/attack off')
 	end
 	local postFade = function()
@@ -477,10 +477,10 @@ function class.initRecoverAbilities(_zen)
 	class.rallyingcall = common.getAA('Rallying Call')
 end
 
-local selosTimer       = timer:new(30000)
-local crescendoTimer   = timer:new(53000)
-local bellowTimer      = timer:new(30000)
-local synergyTimer     = timer:new(18000)
+local selosTimer = timer:new(30000)
+local crescendoTimer = timer:new(53000)
+local bellowTimer = timer:new(30000)
+local synergyTimer = timer:new(18000)
 
 class.resetClassTimers = function()
 	bellowTimer:reset(0)
@@ -534,7 +534,7 @@ local function isDotReady(spellId, spellName)
 	if not mq.TLO.Target() or mq.TLO.Target.ID() ~= state.assistMobID or mq.TLO.Target.Type() == 'Corpse' then
 		return false
 	end
-
+	
 	songDuration = mq.TLO.Target.MyBuffDuration(actualSpellName)()
 	if not common.isTargetDottedWith(spellId, actualSpellName) then
 		-- target does not have the dot, we are ready
@@ -546,7 +546,7 @@ local function isDotReady(spellId, spellName)
 			return true
 		end
 	end
-
+	
 	return false
 end
 
@@ -567,7 +567,7 @@ local function isSongReady(spellId, spellName)
 	if mq.TLO.Spell(spellName).TargetType() == 'Single' then
 		return isDotReady(spellId, spellName)
 	end
-
+	
 	if not mq.TLO.Me.Gem(spellName)() or mq.TLO.Me.GemTimer(spellName)() > 0 then
 		return false
 	end
@@ -575,7 +575,7 @@ local function isSongReady(spellId, spellName)
 		-- buggy song that doesn't like to go on CD
 		return false
 	end
-
+	
 	local songDuration = mq.TLO.Me.Song(actualSpellName).Duration() or mq.TLO.Me.Buff(actualSpellName).Duration()
 	if not songDuration then
 		logger.debug(logger.flags.class.cast, 'song ready %s', spellName)
@@ -603,31 +603,48 @@ local function findNextSong()
 	local songLowestDurationToReturn
 	for _, song in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
 		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
-		local song_id            = song.ID
-		local song_name          = song.Name
+		local song_id = song.ID
+		local song_name = song.Name
 		local targetBuffDuration = mq.TLO.Target.Buff(song.CheckFor).Duration()
-
+		
+		-- need to check MA for buff too?  It tries to spam Aria due to Caretaker on self not allowing Aria to land
+		local mainAssist = assist.getMainAssist()
+		local assistBuff = mainAssist.Buff(song.CheckFor)()
+		logger.info("Assist buff is %s", assistBuff or "nil")
+		local assistBuffDuration = mainAssist.Buff(song.CheckFor).Duration()
+		local mAName = mainAssist.Name
+		logger.info("MA is %s with duration: %s when checking for %s", mAName, assistBuffDuration, song.CheckFor)
+		
+		local nobodyHasThisBuff = targetBuffDuration == nil and assistBuffDuration == nil
+		local targetBuffWearingOff = targetBuffDuration and targetBuffDuration < 5000
+		local assistBuffWearingOff = assistBuffDuration and assistBuffDuration < 5000
+		logger.info("%s - %s - %s", nobodyHasThisBuff, targetBuffWearingOff, assistBuffWearingOff)
 		if isSongReady(song_id, song_name)
 			and class.isAbilityEnabled(song.opt)
 			--and not mq.TLO.Target.Buff(song.CheckFor)()
-			and (not targetBuffDuration or targetBuffDuration < 5000)
+			and (nobodyHasThisBuff or targetBuffWearingOff or assistBuffWearingOff)
 		then
 			if song_name ~= (class.spells.composite and class.spells.composite.Name) or mq.TLO.Target() then
 				return song
 			end
 		end
-
+		
 		--track buff that'll need recasting first if none need immediately casting
 		if targetBuffDuration and targetBuffDuration < songLowestDuration then
-			songLowestDuration         = targetBuffDuration
+			songLowestDuration = targetBuffDuration
 			songLowestDurationToReturn = song
 		end
+		if assistBuffDuration and assistBuffDuration < songLowestDuration then
+			songLowestDuration = targetBuffDuration
+			songLowestDurationToReturn = song
+		end
+	
 	end
 	if songLowestDurationToReturn == nil then
-		--print(logger.logLine("WARNING: No song found to cast"))
+		print(logger.logLine("WARNING: No song found to cast"))
 		return nil
 	end
-	--print(logger.logLine("SINGING SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.Name))
+	print(logger.logLine("SINGING SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.Name))
 	--dump(songLowestDurationToReturn)
 	return songLowestDurationToReturn
 end
@@ -644,7 +661,7 @@ function class.cast()
 		class.medley()
 		return false
 	end
-
+	
 	if not state.loop.Invis and class.doneSinging() and not mq.TLO.Me.Sitting() then
 		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
@@ -697,7 +714,7 @@ function class.cast()
 end
 
 local fierceeye = common.getAA('Fierce Eye')
-local epic      = common.getItem('Blade of Vesagran') or common.getItem('Prismatic Dragon Blade')
+local epic = common.getItem('Blade of Vesagran') or common.getItem('Prismatic Dragon Blade')
 function class.useEpic()
 	if not fierceeye or not epic then
 		if fierceeye then
