@@ -1,0 +1,7 @@
+-- Crummy documentation:
+-- Use /tgs and /tgg to send commands
+-- If you use a shortname, it will function identically to /travelto and take you/your group there
+-- If you do not, it will fuzzy find all zones matching your argument, then show you a list of possible
+-- zones you could be searching for.  Choose the number matching the zone you want, and off you go.
+-- Designed to alleviate the need to remember every zone's shortname for /travelto
+-- If you're still using EQBCS, manually change `local useDanNet = true` to `local useDanNet = false`
