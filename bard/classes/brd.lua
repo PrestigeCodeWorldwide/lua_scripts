@@ -6,13 +6,14 @@ local timer = require('utils.timer')
 local abilities = require('ability')
 local common = require('common')
 local state = require('state')
+local assist = require('routines.assist')
 
 function class.init(_zen)
-	class.classOrder = { 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
+	class.classOrder = { 'sitCheck', 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast', 'mash', 'ae', 'recover', 'buff', 'rest' }
 	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
 	class.MEDLEY_OPTS = { melee = 1, caster = 1, meleedot = 1, tank = 1, ADPSFirst = 1, DOTFirst = 1, downtime = 1, test = 1 }
 	class.medleyRunning = false
-	
+
 	class.initBase(_zen, 'brd')
 
 	-- resets stick to default
@@ -30,7 +31,7 @@ function class.init(_zen)
 	class.initBuffs(_zen)
 	class.initDefensiveAbilities(_zen)
 	class.initRecoverAbilities(_zen)
-	
+
 	-- Bellow handled separately as we want it to run its course and not be refreshed early
 	class.bellow = common.getAA('Boastful Bellow')
 
@@ -40,17 +41,57 @@ function class.init(_zen)
 	class.fluxstaff = common.getItem('Staff of Viral Flux')
 
 	class.selos = common.getAA('Selo\'s Sonata')
-	
+
 	if mq.TLO.Me.Combat() then
 		class.startMedley()
 	else
-		class.startMedleyByName("downtime")
+		class.startMedley("downtime")
 	end
-	
+
+end
+
+function dump(t, indent)
+	indent = indent or '  '
+
+	-- Base case: if t is not a table, print and return
+	if type(t) ~= "table" then
+		print(indent .. tostring(t))
+		return
+	end
+
+	-- Recursive case: iterate through the table and call dump() for each element
+	for k, v in pairs(t) do
+		if type(v) == "table" then
+			print(indent .. tostring(k) .. " :")
+			dump(v, indent .. "  ")
+		else
+			print(indent .. tostring(k) .. " : " .. tostring(v))
+		end
+	end
+end
+
+function class.sitCheck()
+	-- get main assist
+	local myAssist = assist.getMainAssist()
+	-- see if he's sitting
+	local isSitting = myAssist.Sitting()
+	local meSitting = mq.TLO.Me.Sitting()
+
+	if isSitting and not mq.TLO.Me.Sitting() then
+		-- turn off medley
+		class.stopMedley()
+		-- sit
+		mq.cmd('/sit')
+		-- Delay long enough the TLO starts returning True for Sitting()
+		mq.delay(500)
+
+	elseif not isSitting and mq.TLO.Me.Sitting() then
+		mq.cmd("/stand")
+	end
 end
 
 function class.IsInvis()
-	return mq.TLO.Me.Invis() or ((state.loop and state.loop.Invis) or false)
+	return mq.TLO.Me.Invis() or ((state.loop and state.loop.Invis))
 end
 
 function class.stopMedley()
@@ -64,44 +105,45 @@ function class.stopMedley()
 	end
 end
 
-function class.startMedleyByName(medleyName)
-	if not class.IsInvis() then
+function class.startMedley(medleyName)
+	if not class.IsInvis() and not mq.TLO.Me.Sitting() then
+		if not medleyName or medleyName == '' then
+			medleyName = class.OPTS.MEDLEYTYPE.value
+		end
+
 		mq.cmd('/medley ' .. medleyName)
 		class.medleyRunning = medleyName
 	end
 end
 
-function class.startMedley()
-	if not class.IsInvis() then
-		local medleyType = class.OPTS.MEDLEYTYPE.value
-		
-		mq.cmd('/medley ' .. medleyType)
-		class.medleyRunning = medleyType
-	end
-end
-
 function info(...)
-	local args = {...}
+	local args = { ... }
 	--printf(logger.logLine(strtoprint))
 	printf(logger.logLine(args))
 end
 
 function class.doSingleMez()
-	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then return end
-	for id,mobdata in pairs(state.targets) do
+	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then
+		return
+	end
+	for id, mobdata in pairs(state.targets) do
 		if state.debug then
 			logger.debug(logger.flags.routines.mez, '[%s] meztimer: %s, currentTime: %s, timerExpired: %s', id, mobdata['meztimer'].start_time, mq.gettime(), mobdata['meztimer']:timerExpired())
 		end
 		if id ~= state.assistMobID and (mobdata['meztimer'].start_time == 0 or mobdata['meztimer']:timerExpired()) then
-			local mob = mq.TLO.Spawn('id '..id)
+			local mob = mq.TLO.Spawn('id ' .. id)
 			if mob() and not state.mezImmunes[mob.CleanName()] then
 				local spellData = mq.TLO.Spell(mez_spell.CastName)
 				local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
 				if id ~= state.assistMobID and mob.Level() <= maxLevel and mob.Type() == 'NPC' then
 					mq.cmd('/attack off')
-					mq.delay(100, function() return not mq.TLO.Me.Combat() end)
+					mq.delay(100, function()
+						return not mq.TLO.Me.Combat()
+					end)
 					mob.DoTarget()
-					mq.delay(1000, function() return mq.TLO.Target.BuffsPopulated() end)
+					mq.delay(1000, function()
+						return mq.TLO.Target.BuffsPopulated()
+					end)
 					local pct_hp = mq.TLO.Target.PctHPs()
 					if mq.TLO.Target() and mq.TLO.Target.Type() == 'Corpse' then
 						state.targets[id] = nil
@@ -111,15 +153,17 @@ function class.doSingleMez()
 							state.mezTargetName = mob.CleanName()
 							state.mezTargetID = id
 							print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
-							if mez_spell.precast then mez_spell.precast() end
+							if mez_spell.precast then
+								mez_spell.precast()
+							end
 							-- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
 							-- Maybe make a concrete mez subroutine?
 							--abilities.use(mez_spell)
-							
+
 							mq.cmd('/medley queue "Slumber of the Diabo" -interrupt')
 							info("Mez cast, delaying 4500")
 							mq.delay(4500)
-							
+
 							logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 							state.targets[id].meztimer:reset()
 							mq.doevents('eventMezImmune')
@@ -150,7 +194,7 @@ function class.medley()
 			class.medleyRunning = class.OPTS.MEDLEYTYPE.value
 
 		end
-	elseif not class.IsInvis() then
+	elseif not class.IsInvis() and not mq.TLO.Me.Sitting() then
 		-- If not in combat, we use the downtime song
 		if class.medleyRunning ~= 'downtime' then
 			mq.cmd('/medley downtime')
@@ -196,7 +240,7 @@ end
 
 function class.initClassOptions()
 	-- base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype)
-	
+
 	class.addOption('CAMPHARD', 'Camp Hard (never move)', false, nil, 'If checked, character will not move or navigate', 'checkbox', nil, 'CampHard', 'bool')
 	class.addOption('USEEPIC', 'Epic', 'always', class.EPIC_OPTS, 'Set how to use bard epic', 'combobox', nil, 'UseEpic', 'string')
 	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
@@ -205,10 +249,8 @@ function class.initClassOptions()
 	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil, 'UseMedley', 'bool')
 	class.addOption('MEDLEYTYPE', 'Medley Type', 'melee', class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs', 'combobox', nil, 'MedleyType', 'string')
 	--class.addOption('STICKHOW', 'Stick How', 'front snaproll moveback uw loose', nil, 'MQ2MoveUtils /stick command', 'inputtext', nil, 'StickHow', 'string' )
-	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil, 'StickHowTLO', 'string' )
-	
-	
-	
+	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil, 'StickHowTLO', 'string')
+
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil, 'UseSelos', 'bool')
 	class.addOption('USEFUNERALDIRGE', 'Use Funeral Dirge', true, nil, 'Use Funeral Dirge during burns automatically', 'checkbox', nil, 'UseFuneralDirge', 'bool')
 	--class.addOption('USEINSULTS', 'Use Insults', true, nil, 'Use insult songs', 'checkbox', nil, 'UseInsults', 'bool')
@@ -226,9 +268,8 @@ function class.initClassOptions()
 	--class.addOption('USEDISEASEDOTS', 'Use Disease DoT', false, nil, 'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs', 'bool')
 	--class.addOption('USEREGENSONG', 'Use Regen Song', false, nil, 'Toggle use of hp/mana regen song line', 'checkbox', nil, 'UseRegenSong', 'bool')
 	--class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
-	
-	
-	
+
+
 end
 
 function class.initSpellLines(_zen)
@@ -315,7 +356,7 @@ function class.initBurns(_zen)
 	-- Delay after using swarm pet AAs while pets are spawning
 	table.insert(class.burnAbilities, common.getAA('Lyrical Prankster', { opt = 'USESWARM', delay = 1500 }))
 	table.insert(class.burnAbilities, common.getAA('Song of Stone', { opt = 'USESWARM', delay = 1500 }))
-	
+
 	table.insert(class.burnAbilities, common.getBestDisc({ 'Puretone Discipline' }))
 end
 
@@ -597,6 +638,7 @@ function class.pullCustom()
 end
 
 function class.doneSinging()
+	-- #TODO: Remove this usemedley forced true and build it into casting
 	if class.isEnabled('USETWIST') or class.isEnabled('USEMEDLEY') then
 		return true
 	end

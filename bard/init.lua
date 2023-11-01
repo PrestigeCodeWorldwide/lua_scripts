@@ -16,6 +16,7 @@ local common = require('common')
 local constants = require('constants')
 local mode = require('mode')
 local state = require('state')
+local camp = require('routines.camp')
 
 local zen = {}
 
@@ -56,8 +57,12 @@ local function init()
 	mq.cmd('/squelch /autofeed 5000')
 	mq.cmd('/squelch /autodrink 5000')
 	mq.cmdf('/setwintitle %s (Level %s %s)', mq.TLO.Me.CleanName(), mq.TLO.Me.Level(), state.class)
-	
+
+	-- Seems unfinished from factory?
 	--tlo.init(zen)
+	-- To start in playing mode instead of paused
+	camp.setCamp()
+	state.paused = false
 end
 
 ---Check if the current game state is not INGAME, and exit the script if it is.
@@ -188,7 +193,7 @@ end
 local function main()
 	init()
 	-- force debug state for dev
-	--state.debug = true
+	state.debug = true
 	
 	local debugTimer = timer:new(3000)
 	-- Main Loop
@@ -211,10 +216,10 @@ local function main()
 					common.checkCursor()
 					
 					if not state.actionTaken then
-						--print("Entering mainloop because no action taken")
+						--print(logger.logLine("Entering mainloop because no action taken"))
 						zen.class.mainLoop()
-					--else
-						--print("Action taken, skipping main loop")
+					else
+						print(logger.logLine("Action taken, skipping main loop"))
 					end
 					mq.delay(50)
 				else

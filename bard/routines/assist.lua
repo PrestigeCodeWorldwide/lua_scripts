@@ -71,7 +71,23 @@ function assist.getAssistID()
 	return assist_id
 end
 
----@return spawn|integer @Returns the MQ Spawn userdata of the configured main assists current target or -1 if manual assist
+---@return integer @Returns the spawn ID of the configured main assist, otherwise 0.
+function assist.getMainAssist()
+	local assist_id = 0
+	local assistValue = config.get('ASSIST')
+	if assistValue == 'group' then
+		assist_id = mq.TLO.Group.MainAssist
+	elseif assistValue == 'raid1' then
+		assist_id = mq.TLO.Raid.MainAssist(1)
+	elseif assistValue == 'raid2' then
+		assist_id = mq.TLO.Raid.MainAssist(2)
+	elseif assistValue == 'raid3' then
+		assist_id = mq.TLO.Raid.MainAssist(3)
+	end
+	return assist_id
+end
+
+--@return spawn|integer @Returns the MQ Spawn userdata of the configured main assists current target or -1 if manual assist
 function assist.getAssistSpawn()
 	local assist_target = nil
 	local assistValue = config.get('ASSIST')
