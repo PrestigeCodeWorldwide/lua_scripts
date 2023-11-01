@@ -32,21 +32,21 @@ local function init()
 	zen.class.init(zen)
 	zen.events.initClassBasedEvents()
 	ability.init(zen)
-	
+
 	-- Initialize binds
 	mq.cmd('/squelch /djoin zen')
 	commands.init(zen)
-	
+
 	-- Initialize UI
 	ui.init(zen)
-	
+
 	state.currentZone = mq.TLO.Zone.ID()
 	state.subscription = mq.TLO.Me.Subscription()
 	common.setSwapGem()
 	config.loadIgnores()
-	
-	
-	mq.cmd('/hidecorpse alwaysnpc')	
+
+
+	mq.cmd('/hidecorpse alwaysnpc')
 	mq.cmd('/multiline ; /pet ghold on')
 	mq.cmd('/squelch /stick set verbflags 0')
 	mq.cmd('/squelch /plugin melee unload noauto')
@@ -83,7 +83,7 @@ local function updateLoopState()
 		TargetID = mq.TLO.Target.ID(),
 		TargetHP = mq.TLO.Target.PctHPs(),
 		PetID = mq.TLO.Pet.ID()
-	}
+	}	
 end
 
 ---Reset assist/tank ID and turn off attack if we have no target or are targeting a corpse
@@ -148,19 +148,26 @@ local fsm = {}
 function fsm.IDLE()
 
 end
+
 function fsm.TANK_SCAN()
 	zen.tank.findMobToTank()
 end
+
 function fsm.TANK_ENGAGE()
 end
+
 function fsm.PULL_SCAN()
 end
+
 function fsm.PULL_APPROACH()
 end
+
 function fsm.PULL_ENGAGE()
 end
+
 function fsm.PULL_RETURN()
 end
+
 function fsm.PULL_WAIT()
 end
 
@@ -194,7 +201,7 @@ local function main()
 	init()
 	-- force debug state for dev
 	state.debug = true
-	
+
 	local debugTimer = timer:new(3000)
 	-- Main Loop
 	while true do
@@ -202,7 +209,7 @@ local function main()
 			logger.debug(logger.flags.zen.main, 'Start Main Loop')
 			debugTimer:reset()
 		end
-		
+
 		mq.doevents()
 		updateLoopState()
 		buffSafetyCheck()
@@ -214,7 +221,7 @@ local function main()
 					-- do active combat assist things when not paused and not invis
 					checkFD()
 					common.checkCursor()
-					
+
 					if not state.actionTaken then
 						--print(logger.logLine("Entering mainloop because no action taken"))
 						zen.class.mainLoop()
