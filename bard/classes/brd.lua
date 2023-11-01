@@ -645,7 +645,7 @@ function class.cast()
 		return false
 	end
 
-	if not state.loop.Invis and class.doneSinging() then
+	if not state.loop.Invis and class.doneSinging() and not mq.TLO.Me.Sitting() then
 		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
 			if (class.OPTS.USEEPIC.value == 'always' or state.burnActive or (class.OPTS.USEEPIC.value == 'shm' and mq.TLO.Me.Song('Prophet\'s Gift of the Ruchu')())) then
