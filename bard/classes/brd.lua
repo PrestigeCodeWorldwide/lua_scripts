@@ -212,8 +212,6 @@ end
 
 -- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
 function class.medley()
-	--printf("In medley with combat state: %s", mq.TLO.Me.CombatState())
-
 	-- If in combat, we use the chosen combat song - states are ACTIVE, COMBAT, COOLDOWN
 	if mq.TLO.Me.CombatState() == 'COMBAT' and not class.IsInvis() then
 		if class.OPTS.USEMEDLEY.value then
@@ -297,10 +295,11 @@ function class.initClassOptions()
 	-- Caco not worth debuff slot anymore
 	--class.addOption('USECACOPHONY', 'Use Cacophony', true, nil, 'Use Cacophony AA', 'checkbox', nil, 'UseCacophony', 'bool')
 	class.addOption('USEFADE', 'Use Fade', false, nil, 'Fade when aggro', 'checkbox', nil, 'UseFade', 'bool')
-	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup',
-		'bool')
+	
+
 	class.addOption('USESWARM', 'Use Swarm', true, nil, 'Use swarm pet AAs', 'checkbox', nil, 'UseSwarm', 'bool')
 	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
+
 	class.addOption('USEAMPLIFY', 'Use Amplify', true, nil, 'Use Amplification during downtime', 'checkbox', nil,
 		'UseAmplify', 'bool')
 	class.addOption('USECARETAKER', 'Use Caretaker', true, nil, 'Use Caretaker self-buff', 'checkbox', nil,
@@ -311,15 +310,33 @@ function class.initClassOptions()
 		'UseCrescendo', 'bool')
 	class.addOption('USEPULSE', 'Use Pulse', true, nil, 'Use Pulse (Regen + Heal buff)', 'checkbox', nil, 'UsePulse',
 		'bool')
-	class.addOption('USEDOTS', 'Use DoTs', true, nil, 'Toggle use of DoT songs', 'checkbox', nil, 'UseDoTs', 'bool')
+	-- arcane suffering spiteful dirge
+
+	class.addOption('USEARCANE', 'Use Arcane', true, nil, 'Use Arcane Harmony (Spell/Melee Proc)', 'checkbox', nil,
+		'UseArcane', 'bool')
+	class.addOption('USESUFFERING', 'Use Suffering', true, nil, 'Use Suffering (Melee Proc + Lower Aggro)', 'checkbox',
+		nil, 'UseSuffering', 'bool')
+	class.addOption('USESPITEFUL', 'Use Spiteful', true, nil, 'Use Spiteful (AC + Hate Proc)', 'checkbox', nil,
+		'UseSpiteful', 'bool')
+	class.addOption('USEDIRGE', 'Use Dirge', true, nil, 'Use Dirge (Tank Mitigation)', 'checkbox', nil, 'UseDirge',
+		'bool')
+
+
 	-- TODO: Finish useinsult by figuring out why it's handled differently
 	--class.addOption('USEINSULT', 'Use Insult Synergy Nuke', true, nil, 'Toggle use of Insults (Lots of mana)', 'checkbox', nil, 'UseInsult', 'bool')
-	--class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil, 'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
-	--class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil, 'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
-	--class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil, 'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')
-	--class.addOption('USEDISEASEDOTS', 'Use Disease DoT', false, nil, 'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs', 'bool')
-	--class.addOption('USEREGENSONG', 'Use Regen Song', false, nil, 'Toggle use of hp/mana regen song line', 'checkbox', nil, 'UseRegenSong', 'bool')
+	class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil,
+		'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
+	class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil,
+		'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
+	class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil,
+		'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')
+	class.addOption('USEDISEASEDOTS', 'Use Disease DoT', false, nil,
+		'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs',
+		'bool')
 	--class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
+
+	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup',
+		'bool')
 end
 
 function class.initSpellLines(_zen)
@@ -401,16 +418,26 @@ function class.initSpellRotations(_zen)
 			{ spell = class.spells.pulse, reuseTimeMillis = 30000, lastUsedMillis = 0, isHostile = false })
 		gemsUsed = gemsUsed + 1
 	end
-	if class.OPTS.USEDOTS.value then
+
+	if class.OPTS.USEFIREDOTS.value then
 		table.insert(class.spellRotations.melee,
 			{ spell = class.spells.chantflame, reuseTimeMillis = 18000, lastUsedMillis = 0, isHostile = true })
-		table.insert(class.spellRotations.melee,
-			{ spell = class.spells.chantdisease, reuseTimeMillis = 18000, lastUsedMillis = 0, isHostile = true })
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USEFROSTDOTS.value then
 		table.insert(class.spellRotations.melee,
 			{ spell = class.spells.chantfrost, reuseTimeMillis = 18000, lastUsedMillis = 0, isHostile = true })
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USEDISEASEDOTS.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.chantdisease, reuseTimeMillis = 18000, lastUsedMillis = 0, isHostile = true })
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USEPOISONDOTS.value then
 		table.insert(class.spellRotations.melee,
 			{ spell = class.spells.chantpoison, reuseTimeMillis = 18000, lastUsedMillis = 0, isHostile = true })
-		gemsUsed = gemsUsed + 4
+		gemsUsed = gemsUsed + 1
 	end
 	if class.OPTS.USECARETAKER.value then
 		table.insert(class.spellRotations.melee,
@@ -433,31 +460,38 @@ function class.initSpellRotations(_zen)
 		gemsUsed = gemsUsed + 1
 	end
 
+	if class.OPTS.USEARCANE.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.arcane, reuseTimeMillis = 30000, lastUsedMillis = 0, isHostile = false }) -- example lastUsedMillis value
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USESUFFERING.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.suffering, reuseTimeMillis = 30000, lastUsedMillis = 0, isHostile = false }) -- example lastUsedMillis value
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USESPITEFUL.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.spiteful, reuseTimeMillis = 30000, lastUsedMillis = 0, isHostile = false }) -- example lastUsedMillis value
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USEDIRGE.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.dirge, reuseTimeMillis = 30000, lastUsedMillis = 0, isHostile = false }) -- example lastUsedMillis value
+		gemsUsed = gemsUsed + 1
+	end
+
 	if gemsUsed > 10 then
 		print(logger.logLine(
 			"WARNING: You have %d gems used in your melee rotation, which doesn't leave room for synergy/mezst/mezae.  Please select fewer.",
 			gemsUsed))
+	elseif gemsUsed < 10 then
+		print(logger.logLine(
+			"WARNING: You have %d gems used in your melee rotation, which leaves empty gems.  Please select more.",
+			gemsUsed))
 	end
-
-	local possibilities = {
-		{ spell = class.spells.arcane,    reuseTimeMillis = 30000, lastUsedMillis = 0 }, -- example lastUsedMillis value
-		{ spell = class.spells.suffering, reuseTimeMillis = 30000, lastUsedMillis = 0 }, -- example lastUsedMillis value
-		{ spell = class.spells.spiteful,  reuseTimeMillis = 30000, lastUsedMillis = 0 }, -- example lastUsedMillis value
-		{ spell = class.spells.dirge,     reuseTimeMillis = 30000, lastUsedMillis = 0 } -- example lastUsedMillis value
-	}
-
-	for i, entry in ipairs(possibilities) do
-		if gemsUsed < 13 then
-			table.insert(class.spellRotations.melee, entry)
-			gemsUsed = gemsUsed + 1
-		else
-			break
-		end
-	end
-
-	if gemsUsed < 13 then
-		print(logger.logLine("WARNING: Only %d gems are being used, which is less than the maximum of 13.", gemsUsed))
-	end
+	
+	class.memSpellsForRotation()
 
 	-- TODO: Update these to use the new spell rotation system
 	class.spellRotations.caster = {
@@ -475,6 +509,32 @@ function class.initSpellRotations(_zen)
 		class.spells.chatflame, class.spells.chantdisease, class.spells.chantfrost
 	}
 	-- synergy insult, mezst, mezae
+end
+
+function class.memSpellsForRotation()
+	logger.info("Memming spells for rotation")
+	-- iterate through class.spellRotations.melee and mem each song to incrementing gem
+for i, spellRotation in ipairs(class.spellRotations.melee) do
+	-- get spell in rotation
+	local spell = spellRotation.spell
+	local spellName = spell.Name
+	-- get spell memmed in the gem we're about to use
+	local gemSpell = mq.TLO.Me.Gem(i) 
+	local gemSpellName = gemSpell.Name()
+	logger.info("Gem %d has %s memmed and spell to mem is %s", i, gemSpellName, spellName)
+	-- do the memorization
+	if spellName ~= gemSpellName then
+	logger.info('/memspell %d "%s"', i, spellName )	
+	mq.cmdf('/memspell %d "%s"', i, spellName )
+	mq.delay(3000)
+	
+	end
+	logger.info("Done memming spell")
+		
+	
+end
+	
+	
 end
 
 function class.initDPSAbilities(_zen)
@@ -656,8 +716,9 @@ local function findNextSong()
 	if not mq.TLO.Target.Snared() and class.isEnabled('USESNARE') and ((mq.TLO.Target.PctHPs() or 100) < 30) then
 		return class.spells.snare
 	end
-	local songLowestDuration = 999999
-	local songLowestDurationToReturn = nil
+
+	local songsWithDurations = {} -- To store songs with their durations
+
 
 	for _, spell in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
 		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
@@ -673,6 +734,7 @@ local function findNextSong()
 		local timeSinceLastUse = currentTime - songLastUsedTime
 		local timeLeftOnSong = songReuseTime - timeSinceLastUse
 
+		table.insert(songsWithDurations, { song = song, duration = timeLeftOnSong, isHostile = spell.isHostile })
 
 
 		if isSongReady(song_id, song_name)
@@ -681,7 +743,7 @@ local function findNextSong()
 			and timeLeftOnSong < 3500
 		then
 			local myTarget = mq.TLO.Target()
-			logger.info("Casting on %s! Song %s has %d ms left", myTarget or "None", song_name, timeLeftOnSong)
+			--logger.info("Casting on %s! Song %s has %d ms left", myTarget or "None", song_name, timeLeftOnSong)
 
 			--if song_name ~= (class.spells.composite and class.spells.composite.Name) or mq.TLO.Target() then			
 			--	return song
@@ -698,33 +760,121 @@ local function findNextSong()
 				end
 			end
 		end
-		if timeLeftOnSong < songLowestDuration then
-			songLowestDuration = timeLeftOnSong
-			songLowestDurationToReturn = spell
-		end
 	end
-	if songLowestDurationToReturn == nil then
-		print(logger.logLine("WARNING: No song found to cast"))
-		return nil
-	else
-		local lowestDurationSpell = songLowestDurationToReturn.spell
-		
-		if songLowestDurationToReturn.isHostile then
-			-- Only return the song if in combat and target is not self
-			if mq.TLO.Me.CombatState() == 'COMBAT' and mq.TLO.Target.Type() == 'NPC' and mq.TLO.Target.ID() ~= mq.TLO.Me.ID() then
-				print(logger.logLine("SINGING HOSTILE SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.spell.Name))
-				return songLowestDurationToReturn.spell
-			else 
-			logger.info("NO SONG TO CAST BECAUSE NEXT IS HOSTILE AND I HAVE NO HOSTILE TARGET")
-			end
-			
-		else
-			-- For non-hostile spells, continue with the original logic
-			print(logger.logLine("SINGING GROUP SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.spell.Name))
+
+	-- Nothing explicitly needs casting, so we'll redo the one with the lowest duration
+	table.sort(songsWithDurations, function(a, b) return a.duration < b.duration end)
+	--logger.info("DUMPING SONGS WITH DURATIONS")
+	--dump(songsWithDurations)
+	--logger.info("FINISHED DUMPING SONGS WITH DURATIONS")
+	local songLowestDurationToReturn = songsWithDurations[1]
+	--logger.info("Dumping lowest")
+	--dump(songLowestDurationToReturn)
+	--logger.info("Finished dumping")
+	if songLowestDurationToReturn.isHostile then
+		-- Only return the song if in combat and target is not self
+		if mq.TLO.Me.CombatState() == 'COMBAT' and mq.TLO.Target.Type() == 'NPC' and mq.TLO.Target.ID() ~= mq.TLO.Me.ID() then
+			-- print(logger.logLine("SINGING HOSTILE SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.spell.Name))
 			return songLowestDurationToReturn.spell
+		else -- This only happens when we want to cast a hostile spell but have no hostile target
+			local nonHostileNextSongToCast = nil
+			for i, songData in ipairs(songsWithDurations) do
+				if not songData.isHostile then
+					--logger.info("Found")
+					nonHostileNextSongToCast = songData.song
+					break
+				end
+			end
+
+			--logger.info("CASTING NEXT NON-HOSTILE SONG INSTEAD SINCE WE HAVE NO TARGET: %s", nonHostileNextSongToCast.Name or "NONE")
+			--dump(nonHostileNextSongToCast)
+			return nonHostileNextSongToCast
 		end
+	else
+		-- For non-hostile spells, continue with the original logic
+		--logger.dump(songLowestDurationToReturn)
+		--print(logger.logLine("SINGING GROUP SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.song.Name))
+		return songLowestDurationToReturn.spell
 	end
 end
+
+--local function findNextSong()
+--	if tryAlliance() then
+--		return nil
+--	end
+--	if castSynergy() then
+--		return nil
+--	end
+--	if not mq.TLO.Target.Snared() and class.isEnabled('USESNARE') and ((mq.TLO.Target.PctHPs() or 100) < 30) then
+--		return class.spells.snare
+--	end
+--	local songLowestDuration = 999999
+--	local songLowestDurationToReturn = nil
+
+--	for _, spell in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
+--		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
+--		local song = spell.spell
+--		local song_id = song.ID
+--		local song_name = song.Name
+--		local songReuseTime = spell.reuseTimeMillis
+--		local songLastUsedTime = spell.lastUsedMillis
+
+--		-- I need to figure out how long the song has remaining.
+--		local currentTime = mq.gettime()
+--		-- While iterating, find the song with the lowest time remaining
+--		local timeSinceLastUse = currentTime - songLastUsedTime
+--		local timeLeftOnSong = songReuseTime - timeSinceLastUse
+
+
+
+--		if isSongReady(song_id, song_name)
+--			and class.isAbilityEnabled(song.opt)
+--			-- on first-pass priority queue, only recast the song if it's about to drop
+--			and timeLeftOnSong < 3500
+--		then
+--			local myTarget = mq.TLO.Target()
+--			logger.info("Casting on %s! Song %s has %d ms left", myTarget or "None", song_name, timeLeftOnSong)
+
+--			--if song_name ~= (class.spells.composite and class.spells.composite.Name) or mq.TLO.Target() then			
+--			--	return song
+--			--end
+--			if song_name ~= (class.spells.composite and class.spells.composite.Name) or mq.TLO.Target() then
+--				if spell.isHostile then
+--					-- Only cast if in combat and target is not self
+--					if mq.TLO.Me.CombatState() == 'COMBAT' and mq.TLO.Target.Type() == 'NPC' and mq.TLO.Target.ID() ~= mq.TLO.Me.ID() then
+--						return song
+--					end
+--				else
+--					-- For non-hostile spells, continue with the original logic
+--					return song
+--				end
+--			end
+--		end
+--		if timeLeftOnSong < songLowestDuration then
+--			songLowestDuration = timeLeftOnSong
+--			songLowestDurationToReturn = spell
+--		end
+--	end
+--	if songLowestDurationToReturn == nil then
+--		print(logger.logLine("WARNING: No song found to cast"))
+--		return nil
+--	else				
+--		if songLowestDurationToReturn.isHostile then
+--			-- Only return the song if in combat and target is not self
+--			if mq.TLO.Me.CombatState() == 'COMBAT' and mq.TLO.Target.Type() == 'NPC' and mq.TLO.Target.ID() ~= mq.TLO.Me.ID() then
+--				print(logger.logLine("SINGING HOSTILE SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.spell.Name))
+--				return songLowestDurationToReturn.spell
+--			else
+--			logger.info("NO SONG TO CAST BECAUSE NEXT IS HOSTILE AND I HAVE NO HOSTILE TARGET")
+--			end
+
+--		else
+--			-- For non-hostile spells, continue with the original logic
+--			print(logger.logLine("SINGING GROUP SONG FROM LOWEST DURATION: " .. songLowestDurationToReturn.spell.Name))
+--			return songLowestDurationToReturn.spell
+--		end
+--	end
+--end
 
 function class.cast()
 	--print("In class.cast()")
@@ -783,7 +933,7 @@ function class.cast()
 				local currentTime = mq.gettime()
 				for _, entry in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
 					if entry.spell.ID == spell.ID then
-						print(logger.logLine("Updating lastUsedMillis for " .. spell.Name))
+						--print(logger.logLine("Updating lastUsedMillis for " .. spell.Name))
 						entry.lastUsedMillis = currentTime
 						break
 					end
