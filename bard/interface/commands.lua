@@ -269,7 +269,7 @@ function commands.commandHandler(...)
 	end
 end
 
-function commands.classSettingsHandler(opt, new_value)
+function commands.classSettingsHandler(opt, new_value)	
 	if new_value then
 		if opt == 'SPELLSET' and zen.class.OPTS.SPELLSET ~= nil then
 			if zen.class.spellRotations[new_value] then

@@ -118,7 +118,7 @@ end
 --- @param tip string|nil # Hover  help message for the setting
 --- @param type string # The UI element type (combobox, checkbox, inputint)
 --- @param exclusive string|nil # The key of another option which is mutually exclusive with this option
-function base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype)
+function base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype, onChanged)
     base.OPTS[key] = {
         label=label,
         value=value,
@@ -128,6 +128,7 @@ function base.addOption(key, label, value, options, tip, type, exclusive, tlo, t
         exclusive=exclusive,
         tlo=tlo,
         tlotype=tlotype,
+		onChanged=onChanged,
     }
     table.insert(base.OPTS, key)
 end
@@ -135,7 +136,7 @@ end
 function base.addCommonOptions()
     if base.spellRotations then
         base.addOption('SPELLSET', 'Spell Set', base.DEFAULT_SPELLSET or 'standard' , base.spellRotations, 'The spell set to be used', 'combobox', nil, 'SpellSet', 'string')
-        base.addOption('BYOS', 'BYOS', true, nil, 'Bring your own spells', 'checkbox', nil, 'BYOS', 'bool')
+        --base.addOption('BYOS', 'BYOS', true, nil, 'Bring your own spells', 'checkbox', nil, 'BYOS', 'bool')
     end
     base.addOption('USEAOE', 'Use AOE', true, nil, 'Toggle use of AOE abilities', 'checkbox', nil, 'UseAOE', 'bool')
     if not state.emu then base.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil, 'UseAlliance', 'bool') end

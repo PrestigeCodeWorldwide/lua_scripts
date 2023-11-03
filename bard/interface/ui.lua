@@ -44,6 +44,7 @@ local ui = {}
 function ui.init(_zen)
 	zen = _zen
 	mq.imgui.init('ZEN Bot 1.0', ui.main)
+	ui.isDirty = false
 end
 
 function ui.toggleGUI(open)
@@ -128,6 +129,9 @@ function ui.drawCheckBox(labelText, idText, resultVar, helpText, xOffset, yOffse
 	resultVar,_ = ImGui.Checkbox(labelText, resultVar)
 	ImGui.PopStyleColor(1)
 	helpMarker(helpText)]]
+	if resultVar then 
+		--logger.info("ResultVar for checkbox %s is %s", labelText, tostring(resultVar))
+	end 
 	return resultVar
 end
 
@@ -236,17 +240,34 @@ local function drawSkillsTab()
 	for _, key in ipairs(zen.class.OPTS) do
 		if key ~= 'USEGLYPH' and key ~= 'USEINTENSITY' then
 			local option = zen.class.OPTS[key]
+			local oldValue = option.value
 			if option.type == 'checkbox' then
 				option.value = ui.drawCheckBox(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
+				if option.value ~= oldValue and option.onChanged ~= nil then 
+					logger.info("Calling onChanged for %s", key)
+					option.onChanged()
+				end
 				if option.value and option.exclusive then
 					zen.class.OPTS[option.exclusive].value = false
 				end
 			elseif option.type == 'combobox' then
 				option.value = ui.drawComboBox(option.label, option.value, option.options, true, option.tip, xOffset, yOffset)
+				if option.value ~= oldValue and option.onChanged ~= nil then 
+					logger.info("Calling onChanged for %s", key)
+					option.onChanged()
+				end
 			elseif option.type == 'inputint' then
 				option.value = ui.drawInputInt(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
+				if option.value ~= oldValue and option.onChanged ~= nil then 
+					logger.info("Calling onChanged for %s", key)
+					option.onChanged()
+				end
 			elseif option.type == 'inputtext' then
 				option.value = ui.drawInputText(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
+				if option.value ~= oldValue and option.onChanged ~= nil then 
+					logger.info("Calling onChanged for %s", key)
+					option.onChanged()
+				end
 			end
 			xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
 		end

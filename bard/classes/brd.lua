@@ -10,14 +10,7 @@ local assist = require('routines.assist')
 
 local zen
 
-function class.spellRotationChangeCheck()
-	if class.spellRotationsChanged then
-		class.initSpellRotations(zen)
-		class.spellRotationsChanged = false
-		return true
-	end
-	return false
-end
+
 
 function class.init(_zen)
 	zen = _zen
@@ -274,8 +267,10 @@ function class.initClassOptions()
 		'checkbox', nil, 'CampHard', 'bool')
 	class.addOption('USEEPIC', 'Epic', 'always', class.EPIC_OPTS, 'Set how to use bard epic', 'combobox', nil, 'UseEpic',
 		'string')
-	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
-	class.addOption('MEZAE', 'Mez AE', true, nil, 'Mez AOE', 'checkbox', nil, 'MezAE', 'bool')
+	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool',
+		class.signalSpellsChanged)
+	class.addOption('MEZAE', 'Mez AE', true, nil, 'Mez AOE', 'checkbox', nil, 'MezAE', 'bool', class
+	.signalSpellsChanged)
 	class.addOption('MEZAECOUNT', 'Mez AE Count', 3, nil, 'Threshold to use AE Mez ability', 'inputint', nil,
 		'MezAECount', 'int')
 	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil,
@@ -284,7 +279,7 @@ function class.initClassOptions()
 		'combobox', nil, 'MedleyType', 'string')
 	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil,
 		'StickHowTLO', 'string')
-
+	
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil,
 		'UseSelos', 'bool')
 	class.addOption('USEFUNERALDIRGE', 'Use Funeral Dirge', true, nil, 'Use Funeral Dirge during burns automatically',
@@ -295,46 +290,50 @@ function class.initClassOptions()
 	-- Caco not worth debuff slot anymore
 	--class.addOption('USECACOPHONY', 'Use Cacophony', true, nil, 'Use Cacophony AA', 'checkbox', nil, 'UseCacophony', 'bool')
 	class.addOption('USEFADE', 'Use Fade', false, nil, 'Fade when aggro', 'checkbox', nil, 'UseFade', 'bool')
-	
 
+	
 	class.addOption('USESWARM', 'Use Swarm', true, nil, 'Use swarm pet AAs', 'checkbox', nil, 'UseSwarm', 'bool')
 	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
-
+	
 	class.addOption('USEAMPLIFY', 'Use Amplify', true, nil, 'Use Amplification during downtime', 'checkbox', nil,
-		'UseAmplify', 'bool')
+		'UseAmplify', 'bool', class.signalSpellsChanged)
 	class.addOption('USECARETAKER', 'Use Caretaker', true, nil, 'Use Caretaker self-buff', 'checkbox', nil,
-		'UseCaretaker', 'bool')
+		'UseCaretaker', 'bool', class.signalSpellsChanged)
 	class.addOption('USEPROGRESSIVE', 'Use Ecliptic Psalm', true, nil, 'Use Ecliptic Progressive', 'checkbox', nil,
-		'UseProgressive', 'bool')
+		'UseProgressive', 'bool', class.signalSpellsChanged)
 	class.addOption('USECRESCENDO', 'Use Crescendo', true, nil, 'Use Crescendo Regen (Uses endurance)', 'checkbox', nil,
-		'UseCrescendo', 'bool')
+		'UseCrescendo', 'bool', class.signalSpellsChanged)
 	class.addOption('USEPULSE', 'Use Pulse', true, nil, 'Use Pulse (Regen + Heal buff)', 'checkbox', nil, 'UsePulse',
-		'bool')
+		'bool', class.signalSpellsChanged)
 	-- arcane suffering spiteful dirge
 
 	class.addOption('USEARCANE', 'Use Arcane', true, nil, 'Use Arcane Harmony (Spell/Melee Proc)', 'checkbox', nil,
-		'UseArcane', 'bool')
+		'UseArcane', 'bool', class.signalSpellsChanged)
 	class.addOption('USESUFFERING', 'Use Suffering', true, nil, 'Use Suffering (Melee Proc + Lower Aggro)', 'checkbox',
-		nil, 'UseSuffering', 'bool')
+		nil, 'UseSuffering', 'bool', class.signalSpellsChanged)
 	class.addOption('USESPITEFUL', 'Use Spiteful', true, nil, 'Use Spiteful (AC + Hate Proc)', 'checkbox', nil,
-		'UseSpiteful', 'bool')
+		'UseSpiteful', 'bool', class.signalSpellsChanged)
 	class.addOption('USEDIRGE', 'Use Dirge', true, nil, 'Use Dirge (Tank Mitigation)', 'checkbox', nil, 'UseDirge',
-		'bool')
+		'bool', class.signalSpellsChanged)
 
 
 	-- TODO: Finish useinsult by figuring out why it's handled differently
-	--class.addOption('USEINSULT', 'Use Insult Synergy Nuke', true, nil, 'Toggle use of Insults (Lots of mana)', 'checkbox', nil, 'UseInsult', 'bool')
+	class.addOption('USEINSULT', 'Use Insult Synergy Nuke', true, nil, 'Toggle use of Insults (Lots of mana)', 'checkbox',
+		nil, 'UseInsult', 'bool', class.signalSpellsChanged)
 	class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil,
-		'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
+		'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool',
+		class.signalSpellsChanged)
 	class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil,
-		'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
+		'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool',
+		class.signalSpellsChanged)
 	class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil,
-		'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')
+		'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool',
+		class.signalSpellsChanged)
 	class.addOption('USEDISEASEDOTS', 'Use Disease DoT', false, nil,
 		'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs',
-		'bool')
+		'bool', class.signalSpellsChanged)
 	--class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
-
+	
 	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup',
 		'bool')
 end
@@ -412,7 +411,22 @@ function class.initSpellRotations(_zen)
 	}
 
 	local gemsUsed = 2
-
+	-- mezst mezae
+	if class.OPTS.MEZST.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.mezst, reuseTimeMillis = 56000, lastUsedMillis = 0, isHostile = false }) -- a bit lower since we really don't want mezzes to break
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.MEZAE.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.mezae, reuseTimeMillis = 56000, lastUsedMillis = 0, isHostile = false }) -- a bit lower since we really don't want mezzes to break
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USEINSULT.value then
+		table.insert(class.spellRotations.melee,
+			{ spell = class.spells.insult, reuseTimeMillis = 56000, lastUsedMillis = 0, isHostile = false }) -- a bit lower since we really don't want mezzes to break
+		gemsUsed = gemsUsed + 1
+	end
 	if class.OPTS.USEPULSE.value then
 		table.insert(class.spellRotations.melee,
 			{ spell = class.spells.pulse, reuseTimeMillis = 30000, lastUsedMillis = 0, isHostile = false })
@@ -481,17 +495,17 @@ function class.initSpellRotations(_zen)
 		gemsUsed = gemsUsed + 1
 	end
 
-	if gemsUsed > 10 then
+	if gemsUsed > 13 then
 		print(logger.logLine(
-			"WARNING: You have %d gems used in your melee rotation, which doesn't leave room for synergy/mezst/mezae.  Please select fewer.",
+			"WARNING: You have selected too many songs!  You have %d songs selected, which is more than the 13 gem limit.  Please select fewer.",
 			gemsUsed))
 	elseif gemsUsed < 10 then
 		print(logger.logLine(
-			"WARNING: You have %d gems used in your melee rotation, which leaves empty gems.  Please select more.",
+			"WARNING: You have %d gems used in your melee rotation, which leaves empty gems.  Please select more to 13.",
 			gemsUsed))
 	end
-	
-	class.memSpellsForRotation()
+
+	class.memSpells()
 
 	-- TODO: Update these to use the new spell rotation system
 	class.spellRotations.caster = {
@@ -511,30 +525,42 @@ function class.initSpellRotations(_zen)
 	-- synergy insult, mezst, mezae
 end
 
-function class.memSpellsForRotation()
+-- We have to separate out the signal from the UI indicating dirty from the actual memSpells call because you can't mq.delay() from a coroutine
+function class.spellRotationChangeCheck()
+	if class.spellRotationsChanged then
+		
+		class.initSpellRotations()
+		class.spellRotationsChanged = false
+		return true
+	end	
+end
+
+function class.memSpells()
 	logger.info("Memming spells for rotation")
 	-- iterate through class.spellRotations.melee and mem each song to incrementing gem
-for i, spellRotation in ipairs(class.spellRotations.melee) do
-	-- get spell in rotation
-	local spell = spellRotation.spell
-	local spellName = spell.Name
-	-- get spell memmed in the gem we're about to use
-	local gemSpell = mq.TLO.Me.Gem(i) 
-	local gemSpellName = gemSpell.Name()
-	logger.info("Gem %d has %s memmed and spell to mem is %s", i, gemSpellName, spellName)
-	-- do the memorization
-	if spellName ~= gemSpellName then
-	logger.info('/memspell %d "%s"', i, spellName )	
-	mq.cmdf('/memspell %d "%s"', i, spellName )
-	mq.delay(3000)
-	
+	for i, spellRotation in ipairs(class.spellRotations.melee) do
+		-- get spell in rotation
+		local spell = spellRotation.spell
+		local spellName = spell.Name
+		-- get spell memmed in the gem we're about to use
+		local gemSpell = mq.TLO.Me.Gem(i)
+		local gemSpellName = gemSpell.Name()
+		logger.info("Gem %d has %s memmed and spell to mem is %s", i, gemSpellName, spellName)
+		-- do the memorization
+		if spellName ~= gemSpellName then
+			logger.info('/memspell %d "%s"', i, spellName)
+			mq.cmdf('/memspell %d "%s"', i, spellName)
+			-- Wait for song to mem
+			mq.delay(2000)
+		end
+		logger.info("Done memming spell")
 	end
-	logger.info("Done memming spell")
-		
-	
 end
-	
-	
+
+-- We have to separate out the signal from the UI indicating dirty from the actual memSpells call because you can't mq.delay() from a coroutine
+function class.signalSpellsChanged()
+	logger.info("Signal spell rotation changed")
+	class.spellRotationsChanged = true
 end
 
 function class.initDPSAbilities(_zen)
