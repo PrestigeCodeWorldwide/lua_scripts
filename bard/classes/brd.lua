@@ -60,11 +60,11 @@ function class.init(_zen)
 
 	class.selos = common.getAA('Selo\'s Sonata')
 
-	if mq.TLO.Me.Combat() then
-		class.startMedley()
-	else
-		class.startMedley("downtime")
-	end
+	--if mq.TLO.Me.Combat() then
+	--	class.startMedley()
+	--else
+	--	class.startMedley("downtime")
+	--end
 end
 
 function dump(t, indent)

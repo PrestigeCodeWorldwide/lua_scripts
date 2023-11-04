@@ -107,7 +107,7 @@ function mez.doSingle(mez_spell)
 		return
 	end
 	
-	for id, _ in pairs(state.targets) do
+	for id, _ in ipairs(state.targets) do
 		
 		local mob = mq.TLO.Spawn('id ' .. id)
 	
