@@ -11,7 +11,7 @@ local ui = {
 }
 
 local selectedListItem = { nil, 0 } -- {key, index}
-local selectedSection = 'Cleric'    -- Left hand menu selected item
+local selectedClass = 'Cleric'      -- Left hand menu selected item
 
 local somekvpair = "default"
 function ui.buildWindow()
@@ -45,15 +45,15 @@ function ui.buildWindow()
 	ImGui.Separator()
 	ui.drawSpell()
 	ImGui.Separator()
-	somekvpair = ui.internal.DrawKeyAndInputText('keytext', 'label', somekvpair)
+	somekvpair = ui.drawKeyAndInputText('keytext', 'label', somekvpair)
 	ImGui.Separator()
-	ui.LeftPaneWindow()
+	ui.drawWindowPanels()
 
 	--if ImGui.Button('Burn now', buttonHalfWidth, 0) then burnNow = true end
 	--ImGui.PopStyleColor()
 end
 
-function ui.internal.CheckInputType(key, value, typestring, inputtype)
+function ui.CheckInputType(key, value, typestring, inputtype)
 	if type(value) ~= typestring then
 		printf('\arWARNING [%s]: %s value is not a %s: type=%s value=%s\a-x', key, inputtype, typestring,
 			type(value), tostring(value))
@@ -61,6 +61,7 @@ function ui.internal.CheckInputType(key, value, typestring, inputtype)
 end
 
 local leftPanelWidth = 150
+local leftPanelDefaultWidth = 150
 local TABLE_FLAGS = 0
 function ui.LeftPaneWindow()
 	local x, y = ImGui.GetContentRegionAvail()
@@ -74,13 +75,13 @@ function ui.LeftPaneWindow()
 				ImGui.TableNextRow()
 				ImGui.TableNextColumn()
 				local popStyleColor = false
-				ImGui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1)				
+				ImGui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1)
 				popStyleColor = true
-				
-				local sel = ImGui.Selectable(className, selectedSection == className)
-				if sel and selectedSection ~= className then
+
+				local sel = ImGui.Selectable(className, selectedClass == className)
+				if sel and selectedClass ~= className then
 					selectedListItem = { nil, 0 }
-					selectedSection = className
+					selectedClass = className
 				end
 				if popStyleColor then ImGui.PopStyleColor() end
 			end
@@ -92,7 +93,89 @@ function ui.LeftPaneWindow()
 	ImGui.EndChild()
 end
 
-function ui.internal.DrawKeyAndInputText(keyText, label, value)
+function ui.RightPaneWindow()
+	local x, y = ImGui.GetContentRegionAvail()
+	if ImGui.BeginChild("right", x, y - 1, true) then
+		ui.drawSection(selectedClass)
+	end
+	ImGui.EndChild()
+end
+
+function ui.drawSplitter(thickness, size0, min_size0)
+	local x, y = ImGui.GetCursorPos()
+	local delta = 0
+	ImGui.SetCursorPosX(x + size0)
+
+	ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+	ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 0)
+	ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.6, 0.6, 0.6, 0.1)
+	ImGui.Button('##splitter', thickness, -1)
+	ImGui.PopStyleColor(3)
+
+	ImGui.SetItemAllowOverlap()
+
+	if ImGui.IsItemActive() then
+		delta, _ = ImGui.GetMouseDragDelta()
+
+		if delta < min_size0 - size0 then
+			delta = min_size0 - size0
+		end
+		if delta > 200 - size0 then
+			delta = 200 - size0
+		end
+
+		size0 = size0 + delta
+		leftPanelWidth = size0
+	else
+		leftPanelDefaultWidth = leftPanelWidth
+	end
+	ImGui.SetCursorPosX(x)
+	ImGui.SetCursorPosY(y)
+end
+
+local spellInput = ""
+
+function ui.drawSection(className, sectionProperties)
+	-- Draw main section control switches first
+	if ImGui.BeginChild(className) then
+		if ImGui.Button("Add Spell") then
+			print("Adding new spell to " .. className)
+			table.insert(SPELLS_BY_CLASS[className], spellInput)
+		end
+		ImGui.SameLine()
+
+		spellInput = ImGui.InputText('', tostring(spellInput))
+
+
+		ImGui.Separator()		
+		-- Draw spells for class
+        for _, spell in ipairs(SPELLS_BY_CLASS[className]) do
+            ui.drawSpell(spell)
+            ImGui.SameLine()
+            ImGui.Text(spell)
+            ImGui.SameLine()
+            local doSpell = ImGui.Button("Do Now")
+            if doSpell then
+                print("Doing spell " .. spell)
+            end
+        end
+        ImGui.Separator()
+		-- Draw characters of class with enable/disable checkbox
+	end
+
+	ImGui.EndChild()
+end
+
+function ui.drawWindowPanels()
+	ui.drawSplitter(8, leftPanelDefaultWidth, 75)
+	ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 2, 2)
+	ui.LeftPaneWindow()
+	ImGui.SameLine()
+	ui.RightPaneWindow()
+	ImGui.PopStyleVar()
+end
+
+function ui.drawKeyAndInputText(keyText, label, value)
 	ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1)
 	ImGui.Text(keyText)
 	ImGui.PopStyleColor()
@@ -101,15 +184,15 @@ function ui.internal.DrawKeyAndInputText(keyText, label, value)
 	ImGui.SameLine()
 	ImGui.SetCursorPosX(175)
 	-- the first part, spell/item/disc name, /command, etc
-	ui.internal.CheckInputType(label, value, 'string', 'InputText')
+	ui.CheckInputType(label, value, 'string', 'InputText')
 	return ImGui.InputText(label, tostring(value))
 end
 
-function ui.drawSpell()
+function ui.drawSpell(spellName)
 	-- Get the table of icons, which live in an animation texture
 	local anim = mq.FindTextureAnimation('A_SpellIcons')
 	-- get the spell icon
-	local spell = mq.TLO.Spell("Unified Hand of Persistence")
+	local spell = mq.TLO.Spell(spellName)
 	if not spell then
 		return
 	end

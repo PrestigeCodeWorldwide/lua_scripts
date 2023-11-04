@@ -8,6 +8,23 @@ local boolSettings = {}
 local toon = mq.TLO.Me.Name() or ''
 local settingsPath = 'BurninateConfig_' .. toon .. '.lua'
 
+SPELLS_BY_CLASS = {
+    ['Cleric'] = {},
+	['Shaman'] = {},
+	['Druid'] = {},
+	['Wizard'] = {},
+	['Magician'] = {},
+	['Enchanter'] = {},
+	['Necromancer'] = {},
+	['Warrior'] = {},
+	['Paladin'] = {},
+	['Ranger'] = {},
+	['Shadow Knight'] = {},
+	['Monk'] = {},
+	['Rogue'] = {},
+	['Bard'] = {},
+	['Beastlord'] = {},	
+}
 
 local function listCommands()
 	print('\at[Burninate]\aw ---- \atAll available commands \aw----')
