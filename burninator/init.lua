@@ -1,6 +1,6 @@
 ---@type Mq
 local mq = require 'mq'
-local utils = require 'utils'
+local state = require 'state'
 local settings = require 'settings'
 local ui = require 'ui'
 local terminate = false
@@ -10,45 +10,13 @@ local Commands = {
 	drive = "drive",
 }
 
-local ClassInZone = {}
-
-local Classes = {
-	cleric = "Cleric",
-	warrior = "Warrior",
-	paladin = "Paladin",
-	ranger = "Ranger",
-	shadowknight = "Shadow Knight",
-	druid = "Druid",
-	monk = "Monk",
-	rogue = "Rogue",
-	shaman = "Shaman",
-	necromancer = "Necromancer",
-	wizard = "Wizard",
-	magician = "Magician",
-	enchanter = "Enchanter",
-	beastlord = "Beastlord",
-	bard = "Bard",
-}
-
-local function refreshClassList()
-	for key, value in pairs(Classes) do
-		print("Getting class in zone for " .. value)
-		ClassInZone[key] = utils.getClassInZone(value)
-	end
-	print("Dumping Final array")
-	utils.dump(ClassInZone)
-
-	print("Printing all shaman")
-	utils.dump(ClassInZone.shaman)
-end
-
 local function cmd_handler(...)
 	local args = { ... }
 	if #args < 1 then
 		print("Not enough arguments to command")
 		return
 	end
-
+	
 	local command = args[1]
 
 	if command == Commands.reload then
@@ -57,7 +25,7 @@ local function cmd_handler(...)
 		mq.cmd('/timed 10 /lua run ' .. myScriptName)
 		terminate = true
 	elseif command == Commands.pcs then
-		refreshClassList()
+		state.refreshClassList()
 	elseif command == Commands.drive then
 		local opt = args[2]
 		if opt == nil then
@@ -87,7 +55,7 @@ end
 
 local uiEventHandlers = {
 	-- Callback triggered on refresh button click
-	refresh = refreshClassList,
+	refresh = state.refreshClassList,
 	burninate = burninateEventHandler,
 }
 

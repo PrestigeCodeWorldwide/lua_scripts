@@ -1,33 +1,30 @@
 ---@type Mq
 local mq = require 'mq'
 
-local function dump(data, indent)
-	indent = indent or 2
+local utils = {}
+
+---Recursively dumps a data structure
+---@param data table|string|number to dump
+---@param printPrefix string|nil This string, if any, is printed before the dump
+---@param indent number|nil The number of spaces to indent the dumps
+function utils.dump(data, printPrefix, indent)
+	assert(data ~= nil, "data cannot be nil")
+	local indent = indent or 2
 	local indentStr = string.rep(" ", indent)
+
+	if printPrefix then print(printPrefix) end
 
 	if type(data) == "table" then
 		for k, v in pairs(data) do
 			print(indentStr .. tostring(k) .. ": ")
-			dump(v, indent + 2)
+			utils.dump(v, nil, indent + 2)
 		end
 	else
 		print(tostring(data) .. "\n")
 	end
 end
 
-local function getClassInZone(class)
-	return mq.getFilteredSpawns(function(spawn)
-		local isPC = spawn.Type() == "PC"
-		local spawnClass = spawn.Class()
-		local inputClass = class
-		local matchesClass = spawnClass == inputClass
-		local matches = isPC and matchesClass
-
-		return matches
-	end)
-end
-
-local function color(val)
+function utils.color(val)
 	if val == 'on' then
 		val = '\agon'
 	elseif val == 'off' then
@@ -36,7 +33,7 @@ local function color(val)
 	return val
 end
 
-local function notNil(arg)
+function utils.notNil(arg)
 	if arg ~= nil then
 		return arg
 	else
@@ -44,28 +41,4 @@ local function notNil(arg)
 	end
 end
 
-local Classes = {
-	cleric = "Cleric",
-	warrior = "Warrior",
-	paladin = "Paladin",
-	ranger = "Ranger",
-	shadowknight = "Shadow Knight",
-	druid = "Druid",
-	monk = "Monk",
-	rogue = "Rogue",
-	shaman = "Shaman",
-	necromancer = "Necromancer",
-	wizard = "Wizard",
-	magician = "Magician",
-	enchanter = "Enchanter",
-	beastlord = "Beastlord",
-	bard = "Bard",
-}
-
-return {
-	dump = dump,
-	getClassInZone = getClassInZone,
-	color = color,
-	notNil = notNil,
-	Classes = Classes,
-}
+return utils

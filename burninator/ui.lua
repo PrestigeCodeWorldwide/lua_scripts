@@ -4,7 +4,7 @@ local mq = require 'mq'
 require 'ImGui'
 local settings = require 'settings'
 local utils = require 'utils'
-
+local state = require 'state'
 local ui = {
 	events = {},
 	internal = {},
@@ -71,7 +71,7 @@ function ui.LeftPaneWindow()
 			ImGui.TableSetupScrollFreeze(0, 1) -- Make row always visible
 			ImGui.TableHeadersRow()
 
-			for key, className in pairs(utils.Classes) do
+			for key, className in pairs(state.Classes) do
 				ImGui.TableNextRow()
 				ImGui.TableNextColumn()
 				local popStyleColor = false
@@ -147,19 +147,19 @@ function ui.drawSection(className, sectionProperties)
 		spellInput = ImGui.InputText('', tostring(spellInput))
 
 
-		ImGui.Separator()		
+		ImGui.Separator()
 		-- Draw spells for class
-        for _, spell in ipairs(SPELLS_BY_CLASS[className]) do
-            ui.drawSpell(spell)
-            ImGui.SameLine()
-            ImGui.Text(spell)
-            ImGui.SameLine()
-            local doSpell = ImGui.Button("Do Now")
-            if doSpell then
-                print("Doing spell " .. spell)
-            end
-        end
-        ImGui.Separator()
+		for _, spell in ipairs(SPELLS_BY_CLASS[className]) do
+			ui.drawSpell(spell)
+			ImGui.SameLine()
+			ImGui.Text(spell)
+			ImGui.SameLine()
+			local doSpell = ImGui.Button("Do Now")
+			if doSpell then
+				print("Doing spell " .. spell)
+			end
+		end
+		ImGui.Separator()
 		-- Draw characters of class with enable/disable checkbox
 	end
 

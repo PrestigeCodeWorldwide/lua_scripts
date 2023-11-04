@@ -2,14 +2,14 @@
 local mq = require 'mq'
 local utils = require 'utils'
 
-local settings = { Pause = false }
-local boolSettings = {}
+local settings = { Pause = false, boolSettings = {} }
+
 
 local toon = mq.TLO.Me.Name() or ''
 local settingsPath = 'BurninateConfig_' .. toon .. '.lua'
 
 SPELLS_BY_CLASS = {
-    ['Cleric'] = {},
+	['Cleric'] = {},
 	['Shaman'] = {},
 	['Druid'] = {},
 	['Wizard'] = {},
@@ -23,10 +23,10 @@ SPELLS_BY_CLASS = {
 	['Monk'] = {},
 	['Rogue'] = {},
 	['Bard'] = {},
-	['Beastlord'] = {},	
+	['Beastlord'] = {},
 }
 
-local function listCommands()
+function settings.listCommands()
 	print('\at[Burninate]\aw ---- \atAll available commands \aw----')
 	print('\at[Burninate]\aw Type \ay/burn help \aw to repeat this list')
 	print('\at[Burninate]\aw Type \ay/burn resetdefaults \aw to reset all settings')
@@ -39,55 +39,72 @@ local function listCommands()
 	print('\at[Burninate]\ao /burn refresh \aw Refreshes cached lists, run before starting fight')
 end
 
-local function saveSettings()
+function settings.saveSettings()
 	mq.pickle(settingsPath, { settings = settings })
 end
 
-local function getSettingByName(name)
+function settings.getSettingByName(name)
 	return settings[name]
 end
 
-local function updateSettings(cmd, val)
+function settings.updateSettings(cmd, val)
 	settings[cmd] = val
 	print('\at[Burninate] \aoTurning \ay', cmd, ' \ag ', utils.color(val))
-	saveSettings()
+	settings.saveSettings()
 end
 
-local function setDefaults(s)
+function settings.setDefaults(s)
 	if s == 'all' then print('\at[Burninate] \aw---- \at Setting toggles to default values \aw----') end
 	if s == 'all' or settings.isDriver == nil then settings.isDriver = 'off' end
 	for k, v in pairs(settings) do print('\at[Burninate]\ao ', k, ": \ay", utils.color(v)) end
-	saveSettings()
+	settings.saveSettings()
 end
 
-local function boolizeSettings()
+function settings.boolizeSettings()
 	for k, v in pairs(settings) do
 		if v == 'on' then
-			boolSettings[k] = true
+			settings.boolSettings[k] = true
 		elseif v == 'off' then
-			boolSettings[k] = false
+			settings.boolSettings[k] = false
 		end
 	end
 end
 
-local function init()
-	local configData, error = loadfile(mq.configDir .. '/' .. settingsPath) -- read config file
-
-	if error then                                                        -- failed to read the config file, create it using pickle	
-		print('\at[Burninate] \ay Creating config file...')
-		setDefaults('all')
-		listCommands()
-	elseif configData then -- file loaded, put content into your config table
-		local conf = configData()
-		settings = conf.settings
-
-		setDefaults() -- check for missing settings
-		listCommands()
+local function mergeSettings(settings, newSettings)
+	for key, value in pairs(newSettings) do
+		-- If the key is a table and exists in both settings and newSettings, recursively merge
+		if type(value) == "table" and type(settings[key]) == "table" then
+			mergeSettings(settings[key], value)
+		else
+			settings[key] = value
+		end
 	end
-	boolizeSettings()
 end
 
-local function togglePause(val)
+function settings.init()
+	local configData, error = loadfile(mq.configDir .. '/' .. settingsPath) -- read config file
+	--utils.dump(configData, "Config Data from file")
+	if error then                                                        -- failed to read the config file, create it using pickle	
+		print('\at[Burninate] \ay Creating config file...')
+		settings.setDefaults('all')
+		settings.listCommands()
+	elseif configData then -- file loaded, put content into your config table
+		print("Config data received no error")
+
+		local conf = configData()
+		utils.dump(conf, "Config Data from file")
+		print("After configData called")
+		-- instead of replacing settings, i want to merge them
+		mergeSettings(settings, conf.settings)
+		utils.dump(settings, "ConfSettings transferred")
+
+		--settings.setDefaults() -- check for missing settings
+		--settings.listCommands()
+	end
+	settings.boolizeSettings()
+end
+
+function settings.togglePause(val)
 	if val == 'on' then
 		settings.Pause = true
 	elseif val == 'off' then
@@ -104,28 +121,16 @@ local function togglePause(val)
 	end
 end
 
-local function boolSwitch()
-	for k, v in pairs(boolSettings) do
-		if boolSettings[k] == true and settings[k] == 'off' then
-			updateSettings(k, 'on')
-		elseif boolSettings[k] == false and settings[k] == 'on' then
-			updateSettings(k, 'off')
+function settings.boolSwitch()
+	for k, v in pairs(settings.boolSettings) do
+		if settings.boolSettings[k] == true and settings[k] == 'off' then
+			settings.updateSettings(k, 'on')
+		elseif settings.boolSettings[k] == false and settings[k] == 'on' then
+			settings.updateSettings(k, 'off')
 		end
 	end
 end
 
-
-return {
-	init = init,
-	updateSettings = updateSettings,
-	setDefaults = setDefaults,
-	saveSettings = saveSettings,
-	listCommands = listCommands,
-	togglePause = togglePause,
-	getSettingByName = getSettingByName,
-	settings = settings,
-	boolSettings = boolSettings,
-	boolSwitch = boolSwitch,
-}
+return settings
 
 -- /multiline ; /squelch /backoff ; /squelch /end ; /squelch /attack off ; /squelch /afollow off  ; /squelch /stick off ; /squelch /moveto off ; /squelch /nav stop ; /squelch /play off ; /echo BACKED OFF
