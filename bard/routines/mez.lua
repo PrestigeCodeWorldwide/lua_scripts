@@ -5,6 +5,13 @@ local camp = require('routines.camp')
 local logger = require('utils.logger')
 local abilities = require('ability')
 local state = require('state')
+local inspect = require('utils.inspect')
+
+local function useClassOPTS()
+	local class = require('classes.brd')
+	return class.OPTS
+end
+
 
 local mez = {}
 
@@ -66,8 +73,14 @@ end
 ---@param mez_spell table @The name of the AE mez spell to cast.
 ---@param ae_count number @The mob threshold for using AE mez.
 function mez.doAE(mez_spell, ae_count)
+	local opts = useClassOPTS()
+
+	if not opts.MEZAE.value then
+		--print("No AE mez bc it's disabled")
+		return
+	end
+
 	if state.mobCount >= ae_count and mez_spell then
-		
 		-- loop thru mobs and count how many are mezzed with single target
 		local mezzedCount = 0
 		for id, _ in pairs(state.targets) do
@@ -76,46 +89,70 @@ function mez.doAE(mez_spell, ae_count)
 				mezzedCount = mezzedCount + 1
 			end
 		end
-		
+
+		local myGem = mq.TLO.Me.Gem(mez_spell.CastName)()
+		local myGemTimer = mq.TLO.Me.GemTimer(mez_spell.CastName)()
+		local unmezzedCount = state.mobCount - mezzedCount - 1 -- Subtract additional 1 for main target
 		-- If we can cast AoE Mez and we have many unmezzed mobs, cast it
-		if mq.TLO.Me.Gem(mez_spell.CastName)() and mq.TLO.Me.GemTimer(mez_spell.CastName)() == 0 and mezzedCount < 1 then
+		if myGem and myGemTimer == 0 and unmezzedCount > 1 then
 			print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
-			mq.cmd('/medley queue "Wave of Nocturn" -interrupt')
-			mq.delay(4500)
-			--mq.cmd("/medley off")
-			--mq.delay(10)
-			--mq.cmd("/medley off")
-			--mq.delay(10)
-			--abilities.use(mez_spell)
-			--mez.initMezTimers()
-			--mq.delay(4500)
-			--mq.cmd("/medley")
-			
+			mq.cmd('/stopsong')
+			mq.delay(10)
+			abilities.use(mez_spell)
+			mez.initMezTimers()
+			mq.delay(4500, function() return not mq.TLO.Me.Casting() end)
+
 			return true
+		else
+			--printf(
+			--	"Not aoe mezzing bc either we can't cast it (%s), it's on timer (%s), or there aren't enough unmezzed mobs (%s)",
+			--	tostring(myGem), tostring(myGemTimer), tostring(unmezzedCount))
 		end
+	else
+		--print("mobCount: " .. state.mobCount)
+		--print("aeCount:" .. ae_count)
+		--printf("Or mez_spell doesn't exist: %s", tostring(mez_spell))
 	end
 end
-
-
-
-
 
 ---Cast single target mez spell if adds in camp.
 ---@param mez_spell table @The name of the single target mez spell to cast.
 function mez.doSingle(mez_spell)
-	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then
+	--print("IN MEZ.DOSINGLE with mobCount: " .. state.mobCount)
+	-- Check if mobCount is too low
+	if state.mobCount <= 1 then
+		--print('Not casting ST mez because mobCount too low')
 		return
 	end
-	
-	for id, _ in ipairs(state.targets) do
-		
+
+	-- Check if mez_spell exists
+	if not mez_spell then
+		print('Not casting ST mez because mez_spell does not exist! ')
+		--dump(mez_spell)
+		return
+	end
+
+	-- Check if gem is ready
+	--local gemReady = mq.TLO.Me.Gem(mez_spell.CastName)()
+	--if not gemReady then
+	--	print('Not casting ST mez because gem isnt ready')
+	--	return
+	--end
+
+	local opts = useClassOPTS()
+
+	if not opts.MEZST.value then
+		print("Not casting ST mez because its disabled in settings")
+		return
+	end
+
+	for id, _ in pairs(state.targets) do
 		local mob = mq.TLO.Spawn('id ' .. id)
-	
-		
+
+
 		local mezDuration = getBuffDurationFromId(id, "Slumber of the Diabo")
 		-- This is only used to short circuit hte fn while testing.  Lua will not let you return early.
 		local earlyReturn = false
-	
 		if not earlyReturn then
 			if id ~= state.assistMobID and mezDuration < 4500 then
 				if mob() and not state.mezImmunes[mob.CleanName()] then
@@ -127,7 +164,7 @@ function mez.doSingle(mez_spell)
 							return not mq.TLO.Me.Combat()
 						end)
 						mob.DoTarget()
-						
+
 						local pct_hp = mq.TLO.Target.PctHPs()
 						if mq.TLO.Target() and mq.TLO.Target.Type() == 'Corpse' then
 							state.targets[id] = nil
@@ -136,45 +173,45 @@ function mez.doSingle(mez_spell)
 							if assist_spawn == -1 or assist_spawn.ID() ~= id then
 								state.mezTargetName = mob.CleanName()
 								state.mezTargetID = id
-								print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
+								print(logger.logLine('Single Target Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
 								if mez_spell.precast then
 									mez_spell.precast()
 								end
-								--Zen: Actual mez being "cast", need to pause medley, cast, then re-enable medley
-								--mq.cmd("/medley off")
-								--mq.delay(20)
-								--mq.cmd("/medley off")
-								--mq.delay(20)
-								--
-								--abilities.use(mez_spell)
-								---- Zen: Wait on mez to finish casting
-								--mq.delay(4500, function()
-								--	return not mq.TLO.Me.Casting()
-								--end)
-								mq.cmd('/medley queue "Slumber of the Diabo" -interrupt -targetid|' .. id)
-								mq.delay(4500)
+								--Zen: Actual mez being "cast", need to pause songs, then cast
+								mq.cmd("/stopcast")
+								mq.delay(10)
+								mq.cmd('/stopsong')
+								mq.delay(10)
+								abilities.use(mez_spell)
+								-- Zen: Wait on mez to finish casting
+								mq.delay(4500, function()
+									return not mq.TLO.Me.Casting()
+								end)
+
 								logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
 								if state.targets[id] then
 									state.targets[id].meztimer:reset()
 								end
-								
+
 								mq.doevents('eventMezImmune')
 								mq.doevents('eventMezResist')
 								state.mezTargetID = 0
 								state.mezTargetName = nil
-								
-								----Zen: Turn medley back on
-								--mq.cmd("/medley")
+
 								return true
 							end
 						end
-					
-					
 					elseif mob.Type() == 'Corpse' then
 						state.targets[id] = nil
+					else
+						--printf(
+						--	"Not single target mezzing because either it's the MT target, it's too high level (%s vs %s) or isn't an NPC (%s)",
+						--	mob.Level(), maxLevel, mob.Type())
 					end
 				end
-				print("Done with either skipping or mezzing")
+				--print("Done with either skipping or mezzing")
+			else
+				--printf("Skipping mob because it's MT target or already mezzed for longer than 4500ms: %d", mezDuration)
 			end
 		end
 	end

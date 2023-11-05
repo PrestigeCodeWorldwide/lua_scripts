@@ -17,6 +17,7 @@ local constants = require('constants')
 local mode = require('mode')
 local state = require('state')
 local camp = require('routines.camp')
+local mez = require('routines.mez')
 
 local zen = {}
 
@@ -83,7 +84,7 @@ local function updateLoopState()
 		TargetID = mq.TLO.Target.ID(),
 		TargetHP = mq.TLO.Target.PctHPs(),
 		PetID = mq.TLO.Pet.ID()
-	}	
+	}
 end
 
 ---Reset assist/tank ID and turn off attack if we have no target or are targeting a corpse
@@ -221,12 +222,12 @@ local function main()
 					-- do active combat assist things when not paused and not invis
 					checkFD()
 					common.checkCursor()
-
+					zen.camp.mobRadar()
 					if not state.actionTaken then
 						--print(logger.logLine("Entering mainloop because no action taken"))
 						zen.class.mainLoop()
 					else
-						print(logger.logLine("Action taken, skipping main loop"))
+						--print(logger.logLine("Action taken, skipping main loop"))
 					end
 					mq.delay(50)
 				else

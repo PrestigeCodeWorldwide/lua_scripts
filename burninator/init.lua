@@ -16,7 +16,7 @@ local function cmd_handler(...)
 		print("Not enough arguments to command")
 		return
 	end
-	
+
 	local command = args[1]
 
 	if command == Commands.reload then
@@ -60,21 +60,25 @@ local uiEventHandlers = {
 }
 
 
+
 local function main()
 	mq.bind("/burn", cmd_handler)
-	settings.init()
+    settings.init()
+	
+	local channel = "/rs"
 	-- Meant for "/rs Burninate - Funeral Dirge - Robothaus - test_dummy_01 - false"
 	-- or "/rs Burninate - Perseverance - Caelinaex - raid - true" so it casts MGB first
 	-- #3# should also allow "raid" as a target
 	mq.event('burninate', 'Burninate - #1# - #2# - #3# - #4#', burninateEventHandler)
 
 	ui.init(uiEventHandlers)
+	state.refreshClassList()
 
 	while not terminate do
 		mq.doevents()
 		mq.delay(50)
 	end
-
+	print(channel)
 	--ui.destroy()
 end
 

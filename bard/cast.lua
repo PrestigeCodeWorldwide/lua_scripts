@@ -20,7 +20,7 @@ function casting.cast(spell, targetID, interruptCheck)
         if mq.TLO.Me.Casting() then
             if state.paused then
                 casting.interrupt()
-                mq.cmd("/medley stop")
+                mq.cmd("/stopsong")
                 return casting.CastReturn.CAST_INTERRUPTED
             end
         end

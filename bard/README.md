@@ -1,8 +1,4 @@
 #TODO
-- Fix turn off medley when pausing
- 
- https://www.redguides.com/community/threads/cwtn-mode-reference-chart.77526/
- - especially make sure the modes for taunt/ sits down works
 
 #BOXR
 In order for Boxr to work, regardless of whether your lua responds to the same commands as another automation,
@@ -15,6 +11,8 @@ I spoofed the plugin by creating a new plugin (mkplugin.exe MQ2Bard) in the sour
 to MacroQuest.sln as a new project and building it.  The plugin does *NOTHING*, consumes no resources, does not
 tick, and effectively acts as a false flag to Boxr merely by being enabled.  I've included the resulting DLL in
 this repo, but you can also build it yourself if you want to be sure it's not malicious.
+
+You'll need to move MQ2Bard.dll into your MQ/plugins directory, restart MQ, then /plugin load MQ2Bard
 
 #Burns
 Burns are all hard-coded at the moment.  New ones are simple enough to add, but
@@ -57,93 +55,3 @@ boxrRunCommandf("/{} raidassistnum {}", GetClassCommand(), raidAssistNum);
 /echo ${Spawn[1000].Buff[Slumber]}
 /echo ${Spawn[27138].BuffDuration[Slumber]}
 
-
-#Medley setup
-This bot makes use of 5 different medley lineups for different situations.  
-
-1. Downtime - What to play when not in combat and also not specifically meditating.  Running around in general will cause this to play.  If bard is invis, does not play at all. 
-2. Med - What to play when specifically "Medding" because of low mana.  Very very infrequent need
-3. Melee - Combat lineup to play in melee group.  This is selected in the GUI as one of the dropdown options
-4. MeleeDot - Combat lineup with a couple melee buffs and all personal dots.  This is selected in the GUI as one of the dropdown options
-5. Caster - Combat lineup to play in caster groups.  This is selected in the GUI as one of the dropdown options
-6. Tank - Played in Tank groups
-You need to configure these in an ini file.  Inside your MQ2 installation directory is a config directory.  Inside of it will be an ini file named like `server_character.ini`  For example, `test_kodajii.ini`
-
-Inside that file, add the following sections wherever and change to suit your lineups.  Mine are semi optimized for 120 already:
-
-These default settings of mine were sourced from the Bard discord.  Note that
-'meleedot' lineup is currently recommended by bards for use in everything, even caster
-groups, but I believe it to be a bad idea.
-
-[MQ2Medley]
-Debug=0
-Delay=3
-Medley=melee
-Playing=0
-Quiet=1
-
-[MQ2Medley-downtime]
-song1=Amplification^66^1
-song2=Zelinstein's Lively Crescendo^30^${Group.LowMana[90]} > 0
-song3=Aria of Pli Xin Liako^30^1
-song4=War March of Centien Xi Va Xakra^30^1
-song5=Ecliptic Psalm^60^1
-song6=Jonthan's Mightful Caretaker^30^1
-song7=Unified Phoenix Feather^30^(!${Group} || ${SpawnCount[group radius 250]}==${Group.GroupSize}) && !${Me.Song[Grace of Unity].ID} && ${Me.CombatState.Equal[COMBAT]} && ${Me.PctEndurance} < 95
-songIF=!${Me.Invis}
-
-[MQ2Medley-med]
-song1=Zelinstein's Lively Crescendo^45^1
-song2=Pulse of Nikolas^30^1
-song3=Chorus of Shei Vinitras^30^1
-songIF=!${Me.Invis}
-
-[MQ2Medley-melee]
-song1=Aria of Pli Xin Liako^30^1
-song2=War March of Centien Xi Va Xakra^30^1
-song3=Sogran's Insult^6
-song4=Shak Dathor's Chant of Flame^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 20 || ${Target.Named})
-song5=Cruor's Chant of Poison^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song6=Sylra Fris' Chant of Frost^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song7=Coagulus' Chant of Disease^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song8=Jonthan's Mightful Caretaker^30^1
-song8=Ecliptic Psalm^60^${Me.Combat} && (${Target.PctHPs} > 50 || ${Target.Named} || ${Me.XTarget} > 1)
-song9=Zelinstein's Lively Crescendo^30^${Group.LowMana[95]} > 0
-songIF=!${Me.Invis}
-
-[MQ2Medley-meleedot]
-song1=Shak Dathor's Chant of Flame^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 20 || ${Target.Named})
-song2=Cruor's Chant of Poison^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song3=Sogran's Insult^6
-song4=Sylra Fris' Chant of Frost^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song5=Coagulus' Chant of Disease^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song6=Aria of Pli Xin Liako^30^1
-song7=War March of Centien Xi Va Xakra^30^1
-song8=Jonthan's Mightful Caretaker^30^1
-song9=Ecliptic Psalm^60^${Me.Combat} && (${Target.PctHPs} > 50 || ${Target.Named} || ${Me.XTarget} > 1)
-song10=Zelinstein's Lively Crescendo^30^${Group.LowMana[95]} > 0
-songIF=!${Me.Invis}
-
-[MQ2Medley-tank]
-song1=Xetheg's Spry Sonata^30^1
-song2=Aria of Pli Xin Liako^27^1
-song3=Blade of Vesagran^180^${Me.Combat}
-song4=War March of Centien Xi Va Xakra^30^1
-song5=Unified Phoenix Feather^30^(!${Group} || ${SpawnCount[group radius 250]}==${Group.GroupSize}) && !${Me.Song[Grace of Unity].ID} && ${Me.CombatState.Equal[COMBAT]} && ${Me.PctEndurance} < 95
-song6=Shojralen's Song of Suffering^24^1
-song7=Ecliptic Psalm^60^${Me.Combat} && (${Target.PctHPs} > 50 || ${Target.Named} || ${Me.XTarget} > 1)
-song8=Zelinstein's Lively Crescendo^30^${Group.LowMana[95]} > 0
-songIF=!${Me.Invis}
-
-[MQ2Medley-caster]
-song1=Fyrthek Fior's Psalm of Potency^30^1
-song11=Shojralen's Song of Suffering^24^1
-song15=Zelinstein's Lively Crescendo^30^${Group.LowMana[95]} > 0
-song2=Aria of Pli Xin Liako^27^1
-song3=Blade of Vesagran^180^${Me.Combat}
-song4=Ecliptic Psalm^60^${Me.Combat} && (${Target.PctHPs} > 50 || ${Target.Named} || ${Me.XTarget} > 1)
-song6=Unified Phoenix Feather^30^(!${Group} || ${SpawnCount[group radius 250]}==${Group.GroupSize}) && !${Me.Song[Grace of Unity].ID} && ${Me.CombatState.Equal[COMBAT]} && ${Me.PctEndurance} < 95
-song7=Shak Dathor's Chant of Flame^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song8=Sylra Fris' Chant of Frost^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-song9=Cruor's Chant of Poison^30^${Me.Combat} && ${Target.Type.Equal[NPC]} && (${Target.PctHPs} > 40 || ${Target.Named})
-songIF=!${Me.Invis}

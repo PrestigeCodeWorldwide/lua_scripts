@@ -66,8 +66,6 @@ local zen
 -- Bard specific
 ---@field doSingleMez? function 
 ---@field doAEMez? function
----@field medley? function
----@field stopMedley? function
 local base = {
     -- All possible class routine methods
     OPTS = {},

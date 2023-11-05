@@ -17,17 +17,7 @@ function class.init(_zen)
 	class.classOrder = { 'sitCheck', 'spellRotationChangeCheck', 'assist', 'mez', 'assist', 'aggro', 'burn', 'cast',
 		'mash', 'ae', 'recover', 'buff', 'rest' }
 	class.EPIC_OPTS = { always = 1, shm = 1, burn = 1, never = 1 }
-	class.MEDLEY_OPTS = {
-		melee = 1,
-		caster = 1,
-		meleedot = 1,
-		tank = 1,
-		ADPSFirst = 1,
-		DOTFirst = 1,
-		downtime = 1,
-		test = 1
-	}
-	class.medleyRunning = false
+
 	class.spellRotations = { melee = {}, caster = {}, meleedot = {}, raidtank = {}, downtime = {} }
 	class.DEFAULT_SPELLSET = 'meleedot'
 	class.spellRotationsChanged = true
@@ -59,12 +49,6 @@ function class.init(_zen)
 	class.fluxstaff = common.getItem('Staff of Viral Flux')
 
 	class.selos = common.getAA('Selo\'s Sonata')
-
-	--if mq.TLO.Me.Combat() then
-	--	class.startMedley()
-	--else
-	--	class.startMedley("downtime")
-	--end
 end
 
 function dump(t, indent)
@@ -95,11 +79,8 @@ function class.sitCheck()
 	local meSitting = mq.TLO.Me.Sitting()
 
 	if isSitting and not meSitting then
-		-- turn off medley/songs
-		if class.OPTS.USEMEDLEY.value then
-			class.stopMedley()
-		end
-
+		mq.cmd('/stopsong')
+		mq.delay(10)
 		-- sit
 		mq.cmd('/sit')
 		-- Delay long enough the TLO starts returning True for Sitting()
@@ -115,149 +96,10 @@ function class.IsInvis()
 	return mq.TLO.Me.Invis() or ((state.loop and state.loop.Invis))
 end
 
-function class.stopMedley()
-	if class.medleyRunning ~= 'none' then
-		class.priorMedley = class.medleyRunning
-		mq.cmd('/medley stop')
-		-- Often need to call stop twice for it to fully take effect
-		mq.delay(10)
-		mq.cmd('/medley stop')
-		class.medleyRunning = 'none'
-	end
-end
-
-function class.startMedley(medleyName)
-	if class.OPTS.USEMEDLEY.value and not class.IsInvis() and not mq.TLO.Me.Sitting() then
-		if not medleyName or medleyName == '' then
-			medleyName = class.OPTS.MEDLEYTYPE.value
-		end
-
-		mq.cmd('/medley ' .. medleyName)
-		class.medleyRunning = medleyName
-	end
-end
-
-function info(...)
+local function info(...)
 	local args = { ... }
 	--printf(logger.logLine(strtoprint))
 	printf(logger.logLine(args))
-end
-
-function class.doSingleMez()
-	if state.mobCount <= 1 or not mez_spell or not mq.TLO.Me.Gem(mez_spell.CastName)() then
-		return
-	end
-	for id, mobdata in pairs(state.targets) do
-		if state.debug then
-			logger.debug(logger.flags.routines.mez, '[%s] meztimer: %s, currentTime: %s, timerExpired: %s', id,
-				mobdata['meztimer'].start_time, mq.gettime(), mobdata['meztimer']:timerExpired())
-		end
-		if id ~= state.assistMobID and (mobdata['meztimer'].start_time == 0 or mobdata['meztimer']:timerExpired()) then
-			local mob = mq.TLO.Spawn('id ' .. id)
-			if mob() and not state.mezImmunes[mob.CleanName()] then
-				local spellData = mq.TLO.Spell(mez_spell.CastName)
-				local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
-				if id ~= state.assistMobID and mob.Level() <= maxLevel and mob.Type() == 'NPC' then
-					mq.cmd('/attack off')
-					mq.delay(100, function()
-						return not mq.TLO.Me.Combat()
-					end)
-					mob.DoTarget()
-					mq.delay(1000, function()
-						return mq.TLO.Target.BuffsPopulated()
-					end)
-					local pct_hp = mq.TLO.Target.PctHPs()
-					if mq.TLO.Target() and mq.TLO.Target.Type() == 'Corpse' then
-						state.targets[id] = nil
-					elseif pct_hp and pct_hp > 85 then
-						local assist_spawn = assist.getAssistSpawn()
-						if assist_spawn == -1 or assist_spawn.ID() ~= id then
-							state.mezTargetName = mob.CleanName()
-							state.mezTargetID = id
-							print(logger.logLine('Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
-							if mez_spell.precast then
-								mez_spell.precast()
-							end
-							-- Actual mez being "cast", probably need to pause medley, cast, then re-enable medley?
-							-- Maybe make a concrete mez subroutine?
-							--abilities.use(mez_spell)
-
-							mq.cmd('/medley queue "Slumber of the Diabo" -interrupt')
-							info("Mez cast, delaying 4500")
-							mq.delay(4500)
-
-							logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
-							state.targets[id].meztimer:reset()
-							mq.doevents('eventMezImmune')
-							mq.doevents('eventMezResist')
-							state.mezTargetID = 0
-							state.mezTargetName = nil
-							return true
-						end
-					end
-				elseif mob.Type() == 'Corpse' then
-					state.targets[id] = nil
-				end
-			end
-		end
-	end
-end
-
--- This function takes over for class.cast() if we're using Medley.  It will handle all the things cast() handles, but start /medley <proper_type> instead of casting
-function class.medley()
-	-- If in combat, we use the chosen combat song - states are ACTIVE, COMBAT, COOLDOWN
-	if mq.TLO.Me.CombatState() == 'COMBAT' and not class.IsInvis() then
-		if class.OPTS.USEMEDLEY.value then
-			if class.medleyRunning ~= class.OPTS.MEDLEYTYPE.value then
-				mq.cmd('/medley ' .. class.OPTS.MEDLEYTYPE.value)
-
-				class.medleyRunning = class.OPTS.MEDLEYTYPE.value
-			end
-		end
-	elseif not class.IsInvis() and not mq.TLO.Me.Sitting() then
-		-- If not in combat, we use the downtime song
-		if class.OPTS.USEMEDLEY.value then
-			if class.medleyRunning ~= 'downtime' then
-				mq.cmd('/medley downtime')
-				class.medleyRunning = 'downtime'
-			end
-		end
-	end
-
-	-- If we're invis, stop medley
-	if class.IsInvis() and class.medleyRunning ~= 'none' then
-		class.stopMedley()
-	end
-
-	if not class.IsInvis() then
-		-- Combat checks for clickies
-		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
-			if (class.OPTS.USEEPIC.value == 'always' or state.burnActive or (class.OPTS.USEEPIC.value == 'shm' and mq.TLO.Me.Song('Prophet\'s Gift of the Ruchu')())) then
-				if class.useEpic() then
-					mq.delay(250)
-					return true
-				end
-			end
-			for _, clicky in ipairs(class.castClickies) do
-				if clicky.TargetType == 'Single' then
-					-- if single target clicky then make sure in combat
-					if (clicky.Duration == 0 or not mq.TLO.Target.Buff(clicky.CheckFor)()) then
-						if clicky:use() then
-							mq.delay(250)
-							return true
-						end
-					end
-				elseif clicky.Duration == 0 or (not mq.TLO.Me.Buff(clicky.CheckFor)() and not mq.TLO.Me.Song(clicky.CheckFor)()) then
-					-- otherwise just use the clicky if its instant or we don't already have the buff/song
-					if clicky:use() then
-						mq.delay(250)
-						return true
-					end
-				end
-			end
-		end
-	end
-	return false
 end
 
 function class.initClassOptions()
@@ -270,16 +112,12 @@ function class.initClassOptions()
 	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool',
 		class.signalSpellsChanged)
 	class.addOption('MEZAE', 'Mez AE', true, nil, 'Mez AOE', 'checkbox', nil, 'MezAE', 'bool', class
-	.signalSpellsChanged)
+		.signalSpellsChanged)
 	class.addOption('MEZAECOUNT', 'Mez AE Count', 3, nil, 'Threshold to use AE Mez ability', 'inputint', nil,
 		'MezAECount', 'int')
-	class.addOption('USEMEDLEY', 'Use Medley', false, nil, 'Use MQ2Medley instead of managing songs', 'checkbox', nil,
-		'UseMedley', 'bool')
-	class.addOption('MEDLEYTYPE', 'Medley Type', 'melee', class.MEDLEY_OPTS, 'Use MQ2Medley instead of managing songs',
-		'combobox', nil, 'MedleyType', 'string')
 	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil,
 		'StickHowTLO', 'string')
-	
+
 	class.addOption('USESELOS', 'Use Selos', true, nil, 'Use Selos (Turn off for nav problems)', 'checkbox', nil,
 		'UseSelos', 'bool')
 	class.addOption('USEFUNERALDIRGE', 'Use Funeral Dirge', true, nil, 'Use Funeral Dirge during burns automatically',
@@ -291,10 +129,10 @@ function class.initClassOptions()
 	--class.addOption('USECACOPHONY', 'Use Cacophony', true, nil, 'Use Cacophony AA', 'checkbox', nil, 'UseCacophony', 'bool')
 	class.addOption('USEFADE', 'Use Fade', false, nil, 'Fade when aggro', 'checkbox', nil, 'UseFade', 'bool')
 
-	
+
 	class.addOption('USESWARM', 'Use Swarm', true, nil, 'Use swarm pet AAs', 'checkbox', nil, 'UseSwarm', 'bool')
 	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
-	
+
 	class.addOption('USEAMPLIFY', 'Use Amplify', true, nil, 'Use Amplification during downtime', 'checkbox', nil,
 		'UseAmplify', 'bool', class.signalSpellsChanged)
 	class.addOption('USECARETAKER', 'Use Caretaker', true, nil, 'Use Caretaker self-buff', 'checkbox', nil,
@@ -333,7 +171,7 @@ function class.initClassOptions()
 		'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs',
 		'bool', class.signalSpellsChanged)
 	--class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
-	
+
 	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup',
 		'bool')
 end
@@ -363,8 +201,8 @@ function class.initSpellLines(_zen)
 		{ 'Fyrthek Fior\'s Psalm of Potency', 'Velketor\'s Psalm of Potency', 'Akett\'s Psalm of Potency' }) -- inc fire+mag dot
 	class.addSpell('crescendo',
 		{ 'Zelinstein\'s Lively Crescendo', 'Zburator\'s Lively Crescendo', 'Jembel\'s Lively Crescendo' }) -- small heal hp, mana, end
-	class.addSpell('insult', { 'Yelinak\'s Insult', 'Sathir\'s Insult' })                                 -- synergy DD
-	class.addSpell('insult2', { 'Sogran\'s Insult', 'Omorden\'s Insult', 'Travenro\'s Insult' })          -- synergy DD 2
+	class.addSpell('insult', { 'Sogran\'s Insult', 'Sathir\'s Insult' })                                  -- synergy DD
+	class.addSpell('insult2', { 'Yelinak\'s Insult', 'Omorden\'s Insult', 'Travenro\'s Insult' })         -- synergy DD 2
 	class.addSpell('chantflame',
 		{ 'Shak Dathor\'s Chant of Flame', 'Sontalak\'s Chant of Flame', 'Quinard\'s Chant of Flame',
 			'Vulka\'s Chant of Flame', 'Tuyen\'s Chant of Fire', 'Tuyen\'s Chant of Flame' }, { opt = 'USEFIREDOTS' })
@@ -497,15 +335,15 @@ function class.initSpellRotations(_zen)
 
 	if gemsUsed > 13 then
 		print(logger.logLine(
-			"WARNING: You have selected too many songs!  You have %d songs selected, which is more than the 13 gem limit.  Please select fewer.",
+			"\arWARNING: \awYou have selected too many songs!  You have %d songs selected, which is more than the 13 gem limit.  Please select fewer.",
 			gemsUsed))
 	elseif gemsUsed < 10 then
 		print(logger.logLine(
-			"WARNING: You have %d gems used in your melee rotation, which leaves empty gems.  Please select more to 13.",
+			"\arWARNING: \awYou have %d gems used in your melee rotation, which leaves empty gems.  Please select more to 13.",
 			gemsUsed))
 	end
 
-	class.memSpells()
+	--class.memSpells()
 
 	-- TODO: Update these to use the new spell rotation system
 	class.spellRotations.caster = {
@@ -528,11 +366,10 @@ end
 -- We have to separate out the signal from the UI indicating dirty from the actual memSpells call because you can't mq.delay() from a coroutine
 function class.spellRotationChangeCheck()
 	if class.spellRotationsChanged then
-		
 		class.initSpellRotations()
 		class.spellRotationsChanged = false
 		return true
-	end	
+	end
 end
 
 function class.memSpells()
@@ -745,9 +582,10 @@ local function findNextSong()
 
 	local songsWithDurations = {} -- To store songs with their durations
 
-
+	--print("Finding next song in spellset: " .. class.OPTS.SPELLSET.value)
 	for _, spell in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
 		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
+		--dump(spell, "Iterating next song to cast")
 		local song = spell.spell
 		local song_id = song.ID
 		local song_name = song.Name
@@ -903,17 +741,11 @@ end
 --end
 
 function class.cast()
-	--print("In class.cast()")
-	-- Don't touch songs if we're using mq2twist or mq2medley or we're invis
-	if class.isEnabled('USETWIST') or mq.TLO.Me.Invis() then
-		print("Skipping medley because USETWIST enabled or i'm invis")
+	-- No singing while invis
+	if mq.TLO.Me.Invis() then
 		return false
 	end
-	if class.isEnabled('USEMEDLEY') then
-		--print("Calling medley subroutine")
-		class.medley()
-		return false
-	end
+
 
 	if not state.loop.Invis and class.doneSinging() and not mq.TLO.Me.Sitting() then
 		-- Combat checks for clickies
@@ -1050,10 +882,6 @@ function class.pullCustom()
 end
 
 function class.doneSinging()
-	-- #TODO: Remove this usemedley forced true and build it into casting
-	if class.isEnabled('USETWIST') or class.isEnabled('USEMEDLEY') then
-		return true
-	end
 	if mq.TLO.Me.CastTimeLeft() > 0 and not mq.TLO.Window('CastingWindow').Open() then
 		mq.delay(250)
 		mq.cmd('/stopsong')

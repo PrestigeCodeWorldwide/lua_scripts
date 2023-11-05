@@ -8,7 +8,7 @@ local utils = {}
 ---@param printPrefix string|nil This string, if any, is printed before the dump
 ---@param indent number|nil The number of spaces to indent the dumps
 function utils.dump(data, printPrefix, indent)
-	assert(data ~= nil, "data cannot be nil")
+	assert(data ~= nil, "data cannot be nil-" .. tostring(printPrefix or ""))
 	local indent = indent or 2
 	local indentStr = string.rep(" ", indent)
 

@@ -27,13 +27,13 @@ State.Classes = {
 function State.refreshClassList()
 	for key, value in pairs(State.Classes) do
 		print("Getting class in zone for " .. value)
-		State.ClassInZone[key] = State.getClassInZone(value)
+		State.ClassInZone[value] = State.getClassInZone(value)
 	end
 	print("Dumping Final array")
 	utils.dump(State.ClassInZone)
 
-	print("Printing all shaman")
-	utils.dump(State.ClassInZone.shaman)
+	--print("Printing all shaman")
+	--utils.dump(State.ClassInZone.shaman)
 end
 
 function State.getClassInZone(class)

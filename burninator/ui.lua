@@ -2,6 +2,8 @@
 local mq = require 'mq'
 --- @type ImGui
 require 'ImGui'
+local fun = require "fun"
+
 local settings = require 'settings'
 local utils = require 'utils'
 local state = require 'state'
@@ -43,10 +45,10 @@ function ui.buildWindow()
 	----if ImGui.Button('Pause hide 60', buttonHalfWidth, 0) then pauseHide(60) end
 
 	ImGui.Separator()
-	ui.drawSpell()
-	ImGui.Separator()
-	somekvpair = ui.drawKeyAndInputText('keytext', 'label', somekvpair)
-	ImGui.Separator()
+	--ui.drawSpell()
+	--ImGui.Separator()
+	--somekvpair = ui.drawKeyAndInputText('keytext', 'label', somekvpair)
+	--ImGui.Separator()
 	ui.drawWindowPanels()
 
 	--if ImGui.Button('Burn now', buttonHalfWidth, 0) then burnNow = true end
@@ -96,7 +98,7 @@ end
 function ui.RightPaneWindow()
 	local x, y = ImGui.GetContentRegionAvail()
 	if ImGui.BeginChild("right", x, y - 1, true) then
-		ui.drawSection(selectedClass)
+		ui.drawClassSection(selectedClass)
 	end
 	ImGui.EndChild()
 end
@@ -135,7 +137,7 @@ end
 
 local spellInput = ""
 
-function ui.drawSection(className, sectionProperties)
+function ui.drawClassSection(className, sectionProperties)
 	-- Draw main section control switches first
 	if ImGui.BeginChild(className) then
 		if ImGui.Button("Add Spell") then
@@ -161,6 +163,19 @@ function ui.drawSection(className, sectionProperties)
 		end
 		ImGui.Separator()
 		-- Draw characters of class with enable/disable checkbox
+		--utils.dump(state.ClassInZone, "Dumping class by classname")
+		for keyClassStr, valueListOfToons in pairs(state.ClassInZone) do
+			--printf("Comparing %s to %s", value, className)
+			--utils.dump(key, "Dumping key in classinzone")
+			--utils.dump(value, "Dumping value in classinzone")
+			if keyClassStr == className then
+				-- Do something with the matching key
+				for _, toon in ipairs(valueListOfToons) do
+					--print("Found matching value: " .. toon.CleanName())
+					ImGui.Checkbox(toon.CleanName(), true)
+				end
+			end
+		end
 	end
 
 	ImGui.EndChild()

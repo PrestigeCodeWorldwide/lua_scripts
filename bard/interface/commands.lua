@@ -18,7 +18,7 @@ local commands = {}
 
 function commands.init(_zen)
 	zen = _zen
-	
+
 	mq.bind('/zen', commands.commandHandler)
 	mq.bind(('/%s'):format(state.class), commands.commandHandler)
 	mq.bind('/nowcast', commands.nowcastHandler)
@@ -33,7 +33,8 @@ local function showHelp()
 	for _, command in ipairs(constants.commandHelp) do
 		output = output .. prefix .. command.command .. ' -- ' .. command.tip
 	end
-	output = output .. '\n- /nowcast [name] alias <targetID> -- Tells the named character or yourself to cast a spell on the specified target ID.'
+	output = output ..
+	'\n- /nowcast [name] alias <targetID> -- Tells the named character or yourself to cast a spell on the specified target ID.'
 	for _, category in ipairs(config.categories()) do
 		output = output .. '\n\ay' .. category .. ' configuration:\aw'
 		for _, key in ipairs(config.getByCategory(category)) do
@@ -73,7 +74,7 @@ function commands.commandHandler(...)
 		showHelp()
 		return
 	end
-	
+
 	local opt = args[1]:upper()
 	local new_value = args[2] and args[2]:lower()
 	local configName = config[opt] and opt or nil
@@ -105,9 +106,7 @@ function commands.commandHandler(...)
 			if state.paused then
 				state.resetCombatState()
 				mq.cmd('/stopcast')
-				mq.cmd('/medley stop')
-				mq.delay(10)
-				mq.cmd('/medley stop')
+				mq.cmd('/stopsong')
 			end
 		else
 			if constants.booleans[new_value] == nil then
@@ -117,9 +116,7 @@ function commands.commandHandler(...)
 			if state.paused then
 				state.resetCombatState()
 				mq.cmd('/stopcast')
-				mq.cmd('/medley stop')
-				mq.delay(10)
-				mq.cmd('/medley stop')
+				mq.cmd('/stopsong')
 			else
 				camp.setCamp()
 			end
@@ -195,7 +192,9 @@ function commands.commandHandler(...)
 			zen.class.addClicky(clicky)
 			zen.class.saveSettings()
 		else
-			print(logger.logLine('addclicky Usage:\n\tPlace clicky item on cursor\n\t/%s addclicky category\n\tCategories: burn, mash, heal, buff', state.class))
+			print(logger.logLine(
+			'addclicky Usage:\n\tPlace clicky item on cursor\n\t/%s addclicky category\n\tCategories: burn, mash, heal, buff',
+				state.class))
 		end
 	elseif opt == 'REMOVECLICKY' then
 		local itemName = mq.TLO.Cursor()
@@ -227,7 +226,6 @@ function commands.commandHandler(...)
 		mq.cmdf('/dgga /say %s', repeatstring)
 	elseif opt == 'FORCE' then
 		assist.forceAssist(new_value)
-
 	elseif opt == 'DOOR' then
 		mq.cmd('/doortarget')
 		mq.delay(50)
@@ -262,14 +260,12 @@ function commands.commandHandler(...)
 		end
 	elseif opt == 'ARMPETS' then
 		zen.class.armPets()
-	elseif opt == 'twist' then
-		zen.class.stopMedley()
 	else
 		commands.classSettingsHandler(opt, new_value)
 	end
 end
 
-function commands.classSettingsHandler(opt, new_value)	
+function commands.classSettingsHandler(opt, new_value)
 	if new_value then
 		if opt == 'SPELLSET' and zen.class.OPTS.SPELLSET ~= nil then
 			if zen.class.spellRotations[new_value] then
