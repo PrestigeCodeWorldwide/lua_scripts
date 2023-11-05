@@ -178,9 +178,6 @@ end
 
 local function handleStates()
 	-- Async state handling
-	--if state.looting then loot.lootMobs() return true end
-	--if state.selling then loot.sellStuff() return true end
-	--if state.banking then loot.bankStuff() return true end
 	if not state.handleTargetState() then
 		return true
 	end

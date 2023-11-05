@@ -107,7 +107,6 @@ function ui.drawComboBox(label, resultvar, options, bykey, helpText, xOffset, yO
 end
 
 function ui.drawCheckBox(labelText, idText, resultVar, helpText, xOffset, yOffset)
-	
 	if not yOffset and not xOffset then
 		xOffset, yOffset = ImGui.GetCursorPos()
 	end
@@ -129,9 +128,9 @@ function ui.drawCheckBox(labelText, idText, resultVar, helpText, xOffset, yOffse
 	resultVar,_ = ImGui.Checkbox(labelText, resultVar)
 	ImGui.PopStyleColor(1)
 	helpMarker(helpText)]]
-	if resultVar then 
+	if resultVar then
 		--logger.info("ResultVar for checkbox %s is %s", labelText, tostring(resultVar))
-	end 
+	end
 	return resultVar
 end
 
@@ -155,7 +154,6 @@ function ui.drawInputInt(labelText, idText, resultVar, helpText, xOffset, yOffse
 end
 
 function ui.drawInputText(labelText, idText, resultVar, helpText, xOffset, yOffset)
-	
 	if not yOffset and not xOffset then
 		xOffset, yOffset = ImGui.GetCursorPos()
 	end
@@ -192,10 +190,10 @@ local function drawConfigurationForCategory(configs)
 	local yOffset = y
 	local maxY = yOffset
 	local _, yAvail = ImGui.GetContentRegionAvail()
-	
+
 	for _, cfgKey in ipairs(configs) do
 		local cfg = config[cfgKey]
-		
+
 		if cfg.type == 'checkbox' then
 			config.set(cfgKey, ui.drawCheckBox(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
 		elseif cfg.type == 'combobox' then
@@ -206,7 +204,6 @@ local function drawConfigurationForCategory(configs)
 			config.set(cfgKey, ui.drawInputText(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
 		end
 		xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
-	
 	end
 end
 
@@ -214,7 +211,6 @@ end
 local assistTabConfigs = {
 	'ASSIST', 'AUTOASSISTAT', 'ASSISTNAMES', 'SWITCHWITHMA',
 	'CAMPRADIUS', 'CHASETARGET', 'CHASEDISTANCE', 'CHASEPAUSED', 'RESISTSTOPCOUNT',
-	'MAINTANK', 'LOOTMOBS', 'LOOTCOMBAT',
 }
 local function drawAssistTab()
 	local x, _ = ImGui.GetContentRegionAvail()
@@ -222,9 +218,9 @@ local function drawAssistTab()
 		camp.setCamp(true)
 	end
 	local current_camp_radius = config.get('CAMPRADIUS')
-	
+
 	drawConfigurationForCategory(assistTabConfigs)
-	
+
 	if current_camp_radius ~= config.get('CAMPRADIUS') then
 		camp.setCamp()
 	end
@@ -243,7 +239,7 @@ local function drawSkillsTab()
 			local oldValue = option.value
 			if option.type == 'checkbox' then
 				option.value = ui.drawCheckBox(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
-				if option.value ~= oldValue and option.onChanged ~= nil then 
+				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
 				end
@@ -251,20 +247,21 @@ local function drawSkillsTab()
 					zen.class.OPTS[option.exclusive].value = false
 				end
 			elseif option.type == 'combobox' then
-				option.value = ui.drawComboBox(option.label, option.value, option.options, true, option.tip, xOffset, yOffset)
-				if option.value ~= oldValue and option.onChanged ~= nil then 
+				option.value = ui.drawComboBox(option.label, option.value, option.options, true, option.tip, xOffset,
+					yOffset)
+				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
 				end
 			elseif option.type == 'inputint' then
 				option.value = ui.drawInputInt(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
-				if option.value ~= oldValue and option.onChanged ~= nil then 
+				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
 				end
 			elseif option.type == 'inputtext' then
 				option.value = ui.drawInputText(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
-				if option.value ~= oldValue and option.onChanged ~= nil then 
+				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
 				end
@@ -315,9 +312,9 @@ local function drawPullTab()
 	end
 	local current_radius = config.PULLRADIUS.value
 	local current_pullarc = config.PULLARC.value
-	
+
 	drawConfigurationForCategory(config.getByCategory('Pull'))
-	
+
 	if current_radius ~= config.get('PULLRADIUS') or current_pullarc ~= config.get('PULLARC') then
 		camp.setCamp()
 	end
@@ -350,14 +347,15 @@ local function drawDebugTab()
 	if ImGui.Button('View Ability Lists', x, BUTTON_HEIGHT) then
 		abilityGUIOpen = true
 	end
-	config.TIMESTAMPS.value = ui.drawCheckBox('Timestamps', '##timestamps', config.TIMESTAMPS.value, 'Toggle timestamps on log messages')
+	config.TIMESTAMPS.value = ui.drawCheckBox('Timestamps', '##timestamps', config.TIMESTAMPS.value,
+		'Toggle timestamps on log messages')
 	logger.timestamps = config.TIMESTAMPS.value
 	drawDebugComboBox()
 	ImGui.TextColored(YELLOW, 'Mode:')
 	ImGui.SameLine()
 	ImGui.SetCursorPosX(150)
 	ImGui.TextColored(WHITE, '%s', config.get('MODE'))
-	
+
 	ImGui.TextColored(YELLOW, 'Camp:')
 	ImGui.SameLine()
 	ImGui.SetCursorPosX(150)
@@ -374,7 +372,7 @@ local function drawDebugTab()
 	else
 		ImGui.TextColored(RED, '--')
 	end
-	
+
 	for k, v in pairs(state) do
 		if type(v) ~= 'table' and type(v) ~= 'function' then
 			ImGui.TextColored(YELLOW, '%s:', k)
@@ -402,13 +400,13 @@ end
 
 local uiTabs = {
 	--{label='HUD', draw=drawHUD},
-	{ label = 'General', draw = drawAssistTab },
-	{ label = 'Skills', draw = drawSkillsTab },
+	{ label = 'General',                          draw = drawAssistTab },
+	{ label = 'Skills',                           draw = drawSkillsTab },
 	--{label=constants.icons.FA_HEART..' Heal', draw=drawHealTab, color=LIGHT_BLUE},
-	{ label = constants.icons.FA_FIRE .. ' Burn', draw = drawBurnTab, color = ORANGE },
-	{ label = 'Pull', draw = drawPullTab },
-	{ label = 'Rest', draw = drawRestTab },
-	{ label = 'Debug', draw = drawDebugTab },
+	{ label = constants.icons.FA_FIRE .. ' Burn', draw = drawBurnTab,  color = ORANGE },
+	{ label = 'Pull',                             draw = drawPullTab },
+	{ label = 'Rest',                             draw = drawRestTab },
+	{ label = 'Debug',                            draw = drawDebugTab },
 }
 local function drawBody()
 	if ImGui.BeginTabBar('##tabbar') then
@@ -501,19 +499,20 @@ local function pushStyle(theme)
 	ImGui.PushStyleColor(ImGuiCol.TextDisabled, t.text)
 	ImGui.PushStyleColor(ImGuiCol.CheckMark, t.text)
 	ImGui.PushStyleColor(ImGuiCol.Separator, t.hovered)
-	
+
 	ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 10)
 end
 
 local function popStyles()
 	ImGui.PopStyleColor(18)
-	
+
 	ImGui.PopStyleVar(1)
 end
 
 local function drawAbilityInspector()
 	if abilityGUIOpen then
-		abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(('Ability Inspector##ZENBOTUI%s'):format(state.class), abilityGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
+		abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(('Ability Inspector##ZENBOTUI%s'):format(state.class),
+			abilityGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
 		if shouldDrawAbilityGUI then
 			if ImGui.TreeNode('Class Order') then
 				for _, routine in ipairs(zen.class.classOrder) do
@@ -609,7 +608,8 @@ end
 
 local function drawHelpWindow()
 	if helpGUIOpen then
-		helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('ZEN Help##ZENBOTUI%s'):format(state.class), helpGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
+		helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('ZEN Help##ZENBOTUI%s'):format(state.class), helpGUIOpen,
+			ImGuiWindowFlags.AlwaysAutoResize)
 		if shouldDrawHelpGUI then
 			ImGui.PushTextWrapPos(750)
 			if ImGui.TreeNode('General Commands') then
@@ -675,7 +675,8 @@ function ui.main()
 		return
 	end
 	pushStyle(uiTheme)
-	openGUI, shouldDrawGUI = ImGui.Begin(string.format('ZEN Bot 1.0 - %s###ZENBOTUI%s', state.class, state.class), openGUI, 0)
+	openGUI, shouldDrawGUI = ImGui.Begin(string.format('ZEN Bot 1.0 - %s###ZENBOTUI%s', state.class, state.class),
+		openGUI, 0)
 	if shouldDrawGUI then
 		drawHeader()
 		drawBody()

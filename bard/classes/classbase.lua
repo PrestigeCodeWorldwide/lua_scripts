@@ -137,8 +137,10 @@ function base.addCommonOptions()
 		--base.addOption('BYOS', 'BYOS', true, nil, 'Bring your own spells', 'checkbox', nil, 'BYOS', 'bool')
 	end
 	--base.addOption('USEAOE', 'Use AOE', true, nil, 'Toggle use of AOE abilities', 'checkbox', nil, 'UseAOE', 'bool')
-	if not state.emu then base.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil,
-			'UseAlliance', 'bool') end
+	if not state.emu then
+		base.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil,
+			'UseAlliance', 'bool')
+	end
 
 	base.addOption('USEMELEE', 'Use Melee', false, nil, 'Toggle attacking mobs with melee', 'checkbox', nil, 'UseMelee',
 		'bool')
@@ -158,8 +160,10 @@ function base.addCommonAbilities()
 	end
 	table.insert(base.burnAbilities, common.getAA('Focus of Arcanum'))
 	table.insert(base.burnAbilities, common.getAA('Empowered Focus of Arcanum'))
-	table.insert(base.combatBuffs, common.getAA('Acute Focus of Arcanum', { skipifbuff = 'Enlightened Focus of Arcanum' }))
-	table.insert(base.combatBuffs, common.getAA('Enlightened Focus of Arcanum', { skipifbuff = 'Acute Focus of Arcanum' }))
+	table.insert(base.combatBuffs,
+		common.getAA('Acute Focus of Arcanum', { skipifbuff = 'Enlightened Focus of Arcanum' }))
+	table.insert(base.combatBuffs,
+		common.getAA('Enlightened Focus of Arcanum', { skipifbuff = 'Acute Focus of Arcanum' }))
 end
 
 -- Return true only if the option is both defined and true
@@ -213,8 +217,12 @@ function base.getTableForClicky(clickyType)
 end
 
 function base.addClicky(clicky)
-	base.clickies[clicky.name] = { clickyType = clicky.clickyType, summonMinimum = clicky.summonMinimum, opt = clicky
-	.opt }
+	base.clickies[clicky.name] = {
+		clickyType = clicky.clickyType,
+		summonMinimum = clicky.summonMinimum,
+		opt = clicky
+			.opt
+	}
 	local item = mq.TLO.FindItem('=' .. clicky.name)
 	if item.Clicky() then
 		local t = base.getTableForClicky(clicky.clickyType)
@@ -269,8 +277,12 @@ function base.loadSettings()
 			if type(clicky) == 'string' then
 				clicky = { clickyType = clicky }
 			end
-			base.addClicky({ name = clickyName, clickyType = clicky.clickyType, summonMinimum = clicky.summonMinimum,
-				opt = clicky.opt })
+			base.addClicky({
+				name = clickyName,
+				clickyType = clicky.clickyType,
+				summonMinimum = clicky.summonMinimum,
+				opt = clicky.opt
+			})
 		end
 	end
 	if settings.petWeapons then
@@ -498,11 +510,11 @@ function base.cast()
 				end
 			end
 			local spell = base.findNextSpell()
-			if spell then                                        -- if a dot was found
+			if spell then                            -- if a dot was found
 				if spell.precast then spell.precast() end
 				if spell:use() then state.actionTaken = true end -- then cast the dot
 				base.nuketimer:reset()
-				mq.doevents()                                    --'eventResist')
+				mq.doevents()                        --'eventResist')
 				if spell.postcast then spell.postcast() end
 			end
 		end
@@ -519,7 +531,7 @@ function base.cast()
 						xtar_spawn.DoTarget()
 						mq.delay(2000,
 							function() return mq.TLO.Target.ID() == xtar_id and not mq.TLO.Me.SpellInCooldown() end)
-						local spell = base.findNextSpell()           -- find the first available dot to cast that is missing from the target
+						local spell = base.findNextSpell() -- find the first available dot to cast that is missing from the target
 						if spell and not mq.TLO.Target.Mezzed() then -- if a dot was found
 							spell:use()
 							state.actionTaken = true
@@ -652,8 +664,12 @@ function base.recover()
 				mq.TLO.Me.DoTarget()
 			end
 			if useAbility:use() then state.actionTaken = true end
-			if originalTargetID > 0 then mq.cmdf('/squelch /mqtar id %s', originalTargetID) else mq.cmd(
-				'/squelch /mqtar clear') end
+			if originalTargetID > 0 then
+				mq.cmdf('/squelch /mqtar id %s', originalTargetID)
+			else
+				mq.cmd(
+					'/squelch /mqtar clear')
+			end
 		end
 	end
 end
@@ -684,7 +700,13 @@ function base.nowCast(args)
 		if sendTo == 'me' or sendTo == mq.TLO.Me.CleanName():lower() then
 			local spellToCast = base.spells[alias] or base[alias]
 			table.insert(base.requests,
-				{ requester = target, requested = spellToCast, expiration = timer:new(15000), tranquil = false, mgb = false })
+				{
+					requester = target,
+					requested = spellToCast,
+					expiration = timer:new(15000),
+					tranquil = false,
+					mgb = false
+				})
 		else
 			local sendToSpawn = mq.TLO.Spawn('pc =' .. sendTo)
 			if sendToSpawn() then
@@ -698,7 +720,13 @@ function base.nowCast(args)
 		local spellToCast = base.spells[alias] or base[alias]
 		if spellToCast then
 			table.insert(base.requests,
-				{ requester = target, requested = spellToCast, expiration = timer:new(15000), tranquil = false, mgb = false })
+				{
+					requester = target,
+					requested = spellToCast,
+					expiration = timer:new(15000),
+					tranquil = false,
+					mgb = false
+				})
 		end
 	end
 end
