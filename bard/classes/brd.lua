@@ -583,7 +583,8 @@ local function findNextSong()
 	local songsWithDurations = {} -- To store songs with their durations
 
 	--print("Finding next song in spellset: " .. class.OPTS.SPELLSET.value)
-	for _, spell in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
+	-- #TODO: Remove this spellRotations
+	for _, spell in ipairs(class.spellRotations["melee"]) do
 		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
 		--dump(spell, "Iterating next song to cast")
 		local song = spell.spell
@@ -789,7 +790,8 @@ function class.cast()
 			-- Update lastUsedMillis if the spell was successfully cast
 			if didCast then
 				local currentTime = mq.gettime()
-				for _, entry in ipairs(class.spellRotations[class.OPTS.SPELLSET.value]) do
+				-- #TODO: Fix hardcoded melee in spellRotations key
+				for _, entry in ipairs(class.spellRotations["melee"]) do
 					if entry.spell.ID == spell.ID then
 						--print(logger.logLine("Updating lastUsedMillis for " .. spell.Name))
 						entry.lastUsedMillis = currentTime

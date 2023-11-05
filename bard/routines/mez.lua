@@ -85,7 +85,7 @@ function mez.doAE(mez_spell, ae_count)
 		local mezzedCount = 0
 		for id, _ in pairs(state.targets) do
 			local durationSingle = getBuffDurationFromId(id, "Slumber of the Diabo")
-			if durationSingle > 4500 then
+			if durationSingle > 27000 then -- Make sure we don't overwrite mobs already long-duration mezzed
 				mezzedCount = mezzedCount + 1
 			end
 		end
@@ -94,19 +94,25 @@ function mez.doAE(mez_spell, ae_count)
 		local myGemTimer = mq.TLO.Me.GemTimer(mez_spell.CastName)()
 		local unmezzedCount = state.mobCount - mezzedCount - 1 -- Subtract additional 1 for main target
 		-- If we can cast AoE Mez and we have many unmezzed mobs, cast it
-		if myGem and myGemTimer == 0 and unmezzedCount > 1 then
-			print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
-			mq.cmd('/stopsong')
-			mq.delay(10)
-			abilities.use(mez_spell)
-			mez.initMezTimers()
-			mq.delay(4500, function() return not mq.TLO.Me.Casting() end)
+		if myGem then
+			if myGemTimer == 0 then
+				if unmezzedCount > 1 then
+					print(logger.logLine('AE Mezzing (mobCount=%d)', state.mobCount))
+					mq.cmd('/stopsong')
+					mq.delay(10)
+					abilities.use(mez_spell)
+					mez.initMezTimers()
+					mq.delay(4500, function() return not mq.TLO.Me.Casting() end)
 
-			return true
+					return true
+				else
+					--printf("Not aoe mezzing bc there aren't enough unmezzed mobs (%s)", tostring(unmezzedCount))
+				end
+			else
+				--print("No AE mez because gemTimer isn't == 0:  gemtimer is: ", myGemTimer or "nil")
+			end
 		else
-			--printf(
-			--	"Not aoe mezzing bc either we can't cast it (%s), it's on timer (%s), or there aren't enough unmezzed mobs (%s)",
-			--	tostring(myGem), tostring(myGemTimer), tostring(unmezzedCount))
+			--print("NO AE MEZ BECAUSE myGem is null")
 		end
 	else
 		--print("mobCount: " .. state.mobCount)
