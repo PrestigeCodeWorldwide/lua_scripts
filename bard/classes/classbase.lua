@@ -137,13 +137,14 @@ function base.addCommonOptions()
 		--base.addOption('BYOS', 'BYOS', true, nil, 'Bring your own spells', 'checkbox', nil, 'BYOS', 'bool')
 	end
 	--base.addOption('USEAOE', 'Use AOE', true, nil, 'Toggle use of AOE abilities', 'checkbox', nil, 'UseAOE', 'bool')
+
+
+	base.addOption('USEMELEE', 'Use Melee', false, nil, 'Toggle attacking mobs with melee', 'checkbox', nil, 'UseMelee',
+		'bool')
 	if not state.emu then
 		base.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil,
 			'UseAlliance', 'bool')
 	end
-
-	base.addOption('USEMELEE', 'Use Melee', false, nil, 'Toggle attacking mobs with melee', 'checkbox', nil, 'UseMelee',
-		'bool')
 end
 
 function base.addCommonAbilities()
@@ -408,7 +409,7 @@ function base.mash()
 	local cur_mode = mode.currentMode
 	if (cur_mode:isTankMode() and mq.TLO.Me.CombatState() == 'COMBAT') or (cur_mode:isAssistMode() and assist.shouldAssist()) or (cur_mode:isManualMode() and mq.TLO.Me.Combat()) then
 		if base.mashClass then base.mashClass() end
-		if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or config.get('MAINTANK') then
+		if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() then
 			if base.useCommonListProcessor then
 				common.processList(base.tankAbilities, false) --true)
 			else
@@ -430,7 +431,7 @@ function base.ae()
 	if not base.isEnabled('USEAOE') then return end
 	local cur_mode = mode.currentMode
 	if (cur_mode:isTankMode() and mq.TLO.Me.CombatState() == 'COMBAT') or (cur_mode:isAssistMode() and assist.shouldAssist()) or (cur_mode:isManualMode() and mq.TLO.Me.Combat()) then
-		if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or config.get('MAINTANK') then
+		if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() then
 			if base.aeClass then base.aeClass() end
 			if base.useCommonListProcessor then
 				common.processList(base.AETankAbilities, false) --true)
@@ -455,7 +456,7 @@ function base.burn()
 	if common.isBurnConditionMet() then
 		if base.burnClass then base.burnClass() end
 
-		if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or config.get('MAINTANK') then
+		if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() then
 			if base.useCommonListProcessor then
 				common.processList(base.tankBurnAbilities, false)
 			else
@@ -561,7 +562,7 @@ end
 
 function base.mez()
 	-- don't try to mez in manual mode
-	if mode.currentMode:isManualMode() or mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or config.get('MAINTANK') then return end
+	if mode.currentMode:isManualMode() or mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() then return end
 	if base.isEnabled('MEZAE') and base.spells.mezae then
 		if mez.doAE(base.spells.mezae, base.OPTS.MEZAECOUNT.value) then state.actionTaken = true end
 	end
@@ -571,7 +572,7 @@ function base.mez()
 end
 
 function base.aggro()
-	if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or config.get('MAINTANK') or mode.currentMode:isManualMode() then return end
+	if mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or mode.currentMode:isManualMode() then return end
 	local pctAggro = mq.TLO.Me.PctAggro() or 0
 	-- 1. Am i on aggro? Use fades or defensives immediately
 	if mq.TLO.Target() and mq.TLO.Me.TargetOfTarget.ID() == state.loop.ID and mq.TLO.Target.Named() then

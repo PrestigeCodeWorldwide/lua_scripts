@@ -414,6 +414,7 @@ local config = {
 }
 
 function config.get(key)
+	--print("Getting " .. key)
 	return config[key].value
 end
 
@@ -443,7 +444,6 @@ local configByCategory = {
 	Pull = { 'PULLRADIUS', 'PULLLOW', 'PULLHIGH', 'PULLMINLEVEL', 'PULLMAXLEVEL', 'PULLARC', 'GROUPWATCHWHO', 'PULLWITH' },
 	Heal = { 'HEALPCT', 'PANICHEALPCT', 'HOTHEALPCT', 'GROUPHEALPCT', 'GROUPHEALMIN', 'XTARGETHEAL', 'REZGROUP',
 		'REZRAID', 'REZINCOMBAT', 'PRIORITYTARGET' },
-	--Tank={'MAINTANK'},
 	Rest = { 'MEDCOMBAT', 'RECOVERPCT', 'MEDMANASTART', 'MEDMANASTOP', 'MEDENDSTART', 'MEDENDSTOP', 'MANASTONESTART',
 		'MANASTONESTARTHP', 'MANASTONESTOPHP', 'MANASTONETIME' },
 	--Loot = { 'LOOTMOBS', 'LOOTCOMBAT' },
@@ -487,7 +487,9 @@ function config.fileExists(file_name)
 	if f ~= nil then
 		io.close(f)
 		return true
-	else return false end
+	else
+		return false
+	end
 end
 
 ---Load common settings from settings file

@@ -47,16 +47,15 @@ local function init()
 	config.loadIgnores()
 
 
-	mq.cmd('/hidecorpse alwaysnpc')
+	--mq.cmd('/hidecorpse alwaysnpc')
 	mq.cmd('/multiline ; /pet ghold on')
 	mq.cmd('/squelch /stick set verbflags 0')
 	mq.cmd('/squelch /plugin melee unload noauto')
 	mq.cmd('/squelch /plugin twist unload noauto')
+	mq.cmd('/squelch /plugin bard load noauto')
 	mq.cmd('/squelch /rez accept on')
 	mq.cmd('/squelch /rez pct 90')
 	mq.cmd('/squelch /assist off')
-	mq.cmd('/squelch /autofeed 5000')
-	mq.cmd('/squelch /autodrink 5000')
 	mq.cmdf('/setwintitle %s (Level %s %s)', mq.TLO.Me.CleanName(), mq.TLO.Me.Level(), state.class)
 
 	-- Seems unfinished from factory?

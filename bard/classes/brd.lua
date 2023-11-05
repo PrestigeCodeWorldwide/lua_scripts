@@ -109,10 +109,8 @@ function class.initClassOptions()
 		'checkbox', nil, 'CampHard', 'bool')
 	class.addOption('USEEPIC', 'Epic', 'always', class.EPIC_OPTS, 'Set how to use bard epic', 'combobox', nil, 'UseEpic',
 		'string')
-	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool',
-		class.signalSpellsChanged)
-	class.addOption('MEZAE', 'Mez AE', true, nil, 'Mez AOE', 'checkbox', nil, 'MezAE', 'bool', class
-		.signalSpellsChanged)
+	class.addOption('MEZST', 'Mez ST', true, nil, 'Mez single target', 'checkbox', nil, 'MezST', 'bool')
+	class.addOption('MEZAE', 'Mez AE', true, nil, 'Mez AOE', 'checkbox', nil, 'MezAE', 'bool')
 	class.addOption('MEZAECOUNT', 'Mez AE Count', 3, nil, 'Threshold to use AE Mez ability', 'inputint', nil,
 		'MezAECount', 'int')
 	class.addOption('STICKHOW', 'StickHow', '!front snaproll moveback uw loose', nil, 'stick command', 'inputtext', nil,
@@ -134,42 +132,39 @@ function class.initClassOptions()
 	class.addOption('USESNARE', 'Use Snare', false, nil, 'Use snare song', 'checkbox', nil, 'UseSnare', 'bool')
 
 	class.addOption('USEAMPLIFY', 'Use Amplify', true, nil, 'Use Amplification during downtime', 'checkbox', nil,
-		'UseAmplify', 'bool', class.signalSpellsChanged)
+		'UseAmplify', 'bool')
 	class.addOption('USECARETAKER', 'Use Caretaker', true, nil, 'Use Caretaker self-buff', 'checkbox', nil,
-		'UseCaretaker', 'bool', class.signalSpellsChanged)
+		'UseCaretaker', 'bool')
 	class.addOption('USEPROGRESSIVE', 'Use Ecliptic Psalm', true, nil, 'Use Ecliptic Progressive', 'checkbox', nil,
-		'UseProgressive', 'bool', class.signalSpellsChanged)
+		'UseProgressive', 'bool')
 	class.addOption('USECRESCENDO', 'Use Crescendo', true, nil, 'Use Crescendo Regen (Uses endurance)', 'checkbox', nil,
-		'UseCrescendo', 'bool', class.signalSpellsChanged)
+		'UseCrescendo', 'bool')
 	class.addOption('USEPULSE', 'Use Pulse', true, nil, 'Use Pulse (Regen + Heal buff)', 'checkbox', nil, 'UsePulse',
-		'bool', class.signalSpellsChanged)
+		'bool')
 	-- arcane suffering spiteful dirge
 
 	class.addOption('USEARCANE', 'Use Arcane', true, nil, 'Use Arcane Harmony (Spell/Melee Proc)', 'checkbox', nil,
-		'UseArcane', 'bool', class.signalSpellsChanged)
+		'UseArcane', 'bool')
 	class.addOption('USESUFFERING', 'Use Suffering', true, nil, 'Use Suffering (Melee Proc + Lower Aggro)', 'checkbox',
-		nil, 'UseSuffering', 'bool', class.signalSpellsChanged)
+		nil, 'UseSuffering', 'bool')
 	class.addOption('USESPITEFUL', 'Use Spiteful', true, nil, 'Use Spiteful (AC + Hate Proc)', 'checkbox', nil,
-		'UseSpiteful', 'bool', class.signalSpellsChanged)
+		'UseSpiteful', 'bool')
 	class.addOption('USEDIRGE', 'Use Dirge', true, nil, 'Use Dirge (Tank Mitigation)', 'checkbox', nil, 'UseDirge',
-		'bool', class.signalSpellsChanged)
+		'bool')
 
 
 	-- TODO: Finish useinsult by figuring out why it's handled differently
 	class.addOption('USEINSULT', 'Use Insult Synergy Nuke', true, nil, 'Toggle use of Insults (Lots of mana)', 'checkbox',
-		nil, 'UseInsult', 'bool', class.signalSpellsChanged)
+		nil, 'UseInsult', 'bool')
 	class.addOption('USEFIREDOTS', 'Use Fire DoT', false, nil,
-		'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool',
-		class.signalSpellsChanged)
+		'Toggle use of Fire DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFireDoTs', 'bool')
 	class.addOption('USEFROSTDOTS', 'Use Frost DoT', false, nil,
-		'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool',
-		class.signalSpellsChanged)
+		'Toggle use of Frost DoT songs if they are in the selected song list', 'checkbox', nil, 'UseFrostDoTs', 'bool')
 	class.addOption('USEPOISONDOTS', 'Use Poison DoT', false, nil,
-		'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool',
-		class.signalSpellsChanged)
+		'Toggle use of Poison DoT songs if they are in the selected song list', 'checkbox', nil, 'UsePoisonDoTs', 'bool')
 	class.addOption('USEDISEASEDOTS', 'Use Disease DoT', false, nil,
 		'Toggle use of Disease DoT songs if they are in the selected song list', 'checkbox', nil, 'UseDiseaseDoTs',
-		'bool', class.signalSpellsChanged)
+		'bool')
 	--class.addOption('USETWIST', 'Use Twist', false, nil, 'Use MQ2Twist instead of managing songs', 'checkbox', nil, 'UseTwist', 'bool')
 
 	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup',
@@ -367,6 +362,7 @@ end
 function class.spellRotationChangeCheck()
 	if class.spellRotationsChanged then
 		class.initSpellRotations()
+		class.memSpells()
 		class.spellRotationsChanged = false
 		return true
 	end
@@ -593,6 +589,11 @@ local function findNextSong()
 		local songReuseTime = spell.reuseTimeMillis
 		local songLastUsedTime = spell.lastUsedMillis
 
+		if song_name:find("Wave") or song_name:find("Slumber") then
+			--print("Skipping Mez in rotation")
+			goto continue
+		end
+
 		-- I need to figure out how long the song has remaining.
 		local currentTime = mq.gettime()
 		-- While iterating, find the song with the lowest time remaining
@@ -625,6 +626,7 @@ local function findNextSong()
 				end
 			end
 		end
+		::continue::
 	end
 
 	-- Nothing explicitly needs casting, so we'll redo the one with the lowest duration

@@ -269,6 +269,7 @@ local function drawSkillsTab()
 			xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
 		end
 	end
+
 	local xAvail = ImGui.GetContentRegionAvail()
 	x, y = ImGui.GetWindowSize()
 	if x < xOffset + X_COLUMN_OFFSET or xAvail > 20 then
@@ -474,6 +475,9 @@ local function drawHeader()
 	mode.currentMode = mode.fromString(config.get('MODE'))
 	mid_x = 140
 	ImGui.PopItemWidth()
+	if ImGui.Button('Mem Songs', 100, BUTTON_HEIGHT) then
+		zen.class.signalSpellsChanged()
+	end
 	if current_mode ~= config.get('MODE') and not state.paused then
 		camp.setCamp()
 	end

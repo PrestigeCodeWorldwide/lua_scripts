@@ -419,7 +419,7 @@ local sitTimer = timer:new(10000)
 ---Sit down to med if the conditions for resting are met.
 function common.rest()
 	if not config.get('MEDCOMBAT') and (mq.TLO.Me.CombatState() == 'COMBAT' or state.assistMobID ~= 0) then return end
-	if state.mobCount > 0 and (mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName() or config.get('MAINTANK')) then return end
+	if state.mobCount > 0 and (mode.currentMode:isTankMode() or mq.TLO.Group.MainTank() == mq.TLO.Me.CleanName()) then return end
 	-- try to avoid just constant stand/sit, mainly for dumb bard sitting between every song
 	if sitTimer:timerExpired() then
 		if (mq.TLO.Me.Class.CanCast() and state.loop.PctMana < config.get('MEDMANASTART')) or state.loop.PctEndurance < config.get('MEDENDSTART') then
