@@ -378,21 +378,18 @@ function class.memSpells()
 		-- get spell memmed in the gem we're about to use
 		local gemSpell = mq.TLO.Me.Gem(i)
 		local gemSpellName = gemSpell.Name()
-		logger.info("Gem %d has %s memmed and spell to mem is %s", i, gemSpellName, spellName)
 		-- do the memorization
 		if spellName ~= gemSpellName then
-			logger.info('/memspell %d "%s"', i, spellName)
 			mq.cmdf('/memspell %d "%s"', i, spellName)
 			-- Wait for song to mem
 			mq.delay(2000)
 		end
-		logger.info("Done memming spell")
 	end
 end
 
 -- We have to separate out the signal from the UI indicating dirty from the actual memSpells call because you can't mq.delay() from a coroutine
 function class.signalSpellsChanged()
-	logger.info("Signal spell rotation changed")
+	--logger.info("Signal spell rotation changed")
 	class.spellRotationsChanged = true
 end
 
