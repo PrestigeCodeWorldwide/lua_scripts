@@ -478,6 +478,9 @@ local function drawHeader()
 	if ImGui.Button('Mem Songs', 100, BUTTON_HEIGHT) then
 		zen.class.signalSpellsChanged()
 	end
+	ImGui.SameLine()
+	local memCount = "Memmed now: " .. (zen.class.gemsInUse or "0")
+	ImGui.LabelText("", memCount)
 	if current_mode ~= config.get('MODE') and not state.paused then
 		camp.setCamp()
 	end

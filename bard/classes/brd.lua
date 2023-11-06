@@ -169,6 +169,8 @@ function class.initClassOptions()
 
 	class.addOption('RALLYGROUP', 'Rallying Group', false, nil, 'Use Rallying Group AA', 'checkbox', nil, 'RallyGroup',
 		'bool')
+	class.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil, 'UseAlliance',
+		'bool')
 end
 
 function class.initSpellLines(_zen)
@@ -339,23 +341,7 @@ function class.initSpellRotations(_zen)
 	end
 
 	--class.memSpells()
-
-	-- TODO: Update these to use the new spell rotation system
-	class.spellRotations.caster = {
-		class.spells.composite, class.spells.crescendo, class.spells.aria,
-		class.spells.arcane, class.spells.firenukebuff, class.spells.suffering,
-		class.spells.warmarch, class.spells.firemagicdotbuff, class.spells.pulse,
-		class.spells.dirge
-	}
-	-- synergy insult, mezst, mezae
-
-	class.spellRotations.meleedot = {
-		class.spells.composite, class.spells.crescendo,
-		class.spells.aria, class.spells.warmarch,
-		class.spells.suffering, class.spells.pulse, class.spells.dirge,
-		class.spells.chatflame, class.spells.chantdisease, class.spells.chantfrost
-	}
-	-- synergy insult, mezst, mezae
+	class.gemsInUse = gemsUsed
 end
 
 -- We have to separate out the signal from the UI indicating dirty from the actual memSpells call because you can't mq.delay() from a coroutine

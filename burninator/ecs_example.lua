@@ -4,7 +4,7 @@ local mq = require('mq')
 require('ImGui')
 
 local fun = require 'fun'
-local ECS = require("ECS")
+local ECS = require("zenbard.ecs.init")
 local System, Query = ECS.System, ECS.Query 
 
 --- Defines the possible states of a step in a game engine.

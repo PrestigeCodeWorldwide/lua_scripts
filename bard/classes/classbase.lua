@@ -141,10 +141,10 @@ function base.addCommonOptions()
 
 	base.addOption('USEMELEE', 'Use Melee', false, nil, 'Toggle attacking mobs with melee', 'checkbox', nil, 'UseMelee',
 		'bool')
-	if not state.emu then
-		base.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil,
-			'UseAlliance', 'bool')
-	end
+	--if not state.emu then
+	--	base.addOption('USEALLIANCE', 'Use Alliance', true, nil, 'Use alliance spell', 'checkbox', nil,
+	--		'UseAlliance', 'bool')
+	--end
 end
 
 function base.addCommonAbilities()

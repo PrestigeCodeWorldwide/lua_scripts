@@ -206,7 +206,7 @@ local function main()
 			logger.debug(logger.flags.zen.main, 'Start Main Loop')
 			debugTimer:reset()
 		end
-
+		
 		mq.doevents()
 		updateLoopState()
 		buffSafetyCheck()

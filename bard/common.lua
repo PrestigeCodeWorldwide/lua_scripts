@@ -228,7 +228,7 @@ function common.checkChase()
 	local chase_x = chase_spawn.X()
 	local chase_y = chase_spawn.Y()
 	if not chase_x or not chase_y then
-		logger.info('Not chasing due to invalid chase spawn X=%s,Y=%s', chase_x, chase_y)
+		--logger.info('Not chasing due to invalid chase spawn X=%s,Y=%s', chase_x, chase_y)
 		return
 	end
 	if helpers.distance(me_x, me_y, chase_x, chase_y) > (config.get('CHASEDISTANCE') ^ 2) then
