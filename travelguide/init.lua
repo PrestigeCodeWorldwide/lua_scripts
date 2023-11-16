@@ -6,8 +6,12 @@
 -- Designed to alleviate the need to remember every zone's shortname for /travelto
 -- If you're still using EQBCS, manually change `local useDanNet = true` to `local useDanNet = false`
 
+--- @type Mq
+local mq = require('mq')
+--- @type ImGui
+require 'ImGui'
+
 local zones = require("ladonzones")
-local mq = require("mq")
 
 local travelguide = {}
 local matches = {}

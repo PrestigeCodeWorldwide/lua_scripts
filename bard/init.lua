@@ -27,7 +27,24 @@ for _, routine in ipairs(routines) do
 	zen[routine].init(zen)
 end
 
+local function initPlugins()
+	if not mq.TLO.Plugin('mq2boxr')() then
+		print("\apAuto Loading MQ2Boxr \ap")
+		mq.cmd("/plugin mq2boxr")
+	end
+	if not mq.TLO.Plugin('mq2bard')() then 
+		print("\apAuto Loading MQ2Bard Stub plugin")
+		mq.cmd("/plugin mq2bard")
+	end 
+	if not mq.TLO.Plugin('mq2bard')() then 
+		print("\arERROR: Cannot load MQ2Bard plugin dll")
+		
+	end 
+	
+end
+
 local function init()
+  initPlugins()
 	-- Initialize class specific functions
 	zen.class = require('classes.' .. state.class)
 	zen.class.init(zen)
@@ -37,7 +54,7 @@ local function init()
 	-- Initialize binds
 	mq.cmd('/squelch /djoin zen')
 	commands.init(zen)
-
+	
 	-- Initialize UI
 	ui.init(zen)
 

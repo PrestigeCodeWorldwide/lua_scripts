@@ -2,3 +2,5 @@
 .vscode/
 node_modules/
 typedefs/
+_ReSharper.*
+bard.zip

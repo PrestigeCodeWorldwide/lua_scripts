@@ -548,6 +548,7 @@ local function isSongReady(spellId, spellName)
 	end
 end
 
+
 local function findNextSong()
 	if tryAlliance() then
 		return nil
@@ -561,8 +562,7 @@ local function findNextSong()
 
 	local songsWithDurations = {} -- To store songs with their durations
 
-	--print("Finding next song in spellset: " .. class.OPTS.SPELLSET.value)
-	-- #TODO: Remove this spellRotations
+
 	for _, spell in ipairs(class.spellRotations["melee"]) do
 		-- iterates over the dots array. ipairs(dots) returns 2 values, an index and its value in the array. we don't care about the index, we just want the dot
 		--dump(spell, "Iterating next song to cast")
