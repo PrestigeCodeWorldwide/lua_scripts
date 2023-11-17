@@ -12,21 +12,23 @@ GLOBAL_AMMO_SLOT = mq.TLO.Me.Inventory(22).ID()
 -- 1 Heavenly Glorious Void Transmogrificant,
 -- 1 Exultant Inhabited Muhbis
 -- example item to find
-local wrist_muhbis = mq.TLO.FindItem("Heavenly Glorious Void Binding Wrist Muhbis")
--- itemslot is which top level inv slot its in
--- these range from to 23 to 32, as priors are for equipment inv slots
-local itemslot = wrist_muhbis.ItemSlot()
--- This is sub slot, which is the slot inside of the top level container.
-local itemslot2 = wrist_muhbis.ItemSlot2()
-BL.log.dump(itemslot .. " : " .. itemslot2)
-
--- Use the FIRST slot, make it empty in top level inv, this is 23
-local TopInventorySlot = mq.TLO.Me.Inventory(23)
-local TopInventorySlotID = TopInventorySlot.ID()
-BL.log.info("Dumping top inv")
-BL.log.dump(TopInventorySlot)
-BL.log.dump(TopInventorySlotID)
+--local wrist_muhbis = mq.TLO.FindItem("Heavenly Glorious Void Binding Wrist Muhbis")
+---- itemslot is which top level inv slot its in
+---- these range from to 23 to 32, as priors are for equipment inv slots
+--local itemslot = wrist_muhbis.ItemSlot()
+---- This is sub slot, which is the slot inside of the top level container.
+--local itemslot2 = wrist_muhbis.ItemSlot2()
+--BL.log.dump(itemslot .. " : " .. itemslot2)
+--
+---- Use the FIRST slot, make it empty in top level inv, this is 23
+--local TopInventorySlot = mq.TLO.Me.Inventory(23)
+--local TopInventorySlotID = TopInventorySlot.ID()
+--BL.log.info("Dumping top inv")
+--BL.log.dump(TopInventorySlot)
+--BL.log.dump(TopInventorySlotID)
 -- move item to first slot
+
+local container =
 
 mq.cmd('/itemnotify "Heavenly Glorious Void Binding Wrist Muhbis" leftmouseup')
 mq.delay(250)
