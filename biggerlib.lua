@@ -4,6 +4,7 @@ local mq = require 'mq'
 local BL = {}
 BL.cmd = {}
 BL.log = {}
+BL.enum = {}
 
 local log_prefix = '\a-t[\ax\ayBL\ax\a-t]\ax \aw'
 
@@ -99,6 +100,24 @@ function BL.cmd.removeZerkerRootDisc()
 	local my_class = mq.TLO.Me.Class.ShortName()
 	if my_class == 'BER' and mq.TLO.Me.ActiveDisc.Name() == mq.TLO.Spell('Frenzied Resolve Discipline').RankName() then
 		mq.cmd('/stopdisc')
+	end
+end
+
+-- Enums/matching
+--- This is used to create a single variant of an enum, such as:
+--- local MyEnum = {
+---    VariantA = function(...) return createVariant("VariantA", ...) end,
+---    VariantB = function(...) return createVariant("VariantB", ...) end,
+---    -- Add more variants as needed
+---}
+function BL.enum.createVariant(name, ...)
+	return {type = name, data = {...}}
+end
+
+function  BL.enum.match(enumValue, matchTable)
+	local func = matchTable[enumValue.type]
+	if func then
+		return func(table.unpack(enumValue.data))
 	end
 end
 
