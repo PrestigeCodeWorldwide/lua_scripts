@@ -61,12 +61,11 @@ local function RisingSunTriggered()
 	mq.cmd('/nav target')
 end
 
-
-
 mq.event("SettingSunRunAway", "#*#Your sun begins to set.#*#", SettingSunTriggered)
 mq.event("SettingSunReturn", "#*#Your sun sets.#*#", SettingSunReturn)
 mq.event("RisingSunTriggered", "#*#Your sun rises, painfully bright. Less so if you stay at Dawn.#*#", RisingSunTriggered)
 mq.event("RisingSunCompleted", "#*#Dawn removes your fear of the Blinding Day ahead.#*#", RisingSunCompleted)
+
 
 init()
 
