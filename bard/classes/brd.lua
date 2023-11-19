@@ -51,25 +51,6 @@ function class.init(_zen)
 	class.selos = common.getAA('Selo\'s Sonata')
 end
 
-function dump(t, indent)
-	indent = indent or '  '
-
-	-- Base case: if t is not a table, print and return
-	if type(t) ~= "table" then
-		print(indent .. tostring(t))
-		return
-	end
-
-	-- Recursive case: iterate through the table and call dump() for each element
-	for k, v in pairs(t) do
-		if type(v) == "table" then
-			print(indent .. tostring(k) .. " :")
-			dump(v, indent .. "  ")
-		else
-			print(indent .. tostring(k) .. " : " .. tostring(v))
-		end
-	end
-end
 
 function class.sitCheck()
 	-- get main assist

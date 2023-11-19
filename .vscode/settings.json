@@ -1,6 +1,0 @@
-{
-	"Lua.diagnostics.disable": [
-		"inject-field",
-		"trailing-space"
-	]
-}
