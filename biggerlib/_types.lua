@@ -1,15 +1,21 @@
 ---@meta BiggerLib
 
+---@class ItemData Inventory item data to be cached - gives ability to notify item via packname and slot2
+---@field actualItemName string Name of the item in-game
+---@field notifyPackName string Which backpack/container in TL Inventory the object is in
+---@field notifyInvSlot2 string Which slot of the container the item is in
+
 ---@class TopLevelInventoryItem
 ---@field ItemSlotID number
 ---@field Item Option(Item)
 ---@field Name string
 
+---@class BagInventory : ZenTable
 
----@class ItemData
----@field actualItemName string
----@field notifyPackName string
----@field notifyInvSlot2 string
+---@class Inventory : ZenTable
+---@field topLevelInventory TopLevelInventoryItem[]
+---@field bagInventory BagInventory
+---@field openTopLevelInventorySlot Option(number)
 
 ---@class Option A type based on Rust option for handling either a value or nil
 ---@field ClassName string The name of the class. (Option)

@@ -424,8 +424,8 @@ end
 
 --- This function is used to recursively dump data, useful for debugging.
 --- @param data string The data to be dumped. This can be of any type.
---- @param logPrefix string A string that is prefixed to each line of the dump. This is optional.
---- @param depth integer An integer representing the current depth of the recursion. This is optional and is used for indentation.
+--- @param logPrefix string|nil A string that is prefixed to each line of the dump. This is optional.
+--- @param depth integer|nil An integer representing the current depth of the recursion. This is optional and is used for indentation.
 function dump(data, logPrefix, depth)
 	local function dumpRecurse(data, logPrefix, depth)
 		if data == nil then
@@ -486,7 +486,7 @@ local zentable_metatable = {
 	end,
 	filter = function(self, func, retainkeys)
 		return lume.filter(self, func, retainkeys)
-    end,
+	end,
 	match = function(self, func)
 		return lume.match(self, func)
 	end,

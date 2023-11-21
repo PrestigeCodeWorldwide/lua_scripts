@@ -221,6 +221,7 @@ local RuneTiers = newTable({
 
 --- Finds open top level inventory slot
 ---@param inTopLevelInventory TopLevelInventoryItem[] | ZenTable
+---@return Option(number)
 local function findEmptyTopLevelInventorySlot(inTopLevelInventory)
 	return Option(inTopLevelInventory:match(function(inventoryItem)
 		if inventoryItem.Item:IsNone() then
@@ -229,9 +230,13 @@ local function findEmptyTopLevelInventorySlot(inTopLevelInventory)
 	end))
 end
 
+---comment
+---@param inBagToCache number
+---@return BagInventory
 local function cacheBag(inBagToCache)
-	local bagInventory = {}
-
+	---@type BagInventory
+	local bagInventory = newTable()
+	
 	local notifyPackName = mq.TLO.InvSlot(inBagToCache).Name()
 
 	for itemIndex in range(48) do
@@ -244,6 +249,7 @@ local function cacheBag(inBagToCache)
 			notifyPackName = tostring(notifyPackName),
 			notifyInvSlot2 = tostring(notifyInvSlot2),
 		}
+
 		-- index as array
 		table.insert(bagInventory, itemData)
 	end
@@ -252,7 +258,9 @@ local function cacheBag(inBagToCache)
 end
 
 -- Caches inventory of all bags in top level character inventory slots
+---@return BagInventory
 local function cacheAllBagsInventories()
+	---@type BagInventory
 	local allBags = newTable()
 	-- 23, 32 are top level inventory slots according to EQ, prior to that are equipped items
 	for i in range(23, 32) do
@@ -290,12 +298,16 @@ local function cacheTopLevelInventory()
 	return topLevelInventory
 end
 
+--- cache entire inventory (Top level items and all items in top level containers, not bank)
+---@return Inventory
 local function cacheInventory()
 	---@type TopLevelInventoryItem[] | ZenTable
 	local topLevelInventory = cacheTopLevelInventory()
 	local openSlot = findEmptyTopLevelInventorySlot(topLevelInventory)
 
+	---@type BagInventory
 	local bagInventory = cacheAllBagsInventories()
+	---@type Inventory
 	local inventoryCache = {
 		topLevelInventory = topLevelInventory,
 		bagInventory = bagInventory,
@@ -327,6 +339,9 @@ local function findItemInBagByName(inventoryCache, itemName)
 	return Option.None
 end
 
+---@type TopLevelInventoryItem[] | ZenTable
+Inventory = nil
+
 -- TODO LATER: problem - the autoinv command puts the item we need into the open top level inv slot we need to keep open
 local function main()
 	-- pause cwtn plugins/bard
@@ -341,15 +356,8 @@ local function main()
 	--	learnSpellRunes(tier, 'Etched Bloodstone')
 	--	learnSpellRunes(tier, 'Essence of Life')
 	--end)
-
-	print(Option(nil)) --> None
-	print(Option(nil):IsNone()) --> true
-	print(Option(nil):IsSome()) --> false
-	print(Option(1)) --> Some(1)
-	print(Option(1):IsNone()) --> false
-	print(Option(1):IsSome()) --> true
-
-	local inventory = cacheInventory()
+	---@type TopLevelInventoryItem[] | ZenTable
+	Inventory = cacheInventory()
 
 	---@type ItemData
 	local foundItem = findItemInBagByName(inventory, "Essence Emerald"):Expect("Item not found in inventory")
