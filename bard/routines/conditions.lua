@@ -8,144 +8,148 @@ local zen
 local conditions = {}
 
 function conditions.init(_zen)
-    zen = _zen
+	zen = _zen
 end
 
 function conditions.isEnabled(ability)
-    return not ability.opt or zen.class.isEnabled(ability.opt)
+	return not ability.opt or zen.class.isEnabled(ability.opt)
 end
 
 -- Heal Ability conditions
 
 function conditions.spawnBelowHealPct(spawn)
-    return (spawn.PctHPs() or 100) < config.get('HEALPCT')
+	return (spawn.PctHPs() or 100) < config.get('HEALPCT')
 end
 
 function conditions.spawnBelowPanicHealPct(spawn)
-    return (spawn.PctHPs() or 100) < config.get('PANICHEALPCT')
+	return (spawn.PctHPs() or 100) < config.get('PANICHEALPCT')
 end
 
 function conditions.spawnBelowGroupHealPct(spawn)
-    return (spawn.PctHPs() or 100) < config.get('GROUPHEALPCT')
+	return (spawn.PctHPs() or 100) < config.get('GROUPHEALPCT')
 end
 
 function conditions.spawnBelowHoTHealPct(spawn)
-    return (spawn.PctHPs() or 100) < config.get('HOTHEALPCT')
+	return (spawn.PctHPs() or 100) < config.get('HOTHEALPCT')
 end
 
 -- Buff Ability conditions
 
 function conditions.classesTarget(ability)
-    return conditions.classes(ability, mq.TLO.Target)
+	return conditions.classes(ability, mq.TLO.Target)
 end
 
 function conditions.classes(ability, spawn)
-    return not ability.classes or ability.classes[spawn.Class.ShortName()]
+	return not ability.classes or ability.classes[spawn.Class.ShortName()]
 end
 
 function conditions.missingPetCheckFor(ability)
-    return not mq.TLO.Pet.Buff(ability.CheckFor)()
+	return not mq.TLO.Pet.Buff(ability.CheckFor)()
 end
 
 function conditions.missingPetBuff(ability)
-    return not mq.TLO.Pet.Buff(ability.Name)()
+	return not mq.TLO.Pet.Buff(ability.Name)()
 end
 
 function conditions.missingBuff(ability)
-    return not conditions.hasBuff(ability)
+	return not conditions.hasBuff(ability)
 end
 
 function conditions.hasBuff(ability)
-    return mq.TLO.Me.Buff(ability.Name)() or mq.TLO.Me.Song(ability.Name)()
+	return mq.TLO.Me.Buff(ability.Name)() or mq.TLO.Me.Song(ability.Name)()
 end
 
 function conditions.missingCheckFor(ability)
-    return not conditions.checkFor(ability)
+	return not conditions.checkFor(ability)
 end
 
 function conditions.checkFor(ability)
-    return not ability.CheckFor or mq.TLO.Me.Buff(ability.CheckFor)() or mq.TLO.Me.Song(ability.CheckFor)()
+	return not ability.CheckFor
+		or mq.TLO.Me.Buff(ability.CheckFor)()
+		or mq.TLO.Me.Song(ability.CheckFor)()
 end
 
 function conditions.skipIfBuff(ability)
-    return not ability.skipifbuff or not (mq.TLO.Me.Buff(ability.skipifbuff)() or mq.TLO.Me.Song(ability.skipifbuff)())
+	return not ability.skipifbuff
+		or not (mq.TLO.Me.Buff(ability.skipifbuff)() or mq.TLO.Me.Song(ability.skipifbuff)())
 end
 
 function conditions.dmz(ability)
-    return not ability.dmz or constants.DMZ[mq.TLO.Zone.ID()]
+	return not ability.dmz or constants.DMZ[mq.TLO.Zone.ID()]
 end
 
 function conditions.summonMinimum(ability)
-    return not ability.summonMinimum or mq.TLO.FindItemCount(ability.SummonID)() < ability.summonMinimum
+	return not ability.summonMinimum
+		or mq.TLO.FindItemCount(ability.SummonID)() < ability.summonMinimum
 end
 
 function conditions.stacksPet(ability)
-    return not mq.TLO.Pet.Buff(ability.Name)() and mq.TLO.Spell(ability.Name).StacksPet()
+	return not mq.TLO.Pet.Buff(ability.Name)() and mq.TLO.Spell(ability.Name).StacksPet()
 end
 
 function conditions.checkMana(ability)
-    return mq.TLO.Me.CurrentMana() >= mq.TLO.Spell(ability.Name).Mana()
+	return mq.TLO.Me.CurrentMana() >= mq.TLO.Spell(ability.Name).Mana()
 end
 
 -- Recover Ability conditions
 
 function conditions.aboveMinHP(ability)
-    return not ability.minhp or mq.TLO.Me.PctHPs() > ability.minhp
+	return not ability.minhp or mq.TLO.Me.PctHPs() > ability.minhp
 end
 
 -- TODO: define hpbelow
 function conditions.belowDesiredHP(ability)
-    return not ability.hpbelow or mq.TLO.Me.PctHPs() < ability.hpbelow
+	return not ability.hpbelow or mq.TLO.Me.PctHPs() < ability.hpbelow
 end
 
 -- TODO: define manabelow
 function conditions.belowDesiredMana(ability)
-    return not ability.manabelow or mq.TLO.Me.PctMana() < ability.manabelow
+	return not ability.manabelow or mq.TLO.Me.PctMana() < ability.manabelow
 end
 
 -- TODO: define endbelow
 function conditions.belowDesiredEndurance(ability)
-    return not ability.endbelow or mq.TLO.Me.PctEndurance() < ability.endbelow
+	return not ability.endbelow or mq.TLO.Me.PctEndurance() < ability.endbelow
 end
 
 function conditions.inCombat(ability)
-    return not ability.combat or mq.TLO.Me.CombatState() == 'COMBAT'
+	return not ability.combat or mq.TLO.Me.CombatState() == 'COMBAT'
 end
 
 function conditions.OOC(ability)
-    local combatState = mq.TLO.Me.CombatState()
-    return not ability.ooc or combatState == 'ACTIVE' or combatState == 'RESTING'
+	local combatState = mq.TLO.Me.CombatState()
+	return not ability.ooc or combatState == 'ACTIVE' or combatState == 'RESTING'
 end
 
 -- DPS Ability conditions
 
 function conditions.burnType(ability)
-    return not state.burn_type or ability[state.burn_type]
+	return not state.burn_type or ability[state.burn_type]
 end
 
 function conditions.targetHPBelow(ability)
-    local targetHP = mq.TLO.Target.PctHPs() or 100
-    return not ability.usebelowpct or targetHP <= ability.usebelowpct
+	local targetHP = mq.TLO.Target.PctHPs() or 100
+	return not ability.usebelowpct or targetHP <= ability.usebelowpct
 end
 
 function conditions.withinMaxDistance(ability)
-    local targetDistance = mq.TLO.Target.Distance3D() or 300
-    return not ability.maxdistance or targetDistance <= ability.maxdistance
+	local targetDistance = mq.TLO.Target.Distance3D() or 300
+	return not ability.maxdistance or targetDistance <= ability.maxdistance
 end
 
 function conditions.withinMeleeDistance(ability)
-    local targetDistance = mq.TLO.Target.Distance3D() or 300
-    local targetMaxRange  = mq.TLO.Target.MaxRangeTo() or 0
-    return targetDistance <= targetMaxRange
+	local targetDistance = mq.TLO.Target.Distance3D() or 300
+	local targetMaxRange = mq.TLO.Target.MaxRangeTo() or 0
+	return targetDistance <= targetMaxRange
 end
 
 function conditions.aboveMobThreshold(ability)
-    return ability.threshold == nil or ability.threshold <= state.mobCountNoPets
+	return ability.threshold == nil or ability.threshold <= state.mobCountNoPets
 end
 
 function conditions.aggroBelow(ability)
-    local aggropct = mq.TLO.Target.PctAggro() or 100
-    return ability.aggro == nil or aggropct < 100
+	local aggropct = mq.TLO.Target.PctAggro() or 100
+	return ability.aggro == nil or aggropct < 100
 end
 
 return conditions

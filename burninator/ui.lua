@@ -1,21 +1,21 @@
 ---@type Mq
-local mq = require 'mq'
+local mq = require('mq')
 --- @type ImGui
-require 'ImGui'
-local fun = require "fun"
+require('ImGui')
+local fun = require('fun')
 
-local settings = require 'settings'
-local utils = require 'utils'
-local state = require 'state'
+local settings = require('settings')
+local utils = require('utils')
+local state = require('state')
 local ui = {
 	events = {},
 	internal = {},
 }
 
 local selectedListItem = { nil, 0 } -- {key, index}
-local selectedClass = 'Cleric'      -- Left hand menu selected item
+local selectedClass = 'Cleric' -- Left hand menu selected item
 
-local somekvpair = "default"
+local somekvpair = 'default'
 function ui.buildWindow()
 	local update
 	ImGui.SetWindowSize(240, 500, ImGuiCond.Once)
@@ -26,21 +26,26 @@ function ui.buildWindow()
 	local boolSettings = settings.boolSettings
 	local boolSwitch = settings.boolSwitch
 
-	if ImGui.Button('Pause') then settings.togglePause() end
+	if ImGui.Button('Pause') then
+		settings.togglePause()
+	end
 	ImGui.SameLine()
 	if settings.Pause == false then
 		ImGui.TextColored(0, 0.75, 0, 1, 'Running')
 	else
-		ImGui.TextColored(0.75, 0, 0, 1,
-			'Paused')
+		ImGui.TextColored(0.75, 0, 0, 1, 'Paused')
 	end
 
 	ImGui.Separator()
 
 	boolSettings.isDriver, update = ImGui.Checkbox('Driver', boolSettings.combat)
-	if update then boolSwitch() end
+	if update then
+		boolSwitch()
+	end
 
-	if ImGui.Button('Refresh', buttonHalfWidth, 0) then ui.eventHandlers.refresh() end
+	if ImGui.Button('Refresh', buttonHalfWidth, 0) then
+		ui.eventHandlers.refresh()
+	end
 	----ImGui.SameLine()
 	----if ImGui.Button('Pause hide 60', buttonHalfWidth, 0) then pauseHide(60) end
 
@@ -57,8 +62,14 @@ end
 
 function ui.CheckInputType(key, value, typestring, inputtype)
 	if type(value) ~= typestring then
-		printf('\arWARNING [%s]: %s value is not a %s: type=%s value=%s\a-x', key, inputtype, typestring,
-			type(value), tostring(value))
+		printf(
+			'\arWARNING [%s]: %s value is not a %s: type=%s value=%s\a-x',
+			key,
+			inputtype,
+			typestring,
+			type(value),
+			tostring(value)
+		)
 	end
 end
 
@@ -67,7 +78,7 @@ local leftPanelDefaultWidth = 150
 local TABLE_FLAGS = 0
 function ui.LeftPaneWindow()
 	local x, y = ImGui.GetContentRegionAvail()
-	if ImGui.BeginChild("left", leftPanelWidth, y - 1, true) then
+	if ImGui.BeginChild('left', leftPanelWidth, y - 1, true) then
 		if ImGui.BeginTable('SelectSectionTable', 1, TABLE_FLAGS, 0, 0, 0.0) then
 			ImGui.TableSetupColumn('Class', 0, -1.0, 1)
 			ImGui.TableSetupScrollFreeze(0, 1) -- Make row always visible
@@ -85,7 +96,9 @@ function ui.LeftPaneWindow()
 					selectedListItem = { nil, 0 }
 					selectedClass = className
 				end
-				if popStyleColor then ImGui.PopStyleColor() end
+				if popStyleColor then
+					ImGui.PopStyleColor()
+				end
 			end
 			ImGui.Separator()
 
@@ -97,7 +110,7 @@ end
 
 function ui.RightPaneWindow()
 	local x, y = ImGui.GetContentRegionAvail()
-	if ImGui.BeginChild("right", x, y - 1, true) then
+	if ImGui.BeginChild('right', x, y - 1, true) then
 		ui.drawClassSection(selectedClass)
 	end
 	ImGui.EndChild()
@@ -135,19 +148,18 @@ function ui.drawSplitter(thickness, size0, min_size0)
 	ImGui.SetCursorPosY(y)
 end
 
-local spellInput = ""
+local spellInput = ''
 
 function ui.drawClassSection(className, sectionProperties)
 	-- Draw main section control switches first
 	if ImGui.BeginChild(className) then
-		if ImGui.Button("Add Spell") then
-			print("Adding new spell to " .. className)
+		if ImGui.Button('Add Spell') then
+			print('Adding new spell to ' .. className)
 			table.insert(SPELLS_BY_CLASS[className], spellInput)
 		end
 		ImGui.SameLine()
 
 		spellInput = ImGui.InputText('', tostring(spellInput))
-
 
 		ImGui.Separator()
 		-- Draw spells for class
@@ -156,9 +168,9 @@ function ui.drawClassSection(className, sectionProperties)
 			ImGui.SameLine()
 			ImGui.Text(spell)
 			ImGui.SameLine()
-			local doSpell = ImGui.Button("Do Now")
+			local doSpell = ImGui.Button('Do Now')
 			if doSpell then
-				print("Doing spell " .. spell)
+				print('Doing spell ' .. spell)
 			end
 		end
 		ImGui.Separator()

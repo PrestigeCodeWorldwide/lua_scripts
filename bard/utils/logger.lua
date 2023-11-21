@@ -13,7 +13,7 @@ local logger = {
 			mez = false,
 			movement = false,
 			pull = false,
-			tank = false
+			tank = false,
 		},
 		class = {
 			ae = false,
@@ -25,9 +25,17 @@ local logger = {
 			mash = false,
 			ohshit = false,
 			recover = false,
-			rest = false
+			rest = false,
 		},
-		ability = { validation = false, all = false, spell = false, aa = false, disc = false, item = false, skill = false },
+		ability = {
+			validation = false,
+			all = false,
+			spell = false,
+			aa = false,
+			disc = false,
+			item = false,
+			skill = false,
+		},
 		common = { chase = false, cast = false, memspell = false, misc = false, loot = false },
 		zen = { main = false, commands = false, configuration = false },
 		announce = { spell = true, aa = true, disc = true, item = true, skill = true },
@@ -53,8 +61,13 @@ function logger.dump(data, depth)
 	if type(data) == 'table' then
 		local output = '{'
 		for key, value in pairs(data) do
-			output = output ..
-				string.format('\n%s%s = %s', string.rep(' ', depth or 4), key, logger.dump(value, (depth or 4) + 4))
+			output = output
+				.. string.format(
+					'\n%s%s = %s',
+					string.rep(' ', depth or 4),
+					key,
+					logger.dump(value, (depth or 4) + 4)
+				)
 		end
 		return output .. '\n' .. string.rep(' ', depth or 4) .. '}'
 	else
@@ -81,7 +94,9 @@ end
 ---The formatted string and zero or more replacement variables for the formatted string.
 ---@vararg string
 function logger.debug(debug_flag, ...)
-	if debug_flag then print(logger.logLine(...)) end
+	if debug_flag then
+		print(logger.logLine(...))
+	end
 end
 
 --[[

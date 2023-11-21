@@ -1,5 +1,5 @@
 --- @type Mq
-local mq = require 'mq'
+local mq = require('mq')
 local assist = require('routines.assist')
 local camp = require('routines.camp')
 local logger = require('utils.logger')
@@ -12,14 +12,9 @@ local function useClassOPTS()
 	return class.OPTS
 end
 
-
 local mez = {}
 
-function mez.init(zen)
-
-end
-
-
+function mez.init(zen) end
 
 ---Scan mobs in camp and reset mez timers to current time
 function mez.initMezTimers(mez_spell)
@@ -42,7 +37,7 @@ end
 -- Checks the duration of buff buffName on npc ID
 function getBuffDurationFromId(id, buffName)
 	local duration = mq.TLO.Spawn('id ' .. id).Buff(buffName).Duration()
-	if duration == nil or duration == "NULL" then
+	if duration == nil or duration == 'NULL' then
 		duration = 0
 	end
 	return duration
@@ -63,7 +58,7 @@ function mez.doAE(mez_spell, ae_count)
 		-- loop thru mobs and count how many are mezzed with single target
 		local mezzedCount = 0
 		for id, _ in pairs(state.targets) do
-			local durationSingle = getBuffDurationFromId(id, "Slumber of the Diabo")
+			local durationSingle = getBuffDurationFromId(id, 'Slumber of the Diabo')
 			if durationSingle > 27000 then -- Make sure we don't overwrite mobs already long-duration mezzed
 				mezzedCount = mezzedCount + 1
 			end
@@ -81,7 +76,9 @@ function mez.doAE(mez_spell, ae_count)
 					mq.delay(10)
 					abilities.use(mez_spell)
 					mez.initMezTimers()
-					mq.delay(4500, function() return not mq.TLO.Me.Casting() end)
+					mq.delay(4500, function()
+						return not mq.TLO.Me.Casting()
+					end)
 
 					return true
 				else
@@ -127,15 +124,14 @@ function mez.doSingle(mez_spell)
 	local opts = useClassOPTS()
 
 	if not opts.MEZST.value then
-		print("Not casting ST mez because its disabled in settings")
+		print('Not casting ST mez because its disabled in settings')
 		return
 	end
 
 	for id, _ in pairs(state.targets) do
 		local mob = mq.TLO.Spawn('id ' .. id)
 
-
-		local mezDuration = getBuffDurationFromId(id, "Slumber of the Diabo")
+		local mezDuration = getBuffDurationFromId(id, 'Slumber of the Diabo')
 		-- This is only used to short circuit hte fn while testing.  Lua will not let you return early.
 		local earlyReturn = false
 		if not earlyReturn then
@@ -143,7 +139,11 @@ function mez.doSingle(mez_spell)
 				if mob() and not state.mezImmunes[mob.CleanName()] then
 					local spellData = mq.TLO.Spell(mez_spell.CastName)
 					local maxLevel = spellData.Max(1)() or mq.TLO.Me.Level()
-					if id ~= state.assistMobID and mob.Level() <= maxLevel and mob.Type() == 'NPC' then
+					if
+						id ~= state.assistMobID
+						and mob.Level() <= maxLevel
+						and mob.Type() == 'NPC'
+					then
 						mq.cmd('/attack off')
 						mq.delay(100, function()
 							return not mq.TLO.Me.Combat()
@@ -158,12 +158,18 @@ function mez.doSingle(mez_spell)
 							if assist_spawn == -1 or assist_spawn.ID() ~= id then
 								state.mezTargetName = mob.CleanName()
 								state.mezTargetID = id
-								print(logger.logLine('Single Target Mezzing >>> %s (%d) <<<', mob.Name(), mob.ID()))
+								print(
+									logger.logLine(
+										'Single Target Mezzing >>> %s (%d) <<<',
+										mob.Name(),
+										mob.ID()
+									)
+								)
 								if mez_spell.precast then
 									mez_spell.precast()
 								end
 								--Zen: Actual mez being "cast", need to pause songs, then cast
-								mq.cmd("/stopcast")
+								mq.cmd('/stopcast')
 								mq.delay(10)
 								mq.cmd('/stopsong')
 								mq.delay(10)
@@ -173,7 +179,11 @@ function mez.doSingle(mez_spell)
 									return not mq.TLO.Me.Casting()
 								end)
 
-								logger.debug(logger.flags.routines.mez, 'STMEZ setting meztimer mob_id %d', id)
+								logger.debug(
+									logger.flags.routines.mez,
+									'STMEZ setting meztimer mob_id %d',
+									id
+								)
 								if state.targets[id] then
 									state.targets[id].meztimer:reset()
 								end

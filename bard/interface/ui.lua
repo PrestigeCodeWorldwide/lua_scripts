@@ -1,7 +1,7 @@
 --- @type Mq
 local mq = require('mq')
 --- @type ImGui
-require 'ImGui'
+require('ImGui')
 
 local config = require('interface.configuration')
 local camp = require('routines.camp')
@@ -35,8 +35,8 @@ local WHITE = ImVec4(1, 1, 1, 1)
 local GREEN = ImVec4(0, 1, 0, 1)
 local YELLOW = ImVec4(1, 1, 0, 1)
 local RED = ImVec4(1, 0, 0, 1)
-local LIGHT_BLUE = ImVec4(.6, .8, 1, 1)
-local ORANGE = ImVec4(1, .65, 0, 1)
+local LIGHT_BLUE = ImVec4(0.6, 0.8, 1, 1)
+local ORANGE = ImVec4(1, 0.65, 0, 1)
 
 local zen
 local ui = {}
@@ -195,13 +195,25 @@ local function drawConfigurationForCategory(configs)
 		local cfg = config[cfgKey]
 
 		if cfg.type == 'checkbox' then
-			config.set(cfgKey, ui.drawCheckBox(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
+			config.set(
+				cfgKey,
+				ui.drawCheckBox(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset)
+			)
 		elseif cfg.type == 'combobox' then
-			config.set(cfgKey, ui.drawComboBox(cfg.label, cfg.value, cfg.options, true, cfg.tip, xOffset, yOffset))
+			config.set(
+				cfgKey,
+				ui.drawComboBox(cfg.label, cfg.value, cfg.options, true, cfg.tip, xOffset, yOffset)
+			)
 		elseif cfg.type == 'inputint' then
-			config.set(cfgKey, ui.drawInputInt(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
+			config.set(
+				cfgKey,
+				ui.drawInputInt(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset)
+			)
 		elseif cfg.type == 'inputtext' then
-			config.set(cfgKey, ui.drawInputText(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
+			config.set(
+				cfgKey,
+				ui.drawInputText(cfg.label, '##' .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset)
+			)
 		end
 		xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
 	end
@@ -209,8 +221,15 @@ end
 
 -- Combine Assist and Camp categories
 local assistTabConfigs = {
-	'ASSIST', 'AUTOASSISTAT', 'ASSISTNAMES', 'SWITCHWITHMA',
-	'CAMPRADIUS', 'CHASETARGET', 'CHASEDISTANCE', 'CHASEPAUSED', 'RESISTSTOPCOUNT',
+	'ASSIST',
+	'AUTOASSISTAT',
+	'ASSISTNAMES',
+	'SWITCHWITHMA',
+	'CAMPRADIUS',
+	'CHASETARGET',
+	'CHASEDISTANCE',
+	'CHASEPAUSED',
+	'RESISTSTOPCOUNT',
 }
 local function drawAssistTab()
 	local x, _ = ImGui.GetContentRegionAvail()
@@ -238,31 +257,59 @@ local function drawSkillsTab()
 			local option = zen.class.OPTS[key]
 			local oldValue = option.value
 			if option.type == 'checkbox' then
-				option.value = ui.drawCheckBox(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
+				option.value = ui.drawCheckBox(
+					option.label,
+					'##' .. key,
+					option.value,
+					option.tip,
+					xOffset,
+					yOffset
+				)
 				if option.value ~= oldValue and option.onChanged ~= nil then
-					logger.info("Calling onChanged for %s", key)
+					logger.info('Calling onChanged for %s', key)
 					option.onChanged()
 				end
 				if option.value and option.exclusive then
 					zen.class.OPTS[option.exclusive].value = false
 				end
 			elseif option.type == 'combobox' then
-				option.value = ui.drawComboBox(option.label, option.value, option.options, true, option.tip, xOffset,
-					yOffset)
+				option.value = ui.drawComboBox(
+					option.label,
+					option.value,
+					option.options,
+					true,
+					option.tip,
+					xOffset,
+					yOffset
+				)
 				if option.value ~= oldValue and option.onChanged ~= nil then
-					logger.info("Calling onChanged for %s", key)
+					logger.info('Calling onChanged for %s', key)
 					option.onChanged()
 				end
 			elseif option.type == 'inputint' then
-				option.value = ui.drawInputInt(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
+				option.value = ui.drawInputInt(
+					option.label,
+					'##' .. key,
+					option.value,
+					option.tip,
+					xOffset,
+					yOffset
+				)
 				if option.value ~= oldValue and option.onChanged ~= nil then
-					logger.info("Calling onChanged for %s", key)
+					logger.info('Calling onChanged for %s', key)
 					option.onChanged()
 				end
 			elseif option.type == 'inputtext' then
-				option.value = ui.drawInputText(option.label, '##' .. key, option.value, option.tip, xOffset, yOffset)
+				option.value = ui.drawInputText(
+					option.label,
+					'##' .. key,
+					option.value,
+					option.tip,
+					xOffset,
+					yOffset
+				)
 				if option.value ~= oldValue and option.onChanged ~= nil then
-					logger.info("Calling onChanged for %s", key)
+					logger.info('Calling onChanged for %s', key)
 					option.onChanged()
 				end
 			end
@@ -330,7 +377,8 @@ local function drawDebugComboBox()
 	if ImGui.BeginCombo('##debugoptions', 'debug options') then
 		for category, subcategories in pairs(logger.flags) do
 			for subcategory, enabled in pairs(subcategories) do
-				logger.flags[category][subcategory] = ImGui.Checkbox(category .. ' - ' .. subcategory, enabled)
+				logger.flags[category][subcategory] =
+					ImGui.Checkbox(category .. ' - ' .. subcategory, enabled)
 			end
 		end
 		ImGui.EndCombo()
@@ -348,8 +396,12 @@ local function drawDebugTab()
 	if ImGui.Button('View Ability Lists', x, BUTTON_HEIGHT) then
 		abilityGUIOpen = true
 	end
-	config.TIMESTAMPS.value = ui.drawCheckBox('Timestamps', '##timestamps', config.TIMESTAMPS.value,
-		'Toggle timestamps on log messages')
+	config.TIMESTAMPS.value = ui.drawCheckBox(
+		'Timestamps',
+		'##timestamps',
+		config.TIMESTAMPS.value,
+		'Toggle timestamps on log messages'
+	)
 	logger.timestamps = config.TIMESTAMPS.value
 	drawDebugComboBox()
 	ImGui.TextColored(YELLOW, 'Mode:')
@@ -369,7 +421,11 @@ local function drawDebugTab()
 		ImGui.TextColored(YELLOW, 'Distance from camp:')
 		ImGui.SameLine()
 		ImGui.SetCursorPosX(150)
-		ImGui.TextColored(YELLOW, '%d', math.sqrt(helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), camp.X, camp.Y)))
+		ImGui.TextColored(
+			YELLOW,
+			'%d',
+			math.sqrt(helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), camp.X, camp.Y))
+		)
 	else
 		ImGui.TextColored(RED, '--')
 	end
@@ -401,13 +457,13 @@ end
 
 local uiTabs = {
 	--{label='HUD', draw=drawHUD},
-	{ label = 'General',                          draw = drawAssistTab },
-	{ label = 'Skills',                           draw = drawSkillsTab },
+	{ label = 'General', draw = drawAssistTab },
+	{ label = 'Skills', draw = drawSkillsTab },
 	--{label=constants.icons.FA_HEART..' Heal', draw=drawHealTab, color=LIGHT_BLUE},
-	{ label = constants.icons.FA_FIRE .. ' Burn', draw = drawBurnTab,  color = ORANGE },
-	{ label = 'Pull',                             draw = drawPullTab },
-	{ label = 'Rest',                             draw = drawRestTab },
-	{ label = 'Debug',                            draw = drawDebugTab },
+	{ label = constants.icons.FA_FIRE .. ' Burn', draw = drawBurnTab, color = ORANGE },
+	{ label = 'Pull', draw = drawPullTab },
+	{ label = 'Rest', draw = drawRestTab },
+	{ label = 'Debug', draw = drawDebugTab },
 }
 local function drawBody()
 	if ImGui.BeginTabBar('##tabbar') then
@@ -419,7 +475,9 @@ local function drawBody()
 				if tab.color then
 					ImGui.PopStyleColor()
 				end
-				if ImGui.BeginChild(tab.label, -1, -1, false, ImGuiWindowFlags.HorizontalScrollbar) then
+				if
+					ImGui.BeginChild(tab.label, -1, -1, false, ImGuiWindowFlags.HorizontalScrollbar)
+				then
 					ImGui.PushItemWidth(item_width)
 					tab.draw()
 					ImGui.PopItemWidth()
@@ -471,7 +529,8 @@ local function drawHeader()
 	local current_mode = config.get('MODE')
 	ImGui.PushItemWidth(item_width)
 	mid_x = buttonWidth + 8
-	config.MODE.value = ui.drawComboBox('Mode', config.get('MODE'), mode.mode_names, false, config.MODE.tip)
+	config.MODE.value =
+		ui.drawComboBox('Mode', config.get('MODE'), mode.mode_names, false, config.MODE.tip)
 	mode.currentMode = mode.fromString(config.get('MODE'))
 	mid_x = 140
 	ImGui.PopItemWidth()
@@ -479,8 +538,8 @@ local function drawHeader()
 		zen.class.signalSpellsChanged()
 	end
 	ImGui.SameLine()
-	local memCount = "Memmed now: " .. (zen.class.gemsInUse or "0")
-	ImGui.LabelText("", memCount)
+	local memCount = 'Memmed now: ' .. (zen.class.gemsInUse or '0')
+	ImGui.LabelText('', memCount)
 	if current_mode ~= config.get('MODE') and not state.paused then
 		camp.setCamp()
 	end
@@ -518,8 +577,11 @@ end
 
 local function drawAbilityInspector()
 	if abilityGUIOpen then
-		abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(('Ability Inspector##ZENBOTUI%s'):format(state.class),
-			abilityGUIOpen, ImGuiWindowFlags.AlwaysAutoResize)
+		abilityGUIOpen, shouldDrawAbilityGUI = ImGui.Begin(
+			('Ability Inspector##ZENBOTUI%s'):format(state.class),
+			abilityGUIOpen,
+			ImGuiWindowFlags.AlwaysAutoResize
+		)
 		if shouldDrawAbilityGUI then
 			if ImGui.TreeNode('Class Order') then
 				for _, routine in ipairs(zen.class.classOrder) do
@@ -533,7 +595,14 @@ local function drawAbilityInspector()
 						if ImGui.TreeNode(alias .. '##spellalias') then
 							ImGui.Text('Name: %s', spell.Name)
 							for opt, value in pairs(spell) do
-								if opt ~= 'Name' and (type(value) == 'number' or type(value) == 'string' or type(value) == 'boolean') then
+								if
+									opt ~= 'Name'
+									and (
+										type(value) == 'number'
+										or type(value) == 'string'
+										or type(value) == 'boolean'
+									)
+								then
 									ImGui.Text('%s: %s', opt, value)
 								end
 							end
@@ -561,7 +630,14 @@ local function drawAbilityInspector()
 							for j, ability in ipairs(zen.class[list]) do
 								if ImGui.TreeNode(ability.Name .. '##list' .. list .. i .. j) then
 									for opt, value in pairs(ability) do
-										if opt ~= 'Name' and (type(value) == 'number' or type(value) == 'string' or type(value) == 'boolean') then
+										if
+											opt ~= 'Name'
+											and (
+												type(value) == 'number'
+												or type(value) == 'string'
+												or type(value) == 'boolean'
+											)
+										then
 											local color = WHITE
 											if opt == 'opt' then
 												if zen.class.isEnabled(value) then
@@ -590,7 +666,11 @@ local function drawAbilityInspector()
 				if zen.class.rezAbility then
 					if ImGui.TreeNode('rezAbility') then
 						for opt, value in pairs(zen.class.rezAbility) do
-							if (type(value) == 'number' or type(value) == 'string' or type(value) == 'boolean') then
+							if
+								type(value) == 'number'
+								or type(value) == 'string'
+								or type(value) == 'boolean'
+							then
 								-- opt ~= 'Name' and
 								local color = WHITE
 								if opt == 'opt' then
@@ -615,8 +695,11 @@ end
 
 local function drawHelpWindow()
 	if helpGUIOpen then
-		helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(('ZEN Help##ZENBOTUI%s'):format(state.class), helpGUIOpen,
-			ImGuiWindowFlags.AlwaysAutoResize)
+		helpGUIOpen, shouldDrawHelpGUI = ImGui.Begin(
+			('ZEN Help##ZENBOTUI%s'):format(state.class),
+			helpGUIOpen,
+			ImGuiWindowFlags.AlwaysAutoResize
+		)
 		if shouldDrawHelpGUI then
 			ImGui.PushTextWrapPos(750)
 			if ImGui.TreeNode('General Commands') then
@@ -627,7 +710,9 @@ local function drawHelpWindow()
 				end
 				ImGui.TextColored(YELLOW, '/nowcast [name] alias <targetID>')
 				ImGui.SameLine()
-				ImGui.Text('Tells the named character or yourself to cast a spell on the specified target ID.')
+				ImGui.Text(
+					'Tells the named character or yourself to cast a spell on the specified target ID.'
+				)
 				ImGui.TreePop()
 			end
 			for _, category in ipairs(config.categories()) do
@@ -655,14 +740,22 @@ local function drawHelpWindow()
 				end
 				ImGui.TreePop()
 			end
-			if ImGui.TreeNode('Gear Check (WARNING*: Characters announce their gear to guild chat!') then
+			if
+				ImGui.TreeNode(
+					'Gear Check (WARNING*: Characters announce their gear to guild chat!'
+				)
+			then
 				ImGui.TextColored(YELLOW, '/tell <name> gear <slotname>')
 				ImGui.TextColored(YELLOW, 'Slot Names')
 				ImGui.SameLine()
 				ImGui.Text(constants.slotList)
 				ImGui.TreePop()
 			end
-			if ImGui.TreeNode('Buff Begging  (WARNING*: Characters accounce requests to group or raid chat!') then
+			if
+				ImGui.TreeNode(
+					'Buff Begging  (WARNING*: Characters accounce requests to group or raid chat!'
+				)
+			then
 				ImGui.TextColored(YELLOW, '/tell <name> <alias>')
 				ImGui.TextColored(YELLOW, 'Aliases:')
 				for alias, _ in pairs(zen.class.requestAliases) do
@@ -682,8 +775,11 @@ function ui.main()
 		return
 	end
 	pushStyle(uiTheme)
-	openGUI, shouldDrawGUI = ImGui.Begin(string.format('ZEN Bot 1.0 - %s###ZENBOTUI%s', state.class, state.class),
-		openGUI, 0)
+	openGUI, shouldDrawGUI = ImGui.Begin(
+		string.format('ZEN Bot 1.0 - %s###ZENBOTUI%s', state.class, state.class),
+		openGUI,
+		0
+	)
 	if shouldDrawGUI then
 		drawHeader()
 		drawBody()

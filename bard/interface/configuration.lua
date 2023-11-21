@@ -1,11 +1,15 @@
 --- @type Mq
-local mq = require 'mq'
+local mq = require('mq')
 local constants = require('constants')
 local logger = require('utils.logger')
 local modes = require('mode')
 
 local config = {
-	SETTINGS_FILE = ('%s/zenbot_%s_%s.lua'):format(mq.configDir, mq.TLO.EverQuest.Server(), mq.TLO.Me.CleanName()),
+	SETTINGS_FILE = ('%s/zenbot_%s_%s.lua'):format(
+		mq.configDir,
+		mq.TLO.EverQuest.Server(),
+		mq.TLO.Me.CleanName()
+	),
 
 	-- General settings
 	MODE = {
@@ -185,8 +189,7 @@ local config = {
 	-- Burn settings
 	BURNALWAYS = {
 		value = false,
-		tip =
-		'Burn routine is always entered and burn abilities are used as available. Its not great, it doesn\'t attempt to line up CDs or anything',
+		tip = 'Burn routine is always entered and burn abilities are used as available. Its not great, it doesn\'t attempt to line up CDs or anything',
 		label = 'Burn Always',
 		type = 'checkbox',
 		tlo = 'BurnAlways',
@@ -202,8 +205,7 @@ local config = {
 	},
 	BURNALLNAMED = {
 		value = false,
-		tip =
-		'Enter burn routine when ${Target.Named} is true. Kinda sucks with ToL zones since so many akhevan trash mobs return true',
+		tip = 'Enter burn routine when ${Target.Named} is true. Kinda sucks with ToL zones since so many akhevan trash mobs return true',
 		label = 'Burn Named',
 		type = 'checkbox',
 		tlo = 'BurnAllNamed',
@@ -314,8 +316,7 @@ local config = {
 	},
 	MEDCOMBAT = {
 		value = false,
-		tip =
-		'Toggle whether to med during combat. If on, character will still heal, tank, cc, debuff and buff, just not assist.',
+		tip = 'Toggle whether to med during combat. If on, character will still heal, tank, cc, debuff and buff, just not assist.',
 		label = 'Med In Combat',
 		type = 'checkbox',
 		tlo = 'MedCombat',
@@ -410,7 +411,7 @@ local config = {
 		type = 'checkbox',
 		tlo = 'Timestamps',
 		tlotype = 'bool',
-	}
+	},
 }
 
 function config.get(key)
@@ -438,14 +439,50 @@ function config.categories()
 end
 
 local configByCategory = {
-	Assist = { 'ASSIST', 'AUTOASSISTAT', 'ASSISTNAMES', 'SWITCHWITHMA', 'STICKHOW', 'RESISTSTOPCOUNT' },
+	Assist = {
+		'ASSIST',
+		'AUTOASSISTAT',
+		'ASSISTNAMES',
+		'SWITCHWITHMA',
+		'STICKHOW',
+		'RESISTSTOPCOUNT',
+	},
 	Camp = { 'CAMPRADIUS', 'CHASETARGET', 'CHASEDISTANCE', 'CHASEPAUSED' },
 	Burn = { 'BURNALWAYS', 'BURNALLNAMED', 'BURNCOUNT', 'BURNPCT', 'USEGLYPH', 'USEINTENSITY' },
-	Pull = { 'PULLRADIUS', 'PULLLOW', 'PULLHIGH', 'PULLMINLEVEL', 'PULLMAXLEVEL', 'PULLARC', 'GROUPWATCHWHO', 'PULLWITH' },
-	Heal = { 'HEALPCT', 'PANICHEALPCT', 'HOTHEALPCT', 'GROUPHEALPCT', 'GROUPHEALMIN', 'XTARGETHEAL', 'REZGROUP',
-		'REZRAID', 'REZINCOMBAT', 'PRIORITYTARGET' },
-	Rest = { 'MEDCOMBAT', 'RECOVERPCT', 'MEDMANASTART', 'MEDMANASTOP', 'MEDENDSTART', 'MEDENDSTOP', 'MANASTONESTART',
-		'MANASTONESTARTHP', 'MANASTONESTOPHP', 'MANASTONETIME' },
+	Pull = {
+		'PULLRADIUS',
+		'PULLLOW',
+		'PULLHIGH',
+		'PULLMINLEVEL',
+		'PULLMAXLEVEL',
+		'PULLARC',
+		'GROUPWATCHWHO',
+		'PULLWITH',
+	},
+	Heal = {
+		'HEALPCT',
+		'PANICHEALPCT',
+		'HOTHEALPCT',
+		'GROUPHEALPCT',
+		'GROUPHEALMIN',
+		'XTARGETHEAL',
+		'REZGROUP',
+		'REZRAID',
+		'REZINCOMBAT',
+		'PRIORITYTARGET',
+	},
+	Rest = {
+		'MEDCOMBAT',
+		'RECOVERPCT',
+		'MEDMANASTART',
+		'MEDMANASTOP',
+		'MEDENDSTART',
+		'MEDENDSTOP',
+		'MANASTONESTART',
+		'MANASTONESTARTHP',
+		'MANASTONESTOPHP',
+		'MANASTONETIME',
+	},
 	--Loot = { 'LOOTMOBS', 'LOOTCOMBAT' },
 	Debug = { 'TIMESTAMPS' },
 }
@@ -459,7 +496,9 @@ end
 ---@param new_value string @The new value for the setting.
 ---@param key string @The configuration key to be set.
 function config.getOrSetOption(name, current_value, new_value, key)
-	if config[key] == nil then return end
+	if config[key] == nil then
+		return
+	end
 	if new_value then
 		if config[key].options and not config[key].options[new_value] then
 			print(logger.logLine('\arInvalid option for \ay%s\ax: \ay%s\ax', key, new_value))
@@ -468,7 +507,9 @@ function config.getOrSetOption(name, current_value, new_value, key)
 		if type(current_value) == 'number' then
 			config[key].value = tonumber(new_value) or current_value
 		elseif type(current_value) == 'boolean' then
-			if constants.booleans[new_value] == nil then return end
+			if constants.booleans[new_value] == nil then
+				return
+			end
 			config[key].value = constants.booleans[new_value]
 		else
 			config[key].value = new_value
@@ -483,7 +524,7 @@ end
 ---@param file_name string @The name of the file to check existence of.
 ---@return boolean @Returns true if the file exists, false otherwise.
 function config.fileExists(file_name)
-	local f = io.open(file_name, "r")
+	local f = io.open(file_name, 'r')
 	if f ~= nil then
 		io.close(f)
 		return true
@@ -495,11 +536,17 @@ end
 ---Load common settings from settings file
 ---@return table|nil @Returns a table containing the loaded settings file content.
 function config.loadSettings()
-	if not config.fileExists(config.SETTINGS_FILE) then return nil end
+	if not config.fileExists(config.SETTINGS_FILE) then
+		return nil
+	end
 	local settings = assert(loadfile(config.SETTINGS_FILE))()
-	if not settings or not settings.common then return settings end
+	if not settings or not settings.common then
+		return settings
+	end
 	for setting, value in pairs(settings.common) do
-		if config[setting] then config[setting].value = value end
+		if config[setting] then
+			config[setting].value = value
+		end
 	end
 	modes.currentMode = modes.fromString(config.MODE.value)
 	logger.timestamps = config.TIMESTAMPS and config.TIMESTAMPS.value or false
@@ -531,10 +578,18 @@ end
 
 function config.addIgnore(zone_short_name, mob_name)
 	if ignores[zone_short_name:lower()] and ignores[zone_short_name:lower()][mob_name] then
-		print(logger.logLine('\at%s\ax already in ignore list for zone \ay%s\az, skipping', mob_name, zone_short_name))
+		print(
+			logger.logLine(
+				'\at%s\ax already in ignore list for zone \ay%s\az, skipping',
+				mob_name,
+				zone_short_name
+			)
+		)
 		return
 	end
-	if not ignores[zone_short_name:lower()] then ignores[zone_short_name:lower()] = {} end
+	if not ignores[zone_short_name:lower()] then
+		ignores[zone_short_name:lower()] = {}
+	end
 	ignores[zone_short_name:lower()][mob_name] = true
 	print(logger.logLine('Added pull ignore \at%s\ax for zone \ay%s\ax', mob_name, zone_short_name))
 	config.saveIgnores()
@@ -542,11 +597,19 @@ end
 
 function config.removeIgnore(zone_short_name, mob_name)
 	if not ignores[zone_short_name:lower()] or not ignores[zone_short_name:lower()][mob_name] then
-		print(logger.logLine('\at%s\ax not found in ignore list for zone \ay%s\az, skipping', mob_name, zone_short_name))
+		print(
+			logger.logLine(
+				'\at%s\ax not found in ignore list for zone \ay%s\az, skipping',
+				mob_name,
+				zone_short_name
+			)
+		)
 		return
 	end
 	ignores[zone_short_name:lower()][mob_name] = nil
-	print(logger.logLine('Removed pull ignore \at%s\ax for zone \ay%s\ax', mob_name, zone_short_name))
+	print(
+		logger.logLine('Removed pull ignore \at%s\ax for zone \ay%s\ax', mob_name, zone_short_name)
+	)
 	config.saveIgnores()
 end
 

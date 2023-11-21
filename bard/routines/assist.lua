@@ -1,5 +1,5 @@
 --- @type Mq
-local mq = require 'mq'
+local mq = require('mq')
 local config = require('interface.configuration')
 local camp = require('routines.camp')
 local helpers = require('utils.helpers')
@@ -25,7 +25,10 @@ local function eventEnraged(line, name)
 		if mq.TLO.Me.Combat() then
 			-- target is enraged
 			mq.cmd('/squelch /face fast')
-			if math.abs(mq.TLO.Me.Heading.Degrees() - mq.TLO.Target.Heading.Degrees()) > 85 and not mq.TLO.Stick.Behind() then
+			if
+				math.abs(mq.TLO.Me.Heading.Degrees() - mq.TLO.Target.Heading.Degrees()) > 85
+				and not mq.TLO.Stick.Behind()
+			then
 				--state.dontAttack = true
 				mq.cmd('/attack off')
 			end
@@ -145,9 +148,16 @@ function assist.shouldAssist(assist_target)
 		return false
 	end
 	if mob_type == 'NPC' and hp < config.get('AUTOASSISTAT') then
-		if camp.Active and helpers.distance(camp.X, camp.Y, mob_x, mob_y) <= config.get('CAMPRADIUS') ^ 2 then
+		if
+			camp.Active
+			and helpers.distance(camp.X, camp.Y, mob_x, mob_y) <= config.get('CAMPRADIUS') ^ 2
+		then
 			return true
-		elseif not camp.Active and helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), mob_x, mob_y) <= config.get('CAMPRADIUS') ^ 2 then
+		elseif
+			not camp.Active
+			and helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), mob_x, mob_y)
+				<= config.get('CAMPRADIUS') ^ 2
+		then
 			return true
 		else
 			return false
@@ -208,14 +218,18 @@ function assist.checkMATargetSwitch(assistMobID)
 	end
 	-- If already fighting, check whether we're already on the MA's target. If not, only continue if switch with MA is enabled.
 	if mq.TLO.Me.CombatState() == 'COMBAT' then
-		logger.debug(logger.flags.routines.assist, "state is combat")
+		logger.debug(logger.flags.routines.assist, 'state is combat')
 		if mq.TLO.Target.ID() == assistMobID then
 			-- already fighting the MAs target, make sure assistMobID is accurate
 			state.assistMobID = assistMobID
 			return false
 		elseif not config.get('SWITCHWITHMA') then
 			-- not fighting the MAs target, and switch with MA is disabled, so stay on current target
-			logger.debug(logger.flags.routines.assist, "checkTarget not switching targets with MA, staying on " .. (mq.TLO.Target.CleanName() or ''))
+			logger.debug(
+				logger.flags.routines.assist,
+				'checkTarget not switching targets with MA, staying on '
+					.. (mq.TLO.Target.CleanName() or '')
+			)
 			return false
 		end
 	end
@@ -271,7 +285,11 @@ function assist.getCombatPosition()
 	if mode.currentMode:getName() == 'manual' then
 		return
 	end
-	if state.assistMobID == 0 or mq.TLO.Target.ID() ~= state.assistMobID or not assist.shouldAssist() then
+	if
+		state.assistMobID == 0
+		or mq.TLO.Target.ID() ~= state.assistMobID
+		or not assist.shouldAssist()
+	then
 		if mq.TLO.Me.Combat() then
 			mq.cmd('/attack off')
 		end
@@ -284,17 +302,22 @@ function assist.getCombatPosition()
 	local target_id = mq.TLO.Target.ID()
 	local target_distance = mq.TLO.Target.Distance3D()
 	local max_range_to = mq.TLO.Target.MaxRangeTo() or 0
-	if not target_id or target_id == 0 or (target_distance and target_distance > config.get('CAMPRADIUS')) or state.paused then
+	if
+		not target_id
+		or target_id == 0
+		or (target_distance and target_distance > config.get('CAMPRADIUS'))
+		or state.paused
+	then
 		return false
 	end
 	-- Check option for hardcamp here
 	if not zen.class.OPTS.CAMPHARD.value then
-		print("Navving to target bc not camping hard")
-		movement.navToTarget('dist=' .. max_range_to * .6)
+		print('Navving to target bc not camping hard')
+		movement.navToTarget('dist=' .. max_range_to * 0.6)
 	else
-		print("Camping hard NOT moving")
+		print('Camping hard NOT moving')
 	end
-	
+
 	state.positioning = true
 	state.positioningTimer:reset()
 	return true
@@ -303,10 +326,13 @@ end
 ---Navigate to the current target if if isn't in LOS and should be.
 function assist.checkLOS()
 	local cur_mode = mode.currentMode
-	if (cur_mode:isTankMode() and mq.TLO.Me.CombatState() == 'COMBAT') or (cur_mode:isAssistMode() and assist.shouldAssist()) then
+	if
+		(cur_mode:isTankMode() and mq.TLO.Me.CombatState() == 'COMBAT')
+		or (cur_mode:isAssistMode() and assist.shouldAssist())
+	then
 		local maxRangeTo = (mq.TLO.Target.MaxRangeTo() or 0) + 20
 		if not mq.TLO.Target.LineOfSight() and maxRangeTo and not class.OPTS.CAMPHARD.value then
-			movement.navToTarget('dist=' .. maxRangeTo * .6)
+			movement.navToTarget('dist=' .. maxRangeTo * 0.6)
 			state.positioning = true
 			state.positioningTimer:reset()
 		end
@@ -316,25 +342,28 @@ end
 function applyProperStickHow(config)
 	local stickhow = zen.class.OPTS.STICKHOW.value
 	if stickhow == nil then
-		printf(logger.logLine("StickHOW is empty, can't stick!"))
+		printf(logger.logLine('StickHOW is empty, can\'t stick!'))
 	else
 		--mq.cmdf('/squelch /stick snaproll moveback front %s uw', math.min(maxRangeTo * .75, 25))
-		
-		printf(logger.logLine("Sticking with: %s", stickhow))
+
+		printf(logger.logLine('Sticking with: %s', stickhow))
 		-- https://discord.com/channels/511690098136580097/840375268685119499/1168603138291400784
 		-- Need to set HoTT properly for stick front to work
-		mq.cmd("/stick set nohottfront on")
-		local command = "/stick " .. stickhow
+		mq.cmd('/stick set nohottfront on')
+		local command = '/stick ' .. stickhow
 		mq.cmd(command)
 	end
-	
 end
 
 function assist.engage()
 	if mq.TLO.Navigation.Active() then
 		mq.cmd('/squelch /nav stop')
 	end
-	if mode.currentMode:getName() ~= 'manual' and not mq.TLO.Stick.Active() and stickTimer:timerExpired() then
+	if
+		mode.currentMode:getName() ~= 'manual'
+		and not mq.TLO.Stick.Active()
+		and stickTimer:timerExpired()
+	then
 		mq.cmd('/squelch /face fast')
 		-- pin, behindonce, behind, front, !front
 		local maxRangeTo = mq.TLO.Target.MaxRangeTo() or 0
@@ -372,7 +401,12 @@ function assist.doAssist(reset_timers, returnAfterAnnounce)
 	if not state.medding or not config.get('MEDCOMBAT') then
 		if zen.class.isAbilityEnabled('USEMELEE') then
 			assist.getCombatPosition()
-			if state.assistMobID and state.assistMobID > 0 and not mq.TLO.Me.Combat() and zen.class.beforeEngage then
+			if
+				state.assistMobID
+				and state.assistMobID > 0
+				and not mq.TLO.Me.Combat()
+				and zen.class.beforeEngage
+			then
 				zen.class.beforeEngage()
 			end
 			assist.engage()
@@ -406,7 +440,11 @@ function assist.attack(skip_no_los)
 	if mode.currentMode:getName() == 'manual' then
 		return
 	end
-	if state.assistMobID == 0 or mq.TLO.Target.ID() ~= state.assistMobID or not assist.shouldAssist() then
+	if
+		state.assistMobID == 0
+		or mq.TLO.Target.ID() ~= state.assistMobID
+		or not assist.shouldAssist()
+	then
 		if mq.TLO.Me.Combat() then
 			mq.cmd('/attack off')
 		end
@@ -427,11 +465,15 @@ function assist.attack(skip_no_los)
 	if mq.TLO.Navigation.Active() then
 		mq.cmd('/squelch /nav stop')
 	end
-	if mode.currentMode:getName() ~= 'manual' and not mq.TLO.Stick.Active() and stickTimer:timerExpired() then
+	if
+		mode.currentMode:getName() ~= 'manual'
+		and not mq.TLO.Stick.Active()
+		and stickTimer:timerExpired()
+	then
 		mq.cmd('/squelch /face fast')
 		-- pin, behindonce, behind, front, !front
 		--local maxRangeTo = mq.TLO.Target.MaxRangeTo() or 0
-		
+
 		applyProperStickHow(config)
 		stickTimer:reset()
 	end
@@ -444,7 +486,9 @@ end
 
 function assist.isFighting()
 	local cur_mode = mode.currentMode
-	return (cur_mode:isTankMode() and mq.TLO.Me.CombatState() == 'COMBAT') or (cur_mode:isAssistMode() and assist.shouldAssist()) or (cur_mode:isManualMode() and mq.TLO.Me.CombatState() == 'COMBAT')
+	return (cur_mode:isTankMode() and mq.TLO.Me.CombatState() == 'COMBAT')
+		or (cur_mode:isAssistMode() and assist.shouldAssist())
+		or (cur_mode:isManualMode() and mq.TLO.Me.CombatState() == 'COMBAT')
 end
 
 ---Send pet and swarm pets against the assist target if assist conditions are met.
@@ -452,8 +496,21 @@ function assist.sendPet()
 	local targethp = mq.TLO.Target.PctHPs()
 	if sendPetTimer:timerExpired() and targethp and targethp <= config.get('AUTOASSISTAT') then
 		if assist.isFighting() then
-			if mq.TLO.Pet.ID() > 0 and mq.TLO.Pet.Target.ID() ~= mq.TLO.Target.ID() and not state.petDontAttack then
-				if zen.class.summonCompanion and helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), mq.TLO.Pet.X(), mq.TLO.Pet.Y()) > 625 then
+			if
+				mq.TLO.Pet.ID() > 0
+				and mq.TLO.Pet.Target.ID() ~= mq.TLO.Target.ID()
+				and not state.petDontAttack
+			then
+				if
+					zen.class.summonCompanion
+					and helpers.distance(
+							mq.TLO.Me.X(),
+							mq.TLO.Me.Y(),
+							mq.TLO.Pet.X(),
+							mq.TLO.Pet.Y()
+						)
+						> 625
+				then
 					zen.class.summonCompanion:use()
 				end
 				mq.cmd('/multiline ; /pet attack ; /pet swarm')

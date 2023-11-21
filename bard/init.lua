@@ -1,7 +1,7 @@
 --- @type Mq
 local mq = require('mq')
 --- @type ImGui
-require 'ImGui'
+require('ImGui')
 
 local commands = require('interface.commands')
 local config = require('interface.configuration')
@@ -21,7 +21,19 @@ local mez = require('routines.mez')
 
 local zen = {}
 
-local routines = { 'assist', 'buff', 'camp', 'conditions', 'cure', 'debuff', 'events', 'heal', 'mez', 'pull', 'tank' }
+local routines = {
+	'assist',
+	'buff',
+	'camp',
+	'conditions',
+	'cure',
+	'debuff',
+	'events',
+	'heal',
+	'mez',
+	'pull',
+	'tank',
+}
 for _, routine in ipairs(routines) do
 	zen[routine] = require('routines.' .. routine)
 	zen[routine].init(zen)
@@ -29,22 +41,20 @@ end
 
 local function initPlugins()
 	if not mq.TLO.Plugin('mq2boxr')() then
-		print("\apAuto Loading MQ2Boxr \ap")
-		mq.cmd("/plugin mq2boxr")
+		print('\apAuto Loading MQ2Boxr \ap')
+		mq.cmd('/plugin mq2boxr')
 	end
-	if not mq.TLO.Plugin('mq2bard')() then 
-		print("\apAuto Loading MQ2Bard Stub plugin")
-		mq.cmd("/plugin mq2bard")
-	end 
-	if not mq.TLO.Plugin('mq2bard')() then 
-		print("\arERROR: Cannot load MQ2Bard plugin dll")
-		
-	end 
-	
+	if not mq.TLO.Plugin('mq2bard')() then
+		print('\apAuto Loading MQ2Bard Stub plugin')
+		mq.cmd('/plugin mq2bard')
+	end
+	if not mq.TLO.Plugin('mq2bard')() then
+		print('\arERROR: Cannot load MQ2Bard plugin dll')
+	end
 end
 
 local function init()
-  initPlugins()
+	initPlugins()
 	-- Initialize class specific functions
 	zen.class = require('classes.' .. state.class)
 	zen.class.init(zen)
@@ -54,7 +64,7 @@ local function init()
 	-- Initialize binds
 	mq.cmd('/squelch /djoin zen')
 	commands.init(zen)
-	
+
 	-- Initialize UI
 	ui.init(zen)
 
@@ -62,7 +72,6 @@ local function init()
 	state.subscription = mq.TLO.Me.Subscription()
 	common.setSwapGem()
 	config.loadIgnores()
-
 
 	--mq.cmd('/hidecorpse alwaysnpc')
 	mq.cmd('/multiline ; /pet ghold on')
@@ -99,7 +108,7 @@ local function updateLoopState()
 		PetName = mq.TLO.Me.Pet.CleanName(),
 		TargetID = mq.TLO.Target.ID(),
 		TargetHP = mq.TLO.Target.PctHPs(),
-		PetID = mq.TLO.Pet.ID()
+		PetID = mq.TLO.Pet.ID(),
 	}
 end
 
@@ -149,44 +158,48 @@ local function buffSafetyCheck()
 	if state.class == 'nec' and state.loop.PctHPs < 40 and zen.class.spells.lich then
 		mq.cmdf('/removebuff %s', zen.class.spells.lich.Name)
 	end
-	if not torporLandedInCombat and mq.TLO.Me.Song('Transcendent Torpor')() and mq.TLO.Me.CombatState() == 'COMBAT' then
+	if
+		not torporLandedInCombat
+		and mq.TLO.Me.Song('Transcendent Torpor')()
+		and mq.TLO.Me.CombatState() == 'COMBAT'
+	then
 		torporLandedInCombat = true
 	end
-	if torporLandedInCombat and mq.TLO.Me.CombatState() ~= 'COMBAT' and mq.TLO.Me.Song('Transcendent Torpor')() then
+	if
+		torporLandedInCombat
+		and mq.TLO.Me.CombatState() ~= 'COMBAT'
+		and mq.TLO.Me.Song('Transcendent Torpor')()
+	then
 		mq.cmdf('/removebuff "Transcendent Torpor"')
 		torporLandedInCombat = false
 	end
-	if state.class == 'mnk' and mq.TLO.Me.PctHPs() < config.get('HEALPCT') and mq.TLO.Me.AbilityReady('Mend')() then
+	if
+		state.class == 'mnk'
+		and mq.TLO.Me.PctHPs() < config.get('HEALPCT')
+		and mq.TLO.Me.AbilityReady('Mend')()
+	then
 		mq.cmd('/doability mend')
 	end
 end
 
 local fsm = {}
-function fsm.IDLE()
-
-end
+function fsm.IDLE() end
 
 function fsm.TANK_SCAN()
 	zen.tank.findMobToTank()
 end
 
-function fsm.TANK_ENGAGE()
-end
+function fsm.TANK_ENGAGE() end
 
-function fsm.PULL_SCAN()
-end
+function fsm.PULL_SCAN() end
 
-function fsm.PULL_APPROACH()
-end
+function fsm.PULL_APPROACH() end
 
-function fsm.PULL_ENGAGE()
-end
+function fsm.PULL_ENGAGE() end
 
-function fsm.PULL_RETURN()
-end
+function fsm.PULL_RETURN() end
 
-function fsm.PULL_WAIT()
-end
+function fsm.PULL_WAIT() end
 
 function fsm.processState()
 	return fsm[state.currentState]()
@@ -223,7 +236,7 @@ local function main()
 			logger.debug(logger.flags.zen.main, 'Start Main Loop')
 			debugTimer:reset()
 		end
-		
+
 		mq.doevents()
 		updateLoopState()
 		buffSafetyCheck()
@@ -250,7 +263,11 @@ local function main()
 						mq.cmd('/pet back')
 					end
 					zen.camp.mobRadar()
-					if (mode:isTankMode() and state.mobCount > 0) or (mode:isAssistMode() and zen.assist.shouldAssist()) or mode:getName() == 'huntertank' then
+					if
+						(mode:isTankMode() and state.mobCount > 0)
+						or (mode:isAssistMode() and zen.assist.shouldAssist())
+						or mode:getName() == 'huntertank'
+					then
 						mq.cmd('/makemevis')
 					end
 					zen.camp.checkCamp()

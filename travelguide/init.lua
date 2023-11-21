@@ -9,9 +9,9 @@
 --- @type Mq
 local mq = require('mq')
 --- @type ImGui
-require 'ImGui'
+require('ImGui')
 
-local zones = require("ladonzones")
+local zones = require('ladonzones')
 
 local travelguide = {}
 local matches = {}
@@ -22,7 +22,10 @@ function travelguide.searchZones(substring)
 	local matches = {}
 	for i, zone in ipairs(zones) do
 		for j, field in ipairs(zone) do
-			if type(field) == "string" and string.find(string.lower(field), string.lower(substring)) then
+			if
+				type(field) == 'string'
+				and string.find(string.lower(field), string.lower(substring))
+			then
 				table.insert(matches, { zone[2], zone[3] })
 				break
 			end
@@ -34,7 +37,7 @@ end
 function travelguide.searchShortnames(substring)
 	for i, zone in ipairs(zones) do
 		for j, field in ipairs(zone) do
-			if type(field) == "string" and field:lower() == substring:lower() then
+			if type(field) == 'string' and field:lower() == substring:lower() then
 				--printf("Found field (%s) matches shortname (%s)", field, zone[3])
 				return zone[3]:lower()
 			end
@@ -47,51 +50,47 @@ function travelguide.travelTo(shortName)
 	if useGroupTravel then
 		--print("Traveling GROUP to: " .. shortName)
 		if useDanNet then
-			mq.cmd("/dgga /travelto " .. shortName)
+			mq.cmd('/dgga /travelto ' .. shortName)
 		else
-			mq.cmd("/bcaa //travelto " .. shortName)
+			mq.cmd('/bcaa //travelto ' .. shortName)
 		end
 	else
 		--print("Traveling SELF to: " .. shortName)
-		mq.cmd("/travelto " .. shortName)
+		mq.cmd('/travelto ' .. shortName)
 	end
 end
 
-
 local function commandHandler(args)
-	
 	if not args[1] then
-		print("Called /tg without zone search name")
+		print('Called /tg without zone search name')
 		return
 	end
-	
+
 	-- Checks to see if /tg <input> input var is a number or string
 	-- If string, we search and display results
 	-- If number, we consider it a choice and travel there
 	local choiceNumber = tonumber(args[1])
-	
+
 	-- Search for zone name, string was passed in rather than number
-	if choiceNumber == nil then		
+	if choiceNumber == nil then
 		local firstArgLower = args[1]:lower()
-		
-		
+
 		-- Parse commands
-		if firstArgLower == "group" then
-			print("Sending travel to all group members")
+		if firstArgLower == 'group' then
+			print('Sending travel to all group members')
 			useGroupTravel = true
 			return
-		elseif firstArgLower == "solo" or firstArgLower == "self" then
-			print("Traveling solo from now on")
+		elseif firstArgLower == 'solo' or firstArgLower == 'self' then
+			print('Traveling solo from now on')
 			useGroupTravel = false
 			return
-		elseif firstArgLower == "stop" then
+		elseif firstArgLower == 'stop' then
 			if useGroupTravel then
-				mq.cmd("/dgga /travelto stop")
+				mq.cmd('/dgga /travelto stop')
 			else
-				mq.cmd("/travelto stop")
+				mq.cmd('/travelto stop')
 			end
 		end
-
 
 		-- See if someone gave an actual shortname and go directly if so
 		local shortName = travelguide.searchShortnames(firstArgLower)
@@ -105,7 +104,7 @@ local function commandHandler(args)
 		-- Display results for choosing
 		for i, zone in ipairs(matches) do
 			-- zone[1] is the human name "North Qeynos", zone[2] is the zone shortname "qeynos2"
-			printf("%d - %s (%s)", i, zone[1], zone[2])
+			printf('%d - %s (%s)', i, zone[1], zone[2])
 		end
 	else
 		-- Someone chose a search result, go to it
@@ -140,7 +139,7 @@ mq.bind('/tgg', commandHandlerGroup)
 mq.bind('/tga', commandHandlerGroup)
 mq.bind('/tgs', commandHandlerSolo)
 
-print("TravelGuide now listening. Use /tga and /tgs to travel")
+print('TravelGuide now listening. Use /tga and /tgs to travel')
 while true do
 	mq.delay(1000)
 end

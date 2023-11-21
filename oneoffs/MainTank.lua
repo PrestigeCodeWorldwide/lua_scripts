@@ -12,8 +12,8 @@ local should_draw_gui = true
 local pause = false
 
 local function removeMainTankRole(mtName)
-	mq.cmd('/grouproles unset ' .. mtName .. " 1")
-	print("Removed main tank role")
+	mq.cmd('/grouproles unset ' .. mtName .. ' 1')
+	print('Removed main tank role')
 end
 
 local function getGroupMainTank()
@@ -22,12 +22,12 @@ end
 
 local function checkGroupTankRoleIsEmpty()
 	local groupRole = getGroupMainTank()
-	
+
 	if groupRole == nil then
 		return true
 	else
-		print("WARNING: GROUP MAIN TANK ROLE IS SET!")
-		mq.cmd("/rs WARNING: MY GROUP MAIN TANK ROLE IS ENABLED")
+		print('WARNING: GROUP MAIN TANK ROLE IS SET!')
+		mq.cmd('/rs WARNING: MY GROUP MAIN TANK ROLE IS ENABLED')
 		removeMainTankRole(groupRole)
 		return false
 	end
@@ -43,7 +43,7 @@ end
 
 local function main()
 	init()
-	
+
 	if pause then
 		mq.delay(1000)
 		return
@@ -53,15 +53,12 @@ local function main()
 	mq.delay(1000)
 end
 
-
-
 local function OT_UI()
-	
 	if not open_gui or mq.TLO.MacroQuest.GameState() ~= 'INGAME' then
 		return
 	end
 	open_gui, should_draw_gui = ImGui.Begin('Prestige MainTank', open_gui)
-	
+
 	if should_draw_gui then
 		if pause then
 			if ImGui.Button('Resume') then
@@ -73,8 +70,6 @@ local function OT_UI()
 				mq.cmd('/squelch /nav stop')
 			end
 		end
-
-		
 	end
 	ImGui.End()
 end

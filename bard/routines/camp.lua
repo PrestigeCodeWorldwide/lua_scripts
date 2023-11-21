@@ -1,5 +1,5 @@
 --- @type Mq
-local mq = require 'mq'
+local mq = require('mq')
 local config = require('interface.configuration')
 local helpers = require('utils.helpers')
 local logger = require('utils.logger')
@@ -37,14 +37,22 @@ function camp.mobRadarB()
 		end
 	end
 	local function campPredicate(spawn)
-		if spawn.Type() ~= 'NPC' then return false end
+		if spawn.Type() ~= 'NPC' then
+			return false
+		end
 		if distanceFromCamp then
 			local d = helpers.distance(x, spawn.X(), y, spawn.Y())
-			if d > config.get('CAMPRADIUS') ^ 2 then return false end
+			if d > config.get('CAMPRADIUS') ^ 2 then
+				return false
+			end
 		else
-			if spawn.Distance3D() > config.get('CAMPRADIUS') then return false end
+			if spawn.Distance3D() > config.get('CAMPRADIUS') then
+				return false
+			end
 		end
-		if not xtarIDs[spawn.ID()] then return false end
+		if not xtarIDs[spawn.ID()] then
+			return false
+		end
 		return true
 	end
 
@@ -66,17 +74,26 @@ function camp.mobRadar()
 	else
 		x, y, z = camp.X, camp.Y, camp.Z
 	end
-	logger.debug(logger.flags.routines.camp, xtar_count:format(config.get('CAMPRADIUS') or 0, x, y, z))
+	logger.debug(
+		logger.flags.routines.camp,
+		xtar_count:format(config.get('CAMPRADIUS') or 0, x, y, z)
+	)
 	state.mobCount = mq.TLO.SpawnCount(xtar_count:format(config.get('CAMPRADIUS') or 0, x, y, z))()
-	state.mobCountNoPets = mq.TLO.SpawnCount(xtar_nopet_count:format(config.get('CAMPRADIUS') or 0, x, y, z))()
+	state.mobCountNoPets =
+		mq.TLO.SpawnCount(xtar_nopet_count:format(config.get('CAMPRADIUS') or 0, x, y, z))()
 	if state.mobCount > 0 then
 		for i = 1, state.mobCount do
-			if i > 13 then break end
-			logger.debug(logger.flags.routines.camp, xtar_spawn:format(i, config.get('CAMPRADIUS') or 0, x, y, z))
-			local mob = mq.TLO.NearestSpawn(xtar_spawn:format(i, config.get('CAMPRADIUS') or 0, x, y, z))
+			if i > 13 then
+				break
+			end
+			logger.debug(
+				logger.flags.routines.camp,
+				xtar_spawn:format(i, config.get('CAMPRADIUS') or 0, x, y, z)
+			)
+			local mob =
+				mq.TLO.NearestSpawn(xtar_spawn:format(i, config.get('CAMPRADIUS') or 0, x, y, z))
 			local mob_id = mob.ID()
 			if mob_id and mob_id > 0 then
-								
 				if not mob() or mob.Type() == 'Corpse' then
 					state.targets[mob_id] = nil
 				elseif not state.targets[mob_id] then
@@ -102,10 +119,16 @@ end
 ---Return to camp if alive and in a camp mode and not currently fighting and more than 15ft from the camp center location.
 local checkCampTimer = timer:new(2000)
 function camp.checkCamp()
-	if not mode.currentMode:isReturnToCampMode() or not camp.Active then return end
-	if not checkCampTimer:timerExpired() then return end
+	if not mode.currentMode:isReturnToCampMode() or not camp.Active then
+		return
+	end
+	if not checkCampTimer:timerExpired() then
+		return
+	end
 	checkCampTimer:reset()
-	if (state.class ~= 'brd' and mq.TLO.Me.Casting()) or not common.clearToBuff() then return end
+	if (state.class ~= 'brd' and mq.TLO.Me.Casting()) or not common.clearToBuff() then
+		return
+	end
 	if mq.TLO.Zone.ID() ~= camp.ZoneID then
 		print(logger.logLine('Clearing camp due to zoning.'))
 		camp.Active = false
@@ -141,25 +164,40 @@ local function drawMapLoc(camp_x, camp_y, camp_z, heading, color)
 	end
 	local x_off = camp_x + config.get('PULLRADIUS') * x_move
 	local y_off = camp_y + config.get('PULLRADIUS') * y_move
-	mq.cmdf('/squelch /maploc size 10 width 2 color %s radius 5 rcolor 0 0 0 %s %s %s', color, y_off, x_off, camp_z)
+	mq.cmdf(
+		'/squelch /maploc size 10 width 2 color %s radius 5 rcolor 0 0 0 %s %s %s',
+		color,
+		y_off,
+		x_off,
+		camp_z
+	)
 end
 
 ---Set the left and right pull arc values based on the configured PULLARC option.
 local function setPullAngles()
 	local pull_arc = config.get('PULLARC')
-	if not pull_arc or pull_arc == 0 then return end
-	if not camp.Heading then camp.Heading = 0 end
-	if camp.Heading - (pull_arc * .5) < 0 then
-		camp.PullArcLeft = 360 - ((pull_arc * .5) - camp.Heading)
-	else
-		camp.PullArcLeft = camp.Heading - (pull_arc * .5)
+	if not pull_arc or pull_arc == 0 then
+		return
 	end
-	if camp.Heading + (pull_arc * .5) > 360 then
-		camp.PullArcRight = (pull_arc * .5) + camp.Heading - 360
-	else
-		camp.PullArcRight = (pull_arc * .5) + camp.Heading
+	if not camp.Heading then
+		camp.Heading = 0
 	end
-	logger.debug(logger.flags.routines.camp, 'arcleft: %s, arcright: %s', camp.PullArcLeft, camp.PullArcRight)
+	if camp.Heading - (pull_arc * 0.5) < 0 then
+		camp.PullArcLeft = 360 - ((pull_arc * 0.5) - camp.Heading)
+	else
+		camp.PullArcLeft = camp.Heading - (pull_arc * 0.5)
+	end
+	if camp.Heading + (pull_arc * 0.5) > 360 then
+		camp.PullArcRight = (pull_arc * 0.5) + camp.Heading - 360
+	else
+		camp.PullArcRight = (pull_arc * 0.5) + camp.Heading
+	end
+	logger.debug(
+		logger.flags.routines.camp,
+		'arcleft: %s, arcright: %s',
+		camp.PullArcLeft,
+		camp.PullArcRight
+	)
 end
 
 ---Set, update or clear the CAMP values depending on whether currently in a camp mode or not.
@@ -186,16 +224,34 @@ function camp.setCamp(reset)
 				camp.PullArcLeft = 0
 				camp.PullArcRight = 0
 			end
-			mq.cmdf('/squelch /maploc size 10 width 1 color 0 0 255 radius %s rcolor 0 0 255 %s %s %s',
-				config.get('PULLRADIUS'), camp.Y, camp.X, camp.Z)
+			mq.cmdf(
+				'/squelch /maploc size 10 width 1 color 0 0 255 radius %s rcolor 0 0 255 %s %s %s',
+				config.get('PULLRADIUS'),
+				camp.Y,
+				camp.X,
+				camp.Z
+			)
 		else
 			camp.PullArcLeft = 0
 			camp.PullArcRight = 0
 		end
-		print(logger.logLine('Camp set to \ayX: %.02f Y: %.02f Z: %.02f R: %s H: %.02f\ax', camp.X, camp.Y, camp.Z,
-			config.get('CAMPRADIUS'), camp.Heading))
-		mq.cmdf('/squelch /maploc size 10 width 1 color 255 0 0 radius %s rcolor 255 0 0 %s %s %s',
-			config.get('CAMPRADIUS'), camp.Y + 1, camp.X + 1, camp.Z)
+		print(
+			logger.logLine(
+				'Camp set to \ayX: %.02f Y: %.02f Z: %.02f R: %s H: %.02f\ax',
+				camp.X,
+				camp.Y,
+				camp.Z,
+				config.get('CAMPRADIUS'),
+				camp.Heading
+			)
+		)
+		mq.cmdf(
+			'/squelch /maploc size 10 width 1 color 255 0 0 radius %s rcolor 255 0 0 %s %s %s',
+			config.get('CAMPRADIUS'),
+			camp.Y + 1,
+			camp.X + 1,
+			camp.Z
+		)
 	elseif camp.Active then
 		camp.Active = false
 		mq.cmd('/squelch /mapf campradius 0')

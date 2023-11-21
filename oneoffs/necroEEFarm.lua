@@ -1,5 +1,5 @@
 --- @type Mq
-local mq = require("mq")
+local mq = require('mq')
 
 while true do
 	mq.cmd('/cast "Inspire Ally"')
@@ -14,6 +14,4 @@ while true do
 	mq.delay(1000)
 	mq.cmd('/autoinv')
 	mq.delay(1000)
-	
-	
 end

@@ -33,8 +33,8 @@ local function showHelp()
 	for _, command in ipairs(constants.commandHelp) do
 		output = output .. prefix .. command.command .. ' -- ' .. command.tip
 	end
-	output = output ..
-	'\n- /nowcast [name] alias <targetID> -- Tells the named character or yourself to cast a spell on the specified target ID.'
+	output = output
+		.. '\n- /nowcast [name] alias <targetID> -- Tells the named character or yourself to cast a spell on the specified target ID.'
 	for _, category in ipairs(config.categories()) do
 		output = output .. '\n\ay' .. category .. ' configuration:\aw'
 		for _, key in ipairs(config.getByCategory(category)) do
@@ -54,7 +54,9 @@ local function showHelp()
 			end
 		end
 	end
-	output = output .. '\n\ayGear Check:\aw /tell <name> gear <slotname> -- Slot Names: ' .. constants.slotList
+	output = output
+		.. '\n\ayGear Check:\aw /tell <name> gear <slotname> -- Slot Names: '
+		.. constants.slotList
 	output = output .. '\n\ayBuff Begging:\aw /tell <name> <alias> -- Aliases: '
 	for alias, _ in pairs(zen.class.requestAliases) do
 		output = output .. alias .. ', '
@@ -91,7 +93,12 @@ function commands.commandHandler(...)
 	elseif opt == 'SELL' and not new_value then
 		loot.sellStuff()
 	elseif opt == 'BURNNOW' then
-		print(logger.logLine('\arActivating Burns (on demand%s)\ax', state.burn_type and ' - ' .. state.burn_type or ''))
+		print(
+			logger.logLine(
+				'\arActivating Burns (on demand%s)\ax',
+				state.burn_type and ' - ' .. state.burn_type or ''
+			)
+		)
 		state.burnNow = true
 		if new_value == 'quick' or new_value == 'long' then
 			state.burn_type = new_value
@@ -188,13 +195,21 @@ function commands.commandHandler(...)
 			end
 		end
 		if itemName then
-			local clicky = { name = itemName, clickyType = clickyType, summonMinimum = summonMinimum, opt = useif }
+			local clicky = {
+				name = itemName,
+				clickyType = clickyType,
+				summonMinimum = summonMinimum,
+				opt = useif,
+			}
 			zen.class.addClicky(clicky)
 			zen.class.saveSettings()
 		else
-			print(logger.logLine(
-			'addclicky Usage:\n\tPlace clicky item on cursor\n\t/%s addclicky category\n\tCategories: burn, mash, heal, buff',
-				state.class))
+			print(
+				logger.logLine(
+					'addclicky Usage:\n\tPlace clicky item on cursor\n\t/%s addclicky category\n\tCategories: burn, mash, heal, buff',
+					state.class
+				)
+			)
 		end
 	elseif opt == 'REMOVECLICKY' then
 		local itemName = mq.TLO.Cursor()
@@ -202,7 +217,12 @@ function commands.commandHandler(...)
 			zen.class.removeClicky(itemName)
 			zen.class.saveSettings()
 		else
-			print(logger.logLine('removeclicky Usage:\n\tPlace clicky item on cursor\n\t/%s removeclicky', state.class))
+			print(
+				logger.logLine(
+					'removeclicky Usage:\n\tPlace clicky item on cursor\n\t/%s removeclicky',
+					state.class
+				)
+			)
 		end
 	elseif opt == 'LISTCLICKIES' then
 		local clickies = ''

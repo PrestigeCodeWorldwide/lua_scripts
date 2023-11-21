@@ -23,8 +23,6 @@ local isChanged = false
 local open_gui = true
 local should_draw_gui = true
 
-
-
 local function notNil(arg)
 	if arg ~= nil then
 		return arg
@@ -65,18 +63,29 @@ local function target2()
 end
 
 local function main()
-	if assigned_mob ~= '' and mq.TLO.Spawn(assigned_mob).Distance() ~= nil and mq.TLO.Spawn(assigned_mob).Distance() < distance then
+	if
+		assigned_mob ~= ''
+		and mq.TLO.Spawn(assigned_mob).Distance() ~= nil
+		and mq.TLO.Spawn(assigned_mob).Distance() < distance
+	then
 		target()
 		mq.delay('1ms')
-		cwtnTANK()				
+		cwtnTANK()
 		mq.delay('5ms')
 	elseif
-			assigned_mob1 ~= '' and mq.TLO.Spawn(assigned_mob1).Distance() ~= nil and mq.TLO.Spawn(assigned_mob1).Distance() < distance then
+		assigned_mob1 ~= ''
+		and mq.TLO.Spawn(assigned_mob1).Distance() ~= nil
+		and mq.TLO.Spawn(assigned_mob1).Distance() < distance
+	then
 		target1()
 		mq.delay('1ms')
 		cwtnTANK()
 		mq.delay('5ms')
-	elseif assigned_mob2 ~= '' and mq.TLO.Spawn(assigned_mob2).Distance() ~= nil and mq.TLO.Spawn(assigned_mob2).Distance() < distance then
+	elseif
+		assigned_mob2 ~= ''
+		and mq.TLO.Spawn(assigned_mob2).Distance() ~= nil
+		and mq.TLO.Spawn(assigned_mob2).Distance() < distance
+	then
 		target2()
 		mq.delay('1ms')
 		cwtnTANK()
@@ -92,7 +101,7 @@ local expansions = {
 	[2] = 'Torment of Velious',
 	[3] = 'Claws of Veeshan',
 	[4] = 'Terror of Luclin',
-	[5] = 'Night of Shadows'
+	[5] = 'Night of Shadows',
 }
 
 local expansion = 'None'
@@ -111,7 +120,7 @@ local CoV_Raids = {
 	[3] = 'Crusaders',
 	[4] = 'Aaryonar',
 	[5] = 'Klandicar',
-	[6] = 'Tantor'
+	[6] = 'Tantor',
 }
 local CoV_Raid = 'None'
 
@@ -174,7 +183,7 @@ local Sontalak = {
 	[6] = 'a_combative_follower02',
 	[7] = 'a_combative_adherent00',
 	[8] = 'a_combative_adherent01',
-	[9] = 'a_combative_adherent02'
+	[9] = 'a_combative_adherent02',
 }
 local Crusaders = {
 	[1] = 'An_atrium_disciple00',
@@ -185,7 +194,7 @@ local Crusaders = {
 	[6] = 'a_foyer_guardian01',
 	[7] = 'a_domicile_defender00',
 	[8] = 'a_domicile_defender01',
-	[9] = 'a_combative_adherent02'
+	[9] = 'a_combative_adherent02',
 }
 local Klandicar = {
 	[1] = 'A_guardian_of_Klandicar00',
@@ -196,7 +205,7 @@ local Klandicar = {
 	[6] = 'An_egg_tender00',
 	[7] = 'An_egg_tender01',
 	[8] = 'An_egg_tender02',
-	[9] = 'An_egg_tender03'
+	[9] = 'An_egg_tender03',
 }
 local Tantor = {
 	[1] = 'A_primal_guardian00',
@@ -282,7 +291,6 @@ local function draw_combo_box(label, resultvar, options, showClearTarget)
 	return resultvar
 end
 
-
 local function OT_UI()
 	-- Define default values for the variables
 	local default_assigned_mob = ''
@@ -293,12 +301,16 @@ local function OT_UI()
 		return
 	end
 	open_gui, should_draw_gui = ImGui.Begin('Zzaddy & Dragon OffTank', open_gui)
-	ImGui.Text("Set the Distance: ")
-	distance, isChanged = ImGui.InputInt("Min: " .. MIN_DIST .. " Max: " .. MAX_DIST, distance, 5, 0, 0)
-	if distance < MIN_DIST then distance = MIN_DIST end
-	if distance > MAX_DIST then distance = MAX_DIST end
+	ImGui.Text('Set the Distance: ')
+	distance, isChanged =
+		ImGui.InputInt('Min: ' .. MIN_DIST .. ' Max: ' .. MAX_DIST, distance, 5, 0, 0)
+	if distance < MIN_DIST then
+		distance = MIN_DIST
+	end
+	if distance > MAX_DIST then
+		distance = MAX_DIST
+	end
 	--if isChanged then print(distance) end
-
 
 	if should_draw_gui then
 		if PAUSED then
@@ -311,8 +323,6 @@ local function OT_UI()
 				mq.cmd('/squelch /nav stop')
 			end
 		end
-
-
 
 		expansion = draw_combo_box('Expansion Select', expansion, expansions)
 		----------Beginning of ToV----------
@@ -347,8 +357,10 @@ local function OT_UI()
 
 			if ToV_Raid == 'SeekingTheSorcerer' then
 				assigned_mob = draw_combo_box('OT Target 1', assigned_mob, SeekingTheSorcerer, true)
-				assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, SeekingTheSorcerer, true)
-				assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, SeekingTheSorcerer, true)
+				assigned_mob1 =
+					draw_combo_box('OT Target 2', assigned_mob1, SeekingTheSorcerer, true)
+				assigned_mob2 =
+					draw_combo_box('OT Target 3', assigned_mob2, SeekingTheSorcerer, true)
 			end
 
 			-- Store the current value of ToV_Raid for the next frame
@@ -447,10 +459,6 @@ local function OT_UI()
 	end
 	ImGui.End()
 end
-
-
-
-
 
 mq.imgui.init('OffTanking', OT_UI)
 

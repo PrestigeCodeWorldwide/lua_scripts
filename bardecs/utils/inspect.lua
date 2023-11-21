@@ -1,24 +1,14 @@
-local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then
-	local p, m = pcall(require, 'compat53.module'); if p then _tl_compat = m end
-end; local math = _tl_compat and _tl_compat.math or math; local string = _tl_compat and _tl_compat.string or string; local table =
-	_tl_compat and _tl_compat.table or table
-local inspect = { Options = {}, }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+local _tl_compat
+if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then
+	local p, m = pcall(require, 'compat53.module')
+	if p then
+		_tl_compat = m
+	end
+end
+local math = _tl_compat and _tl_compat.math or math
+local string = _tl_compat and _tl_compat.string or string
+local table = _tl_compat and _tl_compat.table or table
+local inspect = { Options = {} }
 
 inspect._VERSION = 'inspect.lua 3.1.0'
 inspect._URL = 'http://github.com/kikito/inspect.lua'
@@ -47,8 +37,16 @@ inspect._LICENSE = [[
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]
-inspect.KEY = setmetatable({}, { __tostring = function() return 'inspect.KEY' end })
-inspect.METATABLE = setmetatable({}, { __tostring = function() return 'inspect.METATABLE' end })
+inspect.KEY = setmetatable({}, {
+	__tostring = function()
+		return 'inspect.KEY'
+	end,
+})
+inspect.METATABLE = setmetatable({}, {
+	__tostring = function()
+		return 'inspect.METATABLE'
+	end,
+})
 
 local tostring = tostring
 local rep = string.rep
@@ -61,46 +59,49 @@ local _rawget
 if rawget then
 	_rawget = rawget
 else
-	_rawget = function(t, k) return t[k] end
+	_rawget = function(t, k)
+		return t[k]
+	end
 end
 
 local function rawpairs(t)
 	return next, t, nil
 end
 
-
-
 local function smartQuote(str)
-	if match(str, '"') and not match(str, "'") then
-		return "'" .. str .. "'"
+	if match(str, '"') and not match(str, '\'') then
+		return '\'' .. str .. '\''
 	end
 	return '"' .. gsub(str, '"', '\\"') .. '"'
 end
 
-
 local shortControlCharEscapes = {
-	["\a"] = "\\a",
-	["\b"] = "\\b",
-	["\f"] = "\\f",
-	["\n"] = "\\n",
-	["\r"] = "\\r",
-	["\t"] = "\\t",
-	["\v"] = "\\v",
-	["\127"] = "\\127",
+	['\a'] = '\\a',
+	['\b'] = '\\b',
+	['\f'] = '\\f',
+	['\n'] = '\\n',
+	['\r'] = '\\r',
+	['\t'] = '\\t',
+	['\v'] = '\\v',
+	['\127'] = '\\127',
 }
-local longControlCharEscapes = { ["\127"] = "\127" }
+local longControlCharEscapes = { ['\127'] = '\127' }
 for i = 0, 31 do
 	local ch = char(i)
 	if not shortControlCharEscapes[ch] then
-		shortControlCharEscapes[ch] = "\\" .. i
-		longControlCharEscapes[ch] = fmt("\\%03d", i)
+		shortControlCharEscapes[ch] = '\\' .. i
+		longControlCharEscapes[ch] = fmt('\\%03d', i)
 	end
 end
 
 local function escape(str)
-	return (gsub(gsub(gsub(str, "\\", "\\\\"),
-			"(%c)%f[0-9]", longControlCharEscapes),
-		"%c", shortControlCharEscapes))
+	return (
+		gsub(
+			gsub(gsub(str, '\\', '\\\\'), '(%c)%f[0-9]', longControlCharEscapes),
+			'%c',
+			shortControlCharEscapes
+		)
+	)
 end
 
 local luaKeywords = {
@@ -129,17 +130,12 @@ local luaKeywords = {
 }
 
 local function isIdentifier(str)
-	return type(str) == "string" and
-		not not str:match("^[_%a][_%a%d]*$") and
-		not luaKeywords[str]
+	return type(str) == 'string' and not not str:match('^[_%a][_%a%d]*$') and not luaKeywords[str]
 end
 
 local flr = math.floor
 local function isSequenceKey(k, sequenceLength)
-	return type(k) == "number" and
-		flr(k) == k and
-		1 <= (k) and
-		k <= sequenceLength
+	return type(k) == 'number' and flr(k) == k and 1 <= k and k <= sequenceLength
 end
 
 local defaultTypeOrders = {
@@ -155,14 +151,12 @@ local defaultTypeOrders = {
 local function sortKeys(a, b)
 	local ta, tb = type(a), type(b)
 
-
 	if ta == tb and (ta == 'string' or ta == 'number') then
-		return (a) < (b)
+		return a < b
 	end
 
 	local dta = defaultTypeOrders[ta] or 100
 	local dtb = defaultTypeOrders[tb] or 100
-
 
 	return dta == dtb and ta < tb or dta < dtb
 end
@@ -186,7 +180,7 @@ local function getKeys(t)
 end
 
 local function countCycles(x, cycles)
-	if type(x) == "table" then
+	if type(x) == 'table' then
 		if cycles[x] then
 			cycles[x] = cycles[x] + 1
 		else
@@ -203,7 +197,9 @@ end
 local function makePath(path, a, b)
 	local newPath = {}
 	local len = #path
-	for i = 1, len do newPath[i] = path[i] end
+	for i = 1, len do
+		newPath[i] = path[i]
+	end
 
 	newPath[len + 1] = a
 	newPath[len + 2] = b
@@ -211,16 +207,16 @@ local function makePath(path, a, b)
 	return newPath
 end
 
-
-local function processRecursive(process,
-								item,
-								path,
-								visited)
-	if item == nil then return nil end
-	if visited[item] then return visited[item] end
+local function processRecursive(process, item, path, visited)
+	if item == nil then
+		return nil
+	end
+	if visited[item] then
+		return visited[item]
+	end
 
 	local processed = process(item, path)
-	if type(processed) == "table" then
+	if type(processed) == 'table' then
 		local processedCopy = {}
 		visited[item] = processedCopy
 		local processedKey
@@ -228,12 +224,20 @@ local function processRecursive(process,
 		for k, v in rawpairs(processed) do
 			processedKey = processRecursive(process, k, makePath(path, k, inspect.KEY), visited)
 			if processedKey ~= nil then
-				processedCopy[processedKey] = processRecursive(process, v, makePath(path, processedKey), visited)
+				processedCopy[processedKey] =
+					processRecursive(process, v, makePath(path, processedKey), visited)
 			end
 		end
 
-		local mt = processRecursive(process, getmetatable(processed), makePath(path, inspect.METATABLE), visited)
-		if type(mt) ~= 'table' then mt = nil end
+		local mt = processRecursive(
+			process,
+			getmetatable(processed),
+			makePath(path, inspect.METATABLE),
+			visited
+		)
+		if type(mt) ~= 'table' then
+			mt = nil
+		end
 		setmetatable(processedCopy, mt)
 		processed = processedCopy
 	end
@@ -245,18 +249,7 @@ local function puts(buf, str)
 	buf[buf.n] = str
 end
 
-
-
 local Inspector = {}
-
-
-
-
-
-
-
-
-
 
 local Inspector_mt = { __index = Inspector }
 
@@ -280,8 +273,7 @@ function Inspector:putValue(v)
 	local tv = type(v)
 	if tv == 'string' then
 		puts(buf, smartQuote(escape(v)))
-	elseif tv == 'number' or tv == 'boolean' or tv == 'nil' or
-		tv == 'cdata' or tv == 'ctype' then
+	elseif tv == 'number' or tv == 'boolean' or tv == 'nil' or tv == 'cdata' or tv == 'ctype' then
 		puts(buf, tostring(v))
 	elseif tv == 'table' and not self.ids[v] then
 		local t = v
@@ -291,7 +283,9 @@ function Inspector:putValue(v)
 		elseif self.level >= self.depth then
 			puts(buf, '{...}')
 		else
-			if self.cycles[t] > 1 then puts(buf, fmt('<%d>', self:getId(t))) end
+			if self.cycles[t] > 1 then
+				puts(buf, fmt('<%d>', self:getId(t)))
+			end
 
 			local keys, keysLen, seqLen = getKeys(t)
 
@@ -299,7 +293,9 @@ function Inspector:putValue(v)
 			self.level = self.level + 1
 
 			for i = 1, seqLen + keysLen do
-				if i > 1 then puts(buf, ',') end
+				if i > 1 then
+					puts(buf, ',')
+				end
 				if i <= seqLen then
 					puts(buf, ' ')
 					self:putValue(t[i])
@@ -309,9 +305,9 @@ function Inspector:putValue(v)
 					if isIdentifier(k) then
 						puts(buf, k)
 					else
-						puts(buf, "[")
+						puts(buf, '[')
 						self:putValue(k)
-						puts(buf, "]")
+						puts(buf, ']')
 					end
 					puts(buf, ' = ')
 					self:putValue(t[k])
@@ -320,7 +316,9 @@ function Inspector:putValue(v)
 
 			local mt = getmetatable(t)
 			if type(mt) == 'table' then
-				if seqLen + keysLen > 0 then puts(buf, ',') end
+				if seqLen + keysLen > 0 then
+					puts(buf, ',')
+				end
 				tabify(self)
 				puts(buf, '<metatable> = ')
 				self:putValue(mt)
@@ -344,7 +342,7 @@ end
 function inspect.inspect(root, options)
 	options = options or {}
 
-	local depth = options.depth or (math.huge)
+	local depth = options.depth or math.huge
 	local newline = options.newline or '\n'
 	local indent = options.indent or '  '
 	local process = options.process

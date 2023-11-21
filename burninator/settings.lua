@@ -1,9 +1,8 @@
 ---@type Mq
-local mq = require 'mq'
-local utils = require 'utils'
+local mq = require('mq')
+local utils = require('utils')
 
 local settings = { Pause = false, boolSettings = {} }
-
 
 local toon = mq.TLO.Me.Name() or ''
 local settingsPath = 'BurninateConfig_' .. toon .. '.lua'
@@ -54,9 +53,15 @@ function settings.updateSettings(cmd, val)
 end
 
 function settings.setDefaults(s)
-	if s == 'all' then print('\at[Burninate] \aw---- \at Setting toggles to default values \aw----') end
-	if s == 'all' or settings.isDriver == nil then settings.isDriver = 'off' end
-	for k, v in pairs(settings) do print('\at[Burninate]\ao ', k, ": \ay", utils.color(v)) end
+	if s == 'all' then
+		print('\at[Burninate] \aw---- \at Setting toggles to default values \aw----')
+	end
+	if s == 'all' or settings.isDriver == nil then
+		settings.isDriver = 'off'
+	end
+	for k, v in pairs(settings) do
+		print('\at[Burninate]\ao ', k, ': \ay', utils.color(v))
+	end
 	settings.saveSettings()
 end
 
@@ -73,7 +78,7 @@ end
 local function mergeSettings(settings, newSettings)
 	for key, value in pairs(newSettings) do
 		-- If the key is a table and exists in both settings and newSettings, recursively merge
-		if type(value) == "table" and type(settings[key]) == "table" then
+		if type(value) == 'table' and type(settings[key]) == 'table' then
 			mergeSettings(settings[key], value)
 		else
 			settings[key] = value
@@ -84,19 +89,19 @@ end
 function settings.init()
 	local configData, error = loadfile(mq.configDir .. '/' .. settingsPath) -- read config file
 	--utils.dump(configData, "Config Data from file")
-	if error then                                                        -- failed to read the config file, create it using pickle	
+	if error then -- failed to read the config file, create it using pickle
 		print('\at[Burninate] \ay Creating config file...')
 		settings.setDefaults('all')
 		settings.listCommands()
 	elseif configData then -- file loaded, put content into your config table
-		print("Config data received no error")
+		print('Config data received no error')
 
 		local conf = configData()
-		utils.dump(conf, "Config Data from file")
-		print("After configData called")
+		utils.dump(conf, 'Config Data from file')
+		print('After configData called')
 		-- instead of replacing settings, i want to merge them
 		mergeSettings(settings, conf.settings)
-		utils.dump(settings, "ConfSettings transferred")
+		utils.dump(settings, 'ConfSettings transferred')
 
 		--settings.setDefaults() -- check for missing settings
 		--settings.listCommands()

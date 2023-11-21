@@ -4,7 +4,7 @@
 --
 -- @module outcome
 local outcome = {
-	_VERSION = "0.2.2",
+	_VERSION = '0.2.2',
 	_DESCRIPTION = 'Functional and composable option and result types for Lua.',
 	_URL = 'https://github.com/mtdowling/outcome',
 	_LICENSE = [[
@@ -28,18 +28,18 @@ local outcome = {
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
-  ]]
+  ]],
 }
 
 local type, error, pcall, string = type, error, pcall, string
 local setmetatable, getmetatable = setmetatable, getmetatable
 
 local OK, ERR = true, false
-local OPTION_CLASS, RESULT_CLASS = "outcome.Option", "outcome.Result"
+local OPTION_CLASS, RESULT_CLASS = 'outcome.Option', 'outcome.Result'
 
 local function assertOption(value)
-	if type(value) ~= "table" or value.class ~= OPTION_CLASS then
-		error("Value must be an `Option<T>`. Found " .. value)
+	if type(value) ~= 'table' or value.class ~= OPTION_CLASS then
+		error('Value must be an `Option<T>`. Found ' .. value)
 	end
 	return value
 end
@@ -276,8 +276,12 @@ local None = {}
 
 local NoneMetatable = {
 	__index = None,
-	__lt = function (_, _) return true end,
-	__le = function (_, _) return true end,
+	__lt = function(_, _)
+		return true
+	end,
+	__le = function(_, _)
+		return true
+	end,
 }
 
 function None:isSome()
@@ -293,7 +297,7 @@ function None:unwrap()
 end
 
 function None:expect(message)
-	error(message or "Call to unwrap on a nil value")
+	error(message or 'Call to unwrap on a nil value')
 end
 
 function None:unwrapOr(defaultValue)
@@ -361,9 +365,15 @@ local Some = {}
 
 local SomeMetatable = {
 	__index = Some,
-	__lt = function (lhs, rhs) return lhs._value < rhs._value end,
-	__le = function (lhs, rhs) return lhs._value <= rhs._value end,
-	__eq = function(a, b) return a._value == b._value end
+	__lt = function(lhs, rhs)
+		return lhs._value < rhs._value
+	end,
+	__le = function(lhs, rhs)
+		return lhs._value <= rhs._value
+	end,
+	__eq = function(a, b)
+		return a._value == b._value
+	end,
 }
 
 function Some:isSome()
@@ -479,39 +489,41 @@ end
 local Result = {} -- luacheck: ignore
 
 local function assertResult(value)
-	if type(value) ~= "table" or value.class ~= RESULT_CLASS then
-		error("Value must be a `Result<T, E>`. Found " .. type(value))
+	if type(value) ~= 'table' or value.class ~= RESULT_CLASS then
+		error('Value must be a `Result<T, E>`. Found ' .. type(value))
 	end
 	return value
 end
 
 local function errorToString(value)
 	local valueType = type(value)
-	if valueType == "string" then
+	if valueType == 'string' then
 		return value
-	elseif valueType == "table" then
+	elseif valueType == 'table' then
 		local mt = getmetatable(value)
-		return mt and mt.__tostring and string(value) or "table error"
-	elseif valueType == "nil" then
-		return "nil error"
-	elseif valueType == "boolean" then
-		return "boolean error (" .. value .. ")"
-	elseif valueType == "number" then
-		return "number error (" .. value .. ")"
+		return mt and mt.__tostring and string(value) or 'table error'
+	elseif valueType == 'nil' then
+		return 'nil error'
+	elseif valueType == 'boolean' then
+		return 'boolean error (' .. value .. ')'
+	elseif valueType == 'number' then
+		return 'number error (' .. value .. ')'
 	else
-		return "error of type " .. valueType
+		return 'error of type ' .. valueType
 	end
 end
 
 local function resultLt(lhs, rhs)
 	return lhs._kind == rhs._kind
-		and lhs._value ~= nil and rhs._value ~= nil
+		and lhs._value ~= nil
+		and rhs._value ~= nil
 		and lhs._value < rhs._value
 end
 
 local function resultLte(lhs, rhs)
 	return lhs._kind == rhs._kind
-		and lhs._value ~= nil and rhs._value ~= nil
+		and lhs._value ~= nil
+		and rhs._value ~= nil
 		and lhs._value <= rhs._value
 end
 
@@ -830,7 +842,7 @@ function Err:flatmap(_)
 	return self
 end
 
-outcome._NONE_OPTION = setmetatable({class = OPTION_CLASS}, NoneMetatable)
+outcome._NONE_OPTION = setmetatable({ class = OPTION_CLASS }, NoneMetatable)
 
 -- Public functions
 ------------------------------------------------------------------------------
@@ -864,8 +876,10 @@ end
 -- @treturn Option `Option<T>`
 -- @within Option functions
 function outcome.some(value)
-	if value == nil then error("A Some Option value may not be nil") end
-	return setmetatable({_value = value, class = OPTION_CLASS}, SomeMetatable)
+	if value == nil then
+		error('A Some Option value may not be nil')
+	end
+	return setmetatable({ _value = value, class = OPTION_CLASS }, SomeMetatable)
 end
 
 --- Returns a None Option.

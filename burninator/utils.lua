@@ -1,5 +1,5 @@
 ---@type Mq
-local mq = require 'mq'
+local mq = require('mq')
 
 local utils = {}
 
@@ -8,19 +8,21 @@ local utils = {}
 ---@param printPrefix string|nil This string, if any, is printed before the dump
 ---@param indent number|nil The number of spaces to indent the dumps
 function utils.dump(data, printPrefix, indent)
-	assert(data ~= nil, "data cannot be nil-" .. tostring(printPrefix or ""))
+	assert(data ~= nil, 'data cannot be nil-' .. tostring(printPrefix or ''))
 	local indent = indent or 2
-	local indentStr = string.rep(" ", indent)
+	local indentStr = string.rep(' ', indent)
 
-	if printPrefix then print(printPrefix) end
+	if printPrefix then
+		print(printPrefix)
+	end
 
-	if type(data) == "table" then
+	if type(data) == 'table' then
 		for k, v in pairs(data) do
-			print(indentStr .. tostring(k) .. ": ")
+			print(indentStr .. tostring(k) .. ': ')
 			utils.dump(v, nil, indent + 2)
 		end
 	else
-		print(tostring(data) .. "\n")
+		print(tostring(data) .. '\n')
 	end
 end
 

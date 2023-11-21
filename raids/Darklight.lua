@@ -1,4 +1,4 @@
-local mq = require("mq")
+local mq = require('mq')
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Luas = {
@@ -10,33 +10,36 @@ Luas = {
 	'zzrogue',
 	'zzerkraid',
 	'zzbard',
-	'offtanking'
+	'offtanking',
 }
 -- HUGE NOTE: THIS WILL TURN OFF THE OFFTANKING LUA
 local function luaCHECK()
 	for k, v in ipairs(Luas) do
-		if mq.TLO.Lua.Script(v).Status() == 'RUNNING' or mq.TLO.Lua.Script(v).Status() == 'PAUSED' then
+		if
+			mq.TLO.Lua.Script(v).Status() == 'RUNNING'
+			or mq.TLO.Lua.Script(v).Status() == 'PAUSED'
+		then
 			mq.cmdf('/lua pause %s', v)
 		end
 	end
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function correct_zone()
-	return mq.TLO.Zone.ID() == 855	
+	return mq.TLO.Zone.ID() == 855
 end
 
 local function init()
-	print('Starting Darklight Lua')		
+	print('Starting Darklight Lua')
 	if mq.TLO.Plugin('mq2boxr')() then
-		print("\apMQ2Boxr Already Loaded\ap") -- plugin is loaded.. we are good to go
+		print('\apMQ2Boxr Already Loaded\ap') -- plugin is loaded.. we are good to go
 	else
-		print("\apLoading MQ2BOXR!\ap")
-		mq.cmd("/plugin mq2boxr")
+		print('\apLoading MQ2BOXR!\ap')
+		mq.cmd('/plugin mq2boxr')
 	end
 end
 
 local function handleEvents()
-  mq.doevents()
+	mq.doevents()
 end
 
 local function ThinningFades()
@@ -88,17 +91,24 @@ local function At_Center()
 	end
 end
 
-mq.event("AtGrakaw", "#*#Weakness Evinced sends energy at Grakaw.#*#", At_Grakaw)
-mq.event("AtSpirits", "#*#Weakness Evinced sends energy at the great spirits.#*#", At_Spirits)
-mq.event("AtGrakawAndSpirits", "#*#Weakness Evinced sends energy at Grakaw and the great spirits.#*#",
-	At_Grakaw_And_Spirits)
-mq.event("AtCenter", "#*#Weakness Evinced sends energy toward the center of the cave.#*#", At_Center)
-mq.event("ThinningSkinFades", '#*#Your skin is restored#*#', ThinningFades)
+mq.event('AtGrakaw', '#*#Weakness Evinced sends energy at Grakaw.#*#', At_Grakaw)
+mq.event('AtSpirits', '#*#Weakness Evinced sends energy at the great spirits.#*#', At_Spirits)
+mq.event(
+	'AtGrakawAndSpirits',
+	'#*#Weakness Evinced sends energy at Grakaw and the great spirits.#*#',
+	At_Grakaw_And_Spirits
+)
+mq.event(
+	'AtCenter',
+	'#*#Weakness Evinced sends energy toward the center of the cave.#*#',
+	At_Center
+)
+mq.event('ThinningSkinFades', '#*#Your skin is restored#*#', ThinningFades)
 
 init()
 
 while true do
-	if correct_zone() then 
+	if correct_zone() then
 		handleEvents()
 	end
 	mq.delay(100)
