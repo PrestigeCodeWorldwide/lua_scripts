@@ -7,291 +7,7 @@ BL.enum = {}
 
 local log_prefix = "\a-t[\ax\ayBL\ax\a-t]\ax \aw"
 
---[[
-	CONSTRUCTORS:
-		
-		Option.Some(anyNonNilValue): Option<any>
-		Option.Wrap(anyValue): Option<any>
-		
-		Option(): Option.Some(anyNonNilValue) or Option.None if value is nil
-
-
-	STATIC FIELDS:
-
-		Option.None: Option<None>
-
-
-	STATIC METHODS:
-
-		Option.Is(obj): boolean
-
-
-	METHODS:
-
-		opt:Match(): (matches: MatchTable) -> any
-		opt:IsSome(): boolean
-		opt:IsNone(): boolean
-		opt:Unwrap(): any
-		opt:Expect(errMsg: string): any
-		opt:ExpectNone(errMsg: string): void
-		opt:UnwrapOr(default: any): any
-		opt:UnwrapOrElse(default: () -> any): any
-		opt:And(opt2: Option<any>): Option<any>
-		opt:AndThen(predicate: (unwrapped: any) -> Option<any>): Option<any>
-		opt:Or(opt2: Option<any>): Option<any>
-		opt:OrElse(orElseFunc: () -> Option<any>): Option<any>
-		opt:XOr(opt2: Option<any>): Option<any>
-		opt:Contains(value: any): boolean
-
-	--------------------------------------------------------------------
-
-	Options are useful for handling nil-value cases. Any time that an
-	operation might return nil, it is useful to instead return an
-	Option, which will indicate that the value might be nil, and should
-	be explicitly checked before using the value. This will help
-	prevent common bugs caused by nil values that can fail silently.
-
-
-	Example:
-
-	print(Option(nil))       --> None
-	print(Option(nil):IsNone()) --> true
-	print(Option(nil):IsSome()) --> false
-	print(Option(1))         --> Some(1)
-	print(Option(1):IsNone()) --> false
-	print(Option(1):IsSome()) --> true
-	
-	local mySome = Option(1)
-	Option.Assert(mySome) -- error if mySome isn't an Option
-	mySome:Match({
-		Some = function(value)
-			print('MATCHED Some: ' .. value)
-		end,
-		None = function()
-			print('MATCHED None')
-		end,
-	}) -- prints "MATCHED Some: 1"
-	
-	local myNone = Option(nil)
-	Option.Assert(myNone)
-	myNone:Match({
-		Some = function(value)
-			print('MATCHED Some: ' .. value)
-		end,
-		None = function()
-			print('MATCHED None')
-		end,
-	}) -- prints "MATCHED None"
-	
-	local myExtractedValue = mySome:Match({
-		Some = function(value)
-			return value
-		end,
-		None = function()
-			return nil
-		end,
-	})
-	assert(myExtractedValue == 1) -- passes
-		
-	-- Raw check:
-	if result2:IsSome() then
-		local value = result2:Unwrap() -- Explicitly call Unwrap
-		print("Value of result2:", value)
-	end
-	
-	if result3:IsNone() then
-		print("No result for result3")
-	end
-	
-	-- Bad, will throw error bc result4 is none:
-	local value = result4:Unwrap()
-
----]]
----@class Option
-Option = {}
-Option.__index = Option
-
----@return Option
-function Option._new(value)
-	local self = setmetatable({
-		ClassName = "Option",
-		_v = value,
-		_s = value ~= nil,
-	}, Option)
-	return self
-end
-
----@return Option
-function Option.Some(value)
-	assert(value ~= nil, "Option.Some() value cannot be nil")
-	return Option._new(value)
-end
-
----@return Option
-function Option.Wrap(value)
-	if value == nil then
-		return Option.None
-	else
-		return Option.Some(value)
-	end
-end
-
--- Set the __call metamethod to forward calls to Option.Wrap
-setmetatable(Option, {
-	__call = function(self, value)
-		---@type Option
-		return Option.Wrap(value)
-	end,
-})
-
-function Option.Is(obj)
-	return type(obj) == "table" and getmetatable(obj) == Option
-end
-
-function Option.Assert(obj)
-	assert(Option.Is(obj), "Result was not of type Option")
-end
-
----@return Option
-function Option.Deserialize(data) -- type data = {ClassName: string, Value: any}
-	assert(type(data) == "table" and data.ClassName == "Option", "Invalid data for deserializing Option")
-	return data.Value == nil and Option.None or Option.Some(data.Value)
-end
-
-function Option:Serialize()
-	return {
-		ClassName = self.ClassName,
-		Value = self._v,
-	}
-end
-
-function Option:Match(matches)
-	local onSome = matches.Some
-	local onNone = matches.None
-	assert(type(onSome) == "function", "Missing 'Some' match")
-	assert(type(onNone) == "function", "Missing 'None' match")
-	if self:IsSome() then
-		return onSome(self:Unwrap())
-	else
-		return onNone()
-	end
-end
-
-function Option:IsSome()
-	return self._s
-end
-
-function Option:IsNone()
-	return not self._s
-end
-
-function Option:Expect(msg)
-	assert(self:IsSome(), msg)
-	return self._v
-end
-
-function Option:ExpectNone(msg)
-	assert(self:IsNone(), msg)
-end
-
-function Option:Unwrap()
-	return self:Expect("Cannot unwrap option of None type")
-end
-
-function Option:UnwrapOr(default)
-	if self:IsSome() then
-		return self:Unwrap()
-	else
-		return default
-	end
-end
-
-function Option:UnwrapOrElse(defaultFunc)
-	if self:IsSome() then
-		return self:Unwrap()
-	else
-		return defaultFunc()
-	end
-end
-
-function Option:And(optB)
-	if self:IsSome() then
-		return optB
-	else
-		return Option.None
-	end
-end
-
-function Option:AndThen(andThenFunc)
-	if self:IsSome() then
-		return andThenFunc(self:Unwrap())
-	else
-		return Option.None
-	end
-end
-
-function Option:Or(optB)
-	if self:IsSome() then
-		return self
-	else
-		return optB
-	end
-end
-
-function Option:OrElse(orElseFunc)
-	if self:IsSome() then
-		return self
-	else
-		local result = orElseFunc()
-		Option.Assert(result)
-		return result
-	end
-end
-
-function Option:XOr(optB)
-	local someOptA = self:IsSome()
-	local someOptB = optB:IsSome()
-	if someOptA == someOptB then
-		return Option.None
-	elseif someOptA then
-		return self
-	else
-		return optB
-	end
-end
-
-function Option:Filter(predicate)
-	if self:IsNone() or not predicate(self._v) then
-		return Option.None
-	else
-		return self
-	end
-end
-
-function Option:Contains(value)
-	return self:IsSome() and self._v == value
-end
-
-function Option:__tostring()
-	if self:IsSome() then
-		return "Option<" .. type(self._v) .. ">"
-	else
-		return "Option<None>"
-	end
-end
-
-function Option:__eq(opt)
-	if Option.Is(opt) then
-		if self:IsSome() and opt:IsSome() then
-			return self:Unwrap() == opt:Unwrap()
-		elseif self:IsNone() and opt:IsNone() then
-			return true
-		end
-	end
-	return false
-end
-
-Option.None = Option._new()
+-- Region: LEM/Oneoff Helpers
 
 --- Takes a full line of text and extracts every player named into a list
 ---@param names string A string containing a list of names, separated by commas
@@ -359,6 +75,8 @@ end
 function BL.cmd.runToAfterDelay(x, y, z, delay)
 	mq.delay(delay .. "s")
 	mq.cmdf("/nav locxyz %d %d %d", x, y, z)
+
+	---@diagnostic disable-next-line: undefined-field
 	while mq.TLO.Nav.Active() do -- wait till I get there before continuing next command
 		--pause wait for nav
 		mq.delay(100)
@@ -390,31 +108,18 @@ function BL.cmd.removeZerkerRootDisc()
 		mq.cmd("/stopdisc")
 	end
 end
+-- EndRegion: LEM/Oneoff Helpers
 
--- Enums/matching
---- This is used to create a single variant of an enum, such as:
---- local MyEnum = {
----    VariantA = function(...) return createVariant("VariantA", ...) end,
----    VariantB = function(...) return createVariant("VariantB", ...) end,
----    -- Add more variants as needed
----}
-function BL.enum.createVariant(name, ...)
-	return { type = name, data = { ... } }
-end
+-- Region: Logging
 
-function BL.enum.match(enumValue, matchTable)
-	local func = matchTable[enumValue.type]
-	if func then
-		return func(table.unpack(enumValue.data))
-	end
-end
-
+local timestamps = false
 -- Logging
 function logLine(...)
 	local timestampPrefix = timestamps and "\a-w[" .. os.date("%X") .. "]\ax" or ""
 	return string.format(timestampPrefix .. log_prefix .. string.format(...) .. "\ax")
 end
 
+--- Simple output log formatted somewhat nicely
 function info(...)
 	local timestampPrefix = timestamps and "\a-w[" .. os.date("%X") .. "]\ax" or ""
 	local output = string.format(timestampPrefix .. log_prefix .. string.format(...) .. "\ax")
@@ -423,7 +128,7 @@ function info(...)
 end
 
 --- This function is used to recursively dump data, useful for debugging.
---- @param data string The data to be dumped. This can be of any type.
+--- @param data any The data to be dumped. This can be of any type.
 --- @param logPrefix string|nil A string that is prefixed to each line of the dump. This is optional.
 --- @param depth integer|nil An integer representing the current depth of the recursion. This is optional and is used for indentation.
 function dump(data, logPrefix, depth)
@@ -454,6 +159,50 @@ function dump(data, logPrefix, depth)
 	print(logPrefix .. " : " .. dumpRecurse(data, logPrefix, depth))
 end
 
+-- EndRegion: Logging
+
+-- Region: Metaprogramming
+
+--- utility method to combine two metatables into one, like multiple inheritance.
+--- Used because doing so provides an ocean of increased typechecking support
+function mergeMetatables(metatable1, metatable2)
+	local merged = {}
+	for k, v in pairs(metatable1) do
+		merged[k] = v
+	end
+	for k, v in pairs(metatable2) do
+		if merged[k] == nil then
+			merged[k] = v
+		else
+			error("Conflicting keys when merging metatables: " .. k)
+		end
+	end
+	return merged
+end
+
+-- EndRegion: Metaprogramming
+
+-- Region: ZenTable
+--- Convenience table with custom metatable of utility methods
+--- @class ZenTable
+--- @field insert fun(self:ZenTable, value:any)
+--- @field contains fun(self:ZenTable, value:any):boolean
+--- @field remove fun(self:ZenTable, value:any):boolean
+--- @field map fun(self:ZenTable, func:function):table
+--- @field forEach fun(self:ZenTable, func:function)
+--- @field isarray fun(self:ZenTable):boolean
+--- @field push fun(self:ZenTable, ...)
+--- @field clear fun(self:ZenTable)
+--- @field filter fun(self:ZenTable, func:function, retainkeys:boolean|nil):table
+--- @field match fun(self:ZenTable, func:function):any
+--- @field concat fun(self:ZenTable, sep:string|nil, i:number|nil, j:number|nil):string
+--- @field find fun(self:ZenTable, value:any):number|nil
+--- @field count fun(self:ZenTable, value:any):number
+--- @field keys fun(self:ZenTable):table
+--- @field clone fun(self:ZenTable):ZenTable
+
+--- Define a metatable with utility methods for tables.
+--- Any custom metatable WILL be merged with this one.
 local zentable_metatable = {
 	insert = function(self, value)
 		table.insert(self, value)
@@ -507,14 +256,38 @@ local zentable_metatable = {
 	end,
 }
 --- Factory function to create a new table with the metatable set
---- Enables fooTable:insert(value) syntax instead of ugly gross C table.insert(fooTable, value)
+--- Generic newTable function that accepts a metatable to set up the new table
+--- ZenTable Enables fooTable:insert(value) syntax instead of ugly gross C table.insert(fooTable, value)
+--- @generic T : ZenTable
 --- @param initialValues table|nil Initial values to populate the table
---- @return ZenTable
-function newTable(initialValues)
-	local newTableInstance = setmetatable(initialValues or {}, { __index = zentable_metatable })
-	return newTableInstance
+--- @param metatable T|nil
+--- @return T
+function newTable(initialValues, metatable)
+	initialValues = initialValues or {}
+	local finalMetatable
+
+	if not metatable then
+		-- If metatable is nil, use the default zentable_metatable
+		finalMetatable = zentable_metatable
+	else
+		-- If metatable is provided, merge it with zentable_metatable
+		assert(type(metatable) == "table", "Expected a table for the metatable")
+		finalMetatable = mergeMetatables(zentable_metatable, metatable)
+	end
+
+	-- Set the metatable for the initialValues table
+	return setmetatable(initialValues, { __index = finalMetatable })
 end
 
+-- EndRegion: ZenTable
+
+-- Region: Utilities
+
+--- Generates an iterator that increments from i to to by inc
+--- @param i any
+--- @param to any
+--- @param inc any
+--- @return function|nil
 function range(i, to, inc)
 	if i == nil then
 		return
@@ -540,9 +313,6 @@ function range(i, to, inc)
 	end
 end
 
---Option = {
---	Some = "un8qu3Some",
---	None = "un8qu3None",
---}
+-- EndRegion: Utilities
 
 return BL
