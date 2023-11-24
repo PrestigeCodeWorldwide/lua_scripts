@@ -1,102 +1,3 @@
---[[CONSTRUCTORS:
-		
-		Option.Some(anyNonNilValue): Option<any>
-		Option.Wrap(anyValue): Option<any>
-		
-		Option(): Option.Some(anyNonNilValue) or None if value is nil
-
-	
-	STATIC FIELDS:
-
-		None: Option<None>
-
-
-	STATIC METHODS:
-
-		Option.Is(obj): boolean
-
-
-	METHODS:
-
-		opt:Match(): (matches: MatchTable) -> any
-		opt:IsSome(): boolean
-		opt:IsNone(): boolean
-		opt:Unwrap(): any
-		opt:Expect(errMsg: string): any
-		opt:ExpectNone(errMsg: string): void
-		opt:UnwrapOr(default: any): any
-		opt:UnwrapOrElse(default: () -> any): any
-		opt:And(opt2: Option<any>): Option<any>
-		opt:AndThen(predicate: (unwrapped: any) -> Option<any>): Option<any>
-		opt:Or(opt2: Option<any>): Option<any>
-		opt:OrElse(orElseFunc: () -> Option<any>): Option<any>
-		opt:XOr(opt2: Option<any>): Option<any>
-		opt:Contains(value: any): boolean
-
-	--------------------------------------------------------------------
-
-	Options are useful for handling nil-value cases. Any time that an
-	operation might return nil, it is useful to instead return an
-	Option, which will indicate that the value might be nil, and should
-	be explicitly checked before using the value. This will help
-	prevent common bugs caused by nil values that can fail silently.
-
-
-	Example:
-
-	print(Option(nil))       --> None
-	print(Option(nil):IsNone()) --> true
-	print(Option(nil):IsSome()) --> false
-	print(Option(1))         --> Some(1)
-	print(Option(1):IsNone()) --> false
-	print(Option(1):IsSome()) --> true
-	
-	local mySome = Option(1)
-	Option.Assert(mySome) -- error if mySome isn't an Option
-	mySome:Match({
-		Some = function(value)
-			print('MATCHED Some: ' .. value)
-		end,
-		None = function()
-			print('MATCHED None')
-		end,
-	}) -- prints "MATCHED Some: 1"
-	
-	local myNone = Option(nil)
-	Option.Assert(myNone)
-	myNone:Match({
-		Some = function(value)
-			print('MATCHED Some: ' .. value)
-		end,
-		None = function()
-			print('MATCHED None')
-		end,
-	}) -- prints "MATCHED None"
-	
-	local myExtractedValue = mySome:Match({
-		Some = function(value)
-			return value
-		end,
-		None = function()
-			return nil
-		end,
-	})
-	assert(myExtractedValue == 1) -- passes
-		
-	-- Raw check:
-	if result2:IsSome() then
-		local value = result2:Unwrap() -- Explicitly call Unwrap
-		print("Value of result2:", value)
-	end
-	
-	if result3:IsNone() then
-		print("No result for result3")
-	end
-	
-	-- Bad, will throw error bc result4 is none:
-	local value = result4:Unwrap()
-
----]]
 
 local record SerializedOptionValue<T>
     ClassName: string
@@ -143,7 +44,7 @@ global record Option<T>
     _v: T | nil -- The value contained in the Option, if any.
     _s: boolean -- A boolean indicating whether the Option contains a value (true) or is None (false).
     __index: table -- A table containing the Option methods.
-    _new: function(value: T | nil): Option<T> -- A constructor for an Option containing a value.
+    _new: function(value: T): Option<T> -- A constructor for an Option containing a value.
     None: Option<nil> -- A static representation of an empty Option.   
     Some: function(value: T): Option<T> -- A constructor for an Option containing a value.
     Wrap: function(value: T|nil): Option<T> -- A constructor that wraps a value in an Option, or returns None if the value is nil.
@@ -171,25 +72,33 @@ global record Option<T>
 	metamethod __call: function(T | nil) : Option<T>
 end
 
---- @generic T
---- @param value T | nil
---- @return Option<T>
-function Option._new<T>(value: T | nil): Option<T>
+
+
+local None: Option<nil> = Option._new(nil)
+
+function Option._new<T>(value: T): Option<T>
+    
+    -- Create a new Option instance for non-nil values
     local optionInstance: Option<T> = {
         ClassName = "Option",
         _v = value,
         _s = value ~= nil,
-		
     }
-	
-	setmetatable(optionInstance, {
-		__call = function(_self, optionValue: T | nil): Option<T>
-			local newOption = Option._new(optionValue)
-			return newOption
-    	end
-	})
+    
+    setmetatable(optionInstance, {
+        __call = function(_self, optionValue: T): Option<T>
+            local newOption = Option._new(optionValue)
+            return newOption
+        end
+    })
+
     return optionInstance
 end
+
+--- @generic T
+--- @param value T | nil
+--- @return Option<T>
+
 
 --- @generic T, R1, R2
 --- @param self Option<T>
@@ -207,7 +116,7 @@ function Option.Match<T, R1, R2>(self: Option<T>, matches: MatchFunctions<T, R1,
     end
 end
 
-local None = Option._new(nil)
+
 
 --- @generic T
 --- @param value T
@@ -454,5 +363,116 @@ function Option.__eq<T>(self: Option<T>, opt: Option<T>): boolean
     return false
 end
 
+
+
+--Option.None = Option._new(nil)
+
 Option.None = None
---return Option
+
+
+return Option
+--[[]]
+
+
+
+
+
+--[[CONSTRUCTORS:
+		
+		Option.Some(anyNonNilValue): Option<any>
+		Option.Wrap(anyValue): Option<any>
+		
+		Option(): Option.Some(anyNonNilValue) or None if value is nil
+
+	
+	STATIC FIELDS:
+
+		None: Option<None>
+
+
+	STATIC METHODS:
+
+		Option.Is(obj): boolean
+
+
+	METHODS:
+
+		opt:Match(): (matches: MatchTable) -> any
+		opt:IsSome(): boolean
+		opt:IsNone(): boolean
+		opt:Unwrap(): any
+		opt:Expect(errMsg: string): any
+		opt:ExpectNone(errMsg: string): void
+		opt:UnwrapOr(default: any): any
+		opt:UnwrapOrElse(default: () -> any): any
+		opt:And(opt2: Option<any>): Option<any>
+		opt:AndThen(predicate: (unwrapped: any) -> Option<any>): Option<any>
+		opt:Or(opt2: Option<any>): Option<any>
+		opt:OrElse(orElseFunc: () -> Option<any>): Option<any>
+		opt:XOr(opt2: Option<any>): Option<any>
+		opt:Contains(value: any): boolean
+
+	--------------------------------------------------------------------
+
+	Options are useful for handling nil-value cases. Any time that an
+	operation might return nil, it is useful to instead return an
+	Option, which will indicate that the value might be nil, and should
+	be explicitly checked before using the value. This will help
+	prevent common bugs caused by nil values that can fail silently.
+
+
+	Example:
+
+	print(Option(nil))       --> None
+	print(Option(nil):IsNone()) --> true
+	print(Option(nil):IsSome()) --> false
+	print(Option(1))         --> Some(1)
+	print(Option(1):IsNone()) --> false
+	print(Option(1):IsSome()) --> true
+	
+	local mySome = Option(1)
+	Option.Assert(mySome) -- error if mySome isn't an Option
+	mySome:Match({
+		Some = function(value)
+			print('MATCHED Some: ' .. value)
+		end,
+		None = function()
+			print('MATCHED None')
+		end,
+	}) -- prints "MATCHED Some: 1"
+	
+	local myNone = Option(nil)
+	Option.Assert(myNone)
+	myNone:Match({
+		Some = function(value)
+			print('MATCHED Some: ' .. value)
+		end,
+		None = function()
+			print('MATCHED None')
+		end,
+	}) -- prints "MATCHED None"
+	
+	local myExtractedValue = mySome:Match({
+		Some = function(value)
+			return value
+		end,
+		None = function()
+			return nil
+		end,
+	})
+	assert(myExtractedValue == 1) -- passes
+		
+	-- Raw check:
+	if result2:IsSome() then
+		local value = result2:Unwrap() -- Explicitly call Unwrap
+		print("Value of result2:", value)
+	end
+	
+	if result3:IsNone() then
+		print("No result for result3")
+	end
+	
+	-- Bad, will throw error bc result4 is none:
+	local value = result4:Unwrap()
+
+---]]

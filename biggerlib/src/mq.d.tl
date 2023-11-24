@@ -1724,8 +1724,6 @@ global record AchievementClass
   -- Assuming specific properties or methods for the 'Achievement' class
 end
 
-
-
 TLO.Achievement = {} as Achievement
 
 global record AdvLoot
