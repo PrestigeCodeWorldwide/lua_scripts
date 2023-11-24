@@ -1,4 +1,14 @@
 
+
+--package.path = package.path .. ';../dist/?.lua'
+--package.path = package.path .. ';../vendor/?.lua'
+--package.path = package.path .. ';../src/?.tl'
+
+local tl = require("tl")
+tl.loader()
+
+require('logger')
+
 local record SerializedOptionValue<T>
     ClassName: string
     Value: T
@@ -44,8 +54,8 @@ global record Option<T>
     _v: T | nil -- The value contained in the Option, if any.
     _s: boolean -- A boolean indicating whether the Option contains a value (true) or is None (false).
     __index: table -- A table containing the Option methods.
-    _new: function(value: T): Option<T> -- A constructor for an Option containing a value.
-    None: Option<nil> -- A static representation of an empty Option.   
+    --_new: function(value: T): Option<T> -- A constructor for an Option containing a value.
+   
     Some: function(value: T): Option<T> -- A constructor for an Option containing a value.
     Wrap: function(value: T|nil): Option<T> -- A constructor that wraps a value in an Option, or returns None if the value is nil.
     Is: function(obj: any): boolean -- A method to check if an object is an Option.
@@ -70,12 +80,16 @@ global record Option<T>
     metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.
     metamethod __eq: function(self: Option<T>, opt: Option<T>): boolean -- A metamethod to check equality between two Options.
 	metamethod __call: function(T | nil) : Option<T>
+	_new: function(value: T|nil): Option<T> -- A constructor for an Option containing a value.
+	 None: Option<T> -- A static representation of an empty Option.   
 end
 
 
 
-local None: Option<nil> = Option._new(nil)
-
+--[[
+--- @generic T
+--- @param value T | nil
+--- @return Option<T>
 function Option._new<T>(value: T): Option<T>
     
     -- Create a new Option instance for non-nil values
@@ -91,13 +105,10 @@ function Option._new<T>(value: T): Option<T>
             return newOption
         end
     })
-
+    
     return optionInstance
-end
+end]]
 
---- @generic T
---- @param value T | nil
---- @return Option<T>
 
 
 --- @generic T, R1, R2
@@ -131,7 +142,7 @@ end
 --- @return Option<T>
 function Option.Wrap<T>(value: T | nil): Option<T>
     if value == nil then
-        return None
+        return Option.None
     else
         return Option.Some(value)
     end
@@ -157,7 +168,7 @@ end
 function Option.Deserialize<T>(data: SerializedOptionValue<T>): Option<T>
     assert(data.ClassName == "Option", "Invalid data for deserializing Option")
     if data.Value == nil then
-        return None  -- Return the global None for empty Option
+        return Option.None  -- Return the global None for empty Option
     else
         return Option.Some(data.Value)  -- Return Option with value
     end
@@ -250,7 +261,7 @@ function Option.And<T>(self: Option<T>, optB: Option<T>): Option<T>
     if self:IsSome() then
         return optB
     else
-        return None
+        return Option.None
     end
 end
 
@@ -263,7 +274,7 @@ function Option.AndThen<T, U>(self: Option<T>, andThenFunc: function(value: T): 
     if self:IsSome() then
         return andThenFunc(self:Unwrap())
     else
-        return None
+        return Option.None
     end
 end
 
@@ -305,7 +316,7 @@ function Option.XOr<T>(self: Option<T>, optB: Option<T>): Option<T>
     local someOptB = optB:IsSome()
 
     if someOptA == someOptB then
-        return None
+        return Option.None
     elseif someOptA then
         return self
     else
@@ -320,7 +331,7 @@ end
 --- @return Option<T>
 function Option.Filter<T>(self: Option<T>, predicate: function(value: T): boolean): Option<T>
     if self:IsNone() or not predicate(self._v) then
-        return None
+        return Option.None
     else
         return self
     end
@@ -340,6 +351,8 @@ end
 --- @param self Option<T>
 --- @return string
 function Option.__tostring<T>(self: Option<T>): string
+    if self is nil then return "nil" end
+	print(self)
     if self:IsSome() then
         return "Option<" .. type(self._v) .. ">"
     else
@@ -365,10 +378,34 @@ end
 
 
 
---Option.None = Option._new(nil)
 
-Option.None = None
+function Option._new<T>(value: T | nil): Option<T>
+    local instance = setmetatable({
+        ClassName = "Option",
+        _v = value,
+        _s = value ~= nil
+    }, { __index = Option })
 
+    return instance as Option<T>
+end
+--function Option._new<T>(value: any): Option<T>
+--	   local self = setmetatable({
+--        ClassName = "Option";
+--        _v = value;
+--        _s = value ~= nil;
+--    }, { __index = Option })
+--	--local self = setmetatable({
+--	--	ClassName = "Option";
+--	--	_v = value;
+--	--	_s = value ~= nil;
+--	--}, Option)
+--	return self as Option<T>
+--end
+
+local o = Option.Some(5)
+dump(o, "Option.Some(5)")
+
+Option.None = Option._new(nil)
 
 return Option
 --[[]]
