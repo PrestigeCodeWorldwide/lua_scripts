@@ -5,7 +5,7 @@ local imgui = require("ImGui")
 local lume = require("lume")
 -- Reminder you can access requires starting from the base /lua folder
 print("Before BL")
-local BL = require("zen.biggerlib")
+local BL = require("biggerlib")
 print("Before RC.UI")
 local UI = require("uiManager")
 print("After RC.UI")

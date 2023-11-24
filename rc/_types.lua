@@ -1,4 +1,5 @@
 ---@meta RaidCopyTypes
+local Option, None = require "biggerlib.option"
 
 ---@class ItemData Inventory item data to be cached - gives ability to notify item via packname and slot2
 ---@field actualItemName string Name of the item in-game
@@ -8,7 +9,7 @@
 
 ---@class TopLevelInventoryItem
 ---@field ItemSlotID number
----@field Item Option(Item)
+---@field Item Option<Item>
 ---@field Name string
 
 ---@class BagInventory : ItemData[]
