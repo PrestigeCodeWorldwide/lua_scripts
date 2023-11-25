@@ -93,6 +93,7 @@ function Option._new(value)
       _v = value,
       _s = value ~= nil,
       IsSome = Option.IsSome,
+      IsNone = Option.IsNone,
    }
 
    local some = newOpt:IsSome()

@@ -19,9 +19,10 @@ local Option = require("option")
 describe("Option Some tests", function()
     it("Should be able to construct an Option.Some", function()		
         local o = Option._new(5)
-        local someone = o:IsSome()
-		dump(someone, "In Test")
-		--assert.is_true(o:isSome())	
+   
+		
+        assert.is_true(o:IsSome())
+		assert.is_false(o:IsNone())
 	end)	
 end)
 

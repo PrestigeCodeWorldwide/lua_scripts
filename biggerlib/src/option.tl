@@ -93,6 +93,7 @@ function Option._new<T>(value: T | nil): Option<T>
 		_v = value,
 		_s = value ~= nil,
 		IsSome = Option.IsSome,
+		IsNone = Option.IsNone,
 	}
 	--print("New value from inside _new:")
 	local some = newOpt:IsSome() -- error: Attempt to call method IsSome (a nil value)
