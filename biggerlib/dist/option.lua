@@ -75,12 +75,28 @@ Option = {}
 
 
 
+function Option:__eq(opt)
+   print("Checking option equality")
+   if self == nil and opt == nil then
+      return true
+   end
+
+   if self:IsNone() and opt:IsNone() then
+      return true
+   elseif self:IsSome() and opt:IsSome() then
+      return self.value == opt.value
+   else
+      return false
+   end
+end
 
 
 
 
 
-function Option.__tostring(self)
+
+
+function Option:__tostring()
    if self == nil then return "nil" end
 
    if self:IsSome() then
@@ -90,17 +106,33 @@ function Option.__tostring(self)
    end
 end
 
-None = setmetatable({ value = nil, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring })
-Option.None = None
+
+
+None = setmetatable({ value = nil, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring, __eq = Option.__eq })
+Option.None = setmetatable({ value = nil, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring, __eq = Option.__eq })
 
 function Option.new(value)
    if value == nil then return Option.None end
 
-   return setmetatable({ value = value, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring })
+   return setmetatable({ value = value, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring, __eq = Option.__eq })
 end
 
 
 
+
+
+
+
+
+
+
+function Option:UnwrapOr(default)
+   if self:IsSome() then
+      return self:Unwrap()
+   else
+      return default
+   end
+end
 
 
 
@@ -187,17 +219,6 @@ function Option.Unwrap(self)
 end
 
 
-
-
-
-
-function Option.UnwrapOr(self, default)
-   if self:IsSome() then
-      return self:Unwrap()
-   else
-      return default
-   end
-end
 
 
 

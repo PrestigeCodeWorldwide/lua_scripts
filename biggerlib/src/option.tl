@@ -72,7 +72,23 @@ global record Option<T>
     Filter: function(self: Option<T>, predicate: function(value: T): boolean): Option<T> -- A method to return the Option if it is Some and the predicate returns true, otherwise None.
     Contains: function(self: Option<T>, value: T): boolean -- A method to check if the Option is Some and contains the specified value.
     metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.	
+	metamethod __eq: function(self: Option<T>, opt: any): boolean -- A metamethod to check equality between two Options.
 end 
+
+function Option:__eq(opt: Option<T>): boolean
+	print("Checking option equality")
+	if self == nil and opt == nil then
+		return true
+	end
+	
+	if self:IsNone() and opt:IsNone() then
+		return true
+	elseif self:IsSome() and opt:IsSome() then
+		return self.value == opt.value
+	else
+		return false
+	end
+end
 
 --#region Metaprogramming
 
@@ -80,7 +96,7 @@ end
 --- @generic T
 --- @param self Option<T>
 --- @return string
-function Option.__tostring<T>(self: Option<T>): string
+function Option:__tostring(): string
     if self is nil then return "nil" end
 	
     if self:IsSome() then		
@@ -90,17 +106,33 @@ function Option.__tostring<T>(self: Option<T>): string
     end
 end
 
-global None = setmetatable({value = nil, ClassName = "Option"} as Option<nil>, {__index = Option, __tostring = Option.__tostring})
-Option.None = None
+global type NilType
+
+global None = setmetatable({value = nil, ClassName = "Option"} as Option<NilType>, {__index = Option, __tostring = Option.__tostring, __eq = Option.__eq})
+Option.None = setmetatable({value = nil, ClassName = "Option"} as Option<NilType>, {__index = Option, __tostring = Option.__tostring, __eq = Option.__eq})
 
 function Option.new<T>(value: T): Option<T>
 	if value == nil then return Option.None end
 	
-	return setmetatable({value = value, ClassName = "Option"} as Option<T>, {__index = Option, __tostring = Option.__tostring})
+	return setmetatable({value = value, ClassName = "Option"} as Option<T>, {__index = Option, __tostring = Option.__tostring, __eq = Option.__eq})
 end
 
 --#endregion Metaprogramming
+
 --#region Methods
+
+--- Returns the value contained in the Option, or a default value if the Option is None
+--- @generic T
+--- @param self Option<T>
+--- @param default T
+--- @return T
+function Option:UnwrapOr<T>(default: T): T
+    if self:IsSome() then
+        return self:Unwrap()
+    else
+        return default
+    end
+end
 
 --- @generic T
 --- @param value T
@@ -186,18 +218,7 @@ function Option.Unwrap<T>(self: Option<T>): T
     return self:Expect("Cannot unwrap an Option of None type")
 end
 
---- Returns the value contained in the Option, or a default value if the Option is None
---- @generic T
---- @param self Option<T>
---- @param default T
---- @return T
-function Option.UnwrapOr<T>(self: Option<T>, default: T): T
-    if self:IsSome() then
-        return self:Unwrap()
-    else
-        return default
-    end
-end
+
 
 --- Returns the contained value if the Option is Some, otherwise the result of the defaultFunc
 --- @generic T
