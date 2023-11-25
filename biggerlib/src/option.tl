@@ -45,19 +45,18 @@ end
 ---@field protected __eq fun(self:Option, opt:Option):boolean A metamethod to check equality between two Options.
 global record Option<T>
     ClassName: string -- The name of the class. (Option)
-    _v: T | nil -- The value contained in the Option, if any.
-    _s: boolean -- A boolean indicating whether the Option contains a value (true) or is None (false).
-    --__index: table -- A table containing the Option methods.
-    --_new: function(value: T): Option<T> -- A constructor for an Option containing a value.
-   
-    Some: function(value: T): Option<T> -- A constructor for an Option containing a value.
-    Wrap: function(value: T|nil): Option<T> -- A constructor that wraps a value in an Option, or returns None if the value is nil.
+    value: T -- The value contained in the Option, if any.
+	new: function(value: T): Option<T> -- A constructor for an Option containing a value.
+    Some: function(value: T): Option<T> -- A constructor for an Option containing a value.	
+	None: Option<T> -- A static representation of an empty Option.       
+    IsSome: function(self: Option<T>): boolean -- A method to check if the Option contains a value.	 
+    IsNone: function(self: Option<T>): boolean -- A method to check if the Option is empty (None).    
+	Wrap: function(value: T): Option<T> -- A constructor that wraps a value in an Option, or returns None if the value is nil.
     Is: function(obj: any): boolean -- A method to check if an object is an Option.
     Assert: function(obj: any) -- A method to assert that an object is an Option.
     Deserialize: function(data: SerializedOptionValue<T>): Option<T> -- A method to deserialize an Option from a table.
     Serialize: function(self: Option<T>): SerializedOptionValue<T> -- A method to serialize an Option to a table.    	
     Match: function<T, R1, R2>(self: Option<T>, matches: MatchFunctions<R1, R2>): R1 | R2 --A method to handle the contents of an Option based on provided functions for Some and None.
-    IsNone: function(self: Option<T>): boolean -- A method to check if the Option is empty (None).
     Expect: function(self: Option<T>, msg: string): T -- A method to return the contained value or raise an error with the provided message if the Option is None.
     ExpectNone: function(self: Option, msg: string) -- A method to assert that the Option is None or raise an error with the provided message.
     Unwrap: function(self: Option<T>): T -- A method to return the contained value or raise an error if the Option is None.
@@ -71,43 +70,32 @@ global record Option<T>
     Filter: function(self: Option<T>, predicate: function(value: T): boolean): Option<T> -- A method to return the Option if it is Some and the predicate returns true, otherwise None.
     Contains: function(self: Option<T>, value: T): boolean -- A method to check if the Option is Some and contains the specified value.
     metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.
-    metamethod __eq: function(self: Option<T>, opt: Option<T>): boolean -- A metamethod to check equality between two Options.
-	metamethod __call: function(self: Option<T>, value: T | nil) : Option<T>
-	None: Option<T> -- A static representation of an empty Option.   
-	
-	new: function(value: T|nil): Option<T> -- A constructor for an Option containing a value.
-    IsSome: function(self: Option<T>): boolean -- A method to check if the Option contains a value.	 
-end
+    --metamethod __eq: function(self: Option<T>, opt: Option<T>): boolean -- A metamethod to check equality between two Options.
+	metamethod __call: function(self: Option<T>, value: T) : Option<T>	
+end 
 
+--- Gets a string representation of the Option.
 --- @generic T
 --- @param self Option<T>
---- @return boolean
-function Option:IsSome(): boolean
-    return self._s
+--- @return string
+function Option.__tostring<T>(self: Option<T>): string
+    print("Tostringing")
+    if self is nil then return "nil" end
+	
+    if self:IsSome() then		
+		return "Some(" .. tostring(self.value) .. ")"		
+    else
+        return "None"
+    end
 end
 
-function Option.new<T>(value: T|nil): Option<T>
-	local self: Option<T> = setmetatable({
-		ClassName = "Option",
-		_v = value,
-		_s = value ~= nil,
-	}, { 
-		__index = Option,		
-	})
-	--self.ClassName = "Option"
-	--self._v = value
-	--self._s = value ~= nil
-	return self
+global None = setmetatable({value = nil, ClassName = "Option"} as Option<nil>, {__index = Option, __tostring = Option.__tostring})
+Option.None = None
+
+function Option.new<T>(value: T): Option<T>
+	if value == nil then return Option.None end
+	return setmetatable({value = value, ClassName = "Option"} as Option<T>, {__index = Option, __tostring = Option.__tostring})
 end
-
-global function Some<T>(value: T): Option<T>
-	assert(value ~= nil, "Option.Some() value cannot be nil")
-	return Option.Some(value)
-end
-Option.None = Option.new(nil)
-
-global None = Option.None
-
 
 --- @generic T
 --- @param value T
@@ -117,30 +105,24 @@ function Option.Some<T>(value: T): Option<T>
 	return Option.new(value)
 end
 
-
---- @generic T, R1, R2
---- @param self Option<T>
---- @param matches MatchFunctions<R1, R2>
---- @return R1 | R2
-function Option.Match<T, R1, R2>(self: Option<T>, matches: MatchFunctions<T, R1, R2>): R1 | R2
-    local onSome = matches.Some
-    local onNone = matches.None
-    assert(type(onSome) == "function", "Missing 'Some' match")
-    assert(type(onNone) == "function", "Missing 'None' match")
-    if self:IsSome() then
-        return onSome(self:Unwrap())
-    else
-        return onNone()
-    end
+--- @generic T
+--- @param value T
+--- @return Option<T>
+global function Some<T>(value: T): Option<T>	
+	return Option.Some(value)
 end
 
-
-
+--- @generic T
+--- @param self Option<T>
+--- @return boolean
+function Option:IsSome(): boolean
+    return self.value ~= nil
+end
 
 --- @generic T
---- @param value T | nil
+--- @param value T
 --- @return Option<T>
-function Option.Wrap<T>(value: T | nil): Option<T>
+function Option.Wrap<T>(value: T): Option<T>
     if value == nil then
         return Option.None
     else
@@ -148,11 +130,16 @@ function Option.Wrap<T>(value: T | nil): Option<T>
     end
 end
 
+-- A method to check if an object is an Option.
 --- @generic T
 --- @param obj T
 --- @return boolean
-function Option.Is<T>(obj: T): boolean
-    return type(obj) == "table" and getmetatable(obj) == Option
+function Option.Is(value: any): boolean
+    if value is Option<T> then
+		return true
+	end
+	return false
+    --return obj._s ~= nil and obj._v ~= nil and obj.ClassName ~= nil and obj.ClassName == "Option"
 end
 
 ---Asserts that a given object is an Option
@@ -181,17 +168,15 @@ end
 function Option.Serialize(self: Option<T>): SerializedOptionValue<T>
     return {
         ClassName = self.ClassName,
-        Value = self._v,
+        Value = self.value,
     }
 end
-
-
 
 --- @generic T
 --- @param self Option<T>
 --- @return boolean
 function Option.IsNone<T>(self: Option<T>): boolean
-    return not self._s
+    return self.value == nil
 end
 
 --- @generic T
@@ -201,7 +186,7 @@ end
 --- @raise Raises an error if the Option is None.
 function Option.Expect<T>(self: Option<T>, msg: string): T
     assert(self:IsSome(), msg)
-    return self._v
+    return self.value
 end
 
 --- Asserts that the Option is None, or raises an error with the provided message.
@@ -319,82 +304,66 @@ function Option.XOr<T>(self: Option<T>, optB: Option<T>): Option<T>
     end
 end
 
---- Returns the Option if it is 'Some' and the predicate returns true, otherwise 'None'.
---- @generic T
---- @param self Option<T>
---- @param predicate fun(value: T): boolean
---- @return Option<T>
-function Option.Filter<T>(self: Option<T>, predicate: function(value: T): boolean): Option<T>
-    if self:IsNone() or not predicate(self._v) then
-        return Option.None
-    else
-        return self
-    end
-end
-
 --- Checks if the Option is 'Some' and contains the specified value.
 --- @generic T
 --- @param self Option<T>
 --- @param value T
 --- @return boolean
 function Option.Contains<T>(self: Option<T>, value: T): boolean
-    return self:IsSome() and self._v == value
+    return self:IsSome() and self.value == value
 end
 
---- Gets a string representation of the Option.
+--- Returns the Option if it is 'Some' and the predicate returns true, otherwise 'None'.
 --- @generic T
 --- @param self Option<T>
---- @return string
-function Option.__tostring<T>(self: Option<T>): string
-    if self is nil then return "nil" end
-	print(self)
-    if self:IsSome() then
-        return "Option<" .. type(self._v) .. ">"
+--- @param predicate fun(value: T): boolean
+--- @return Option<T>
+function Option.Filter<T>(self: Option<T>, predicate: function(value: T): boolean): Option<T>
+    if self:IsNone() or not predicate(self.value) then
+        return Option.None
     else
-        return "Option<None>"
+        return self
     end
 end
 
---- Checks equality between two Options.
+--- @generic T, R1, R2
+--- @param self Option<T>
+--- @param matches MatchFunctions<R1, R2>
+--- @return R1 | R2
+function Option.Match<T, R1, R2>(self: Option<T>, matches: MatchFunctions<T, R1, R2>): R1 | R2
+    local onSome = matches.Some
+    local onNone = matches.None
+    assert(type(onSome) == "function", "Missing 'Some' match")
+    assert(type(onNone) == "function", "Missing 'None' match")
+    if self:IsSome() then
+        return onSome(self:Unwrap())
+    else
+        return onNone()
+    end
+end
+
+
+
+--- Checks equality between two Options.  I don't think this is necessary, but it's here for completeness.
 --- @generic T
 --- @param self Option<T>
 --- @param opt Option<T>
 --- @return boolean
-function Option.__eq<T>(self: Option<T>, opt: Option<T>): boolean
-    print("Checking equality")
-    if Option.Is(opt) then
-        if self:IsSome() and opt:IsSome() then
-            return self:Unwrap() == opt:Unwrap()
-        elseif self:IsNone() and opt:IsNone() then
-            return true
-        end
-    end
-    return false
-end
-
-
-
-
-
---function Option._new<T>(value: any): Option<T>
---	   local self = setmetatable({
---        ClassName = "Option";
---        _v = value;
---        _s = value ~= nil;
---    }, { __index = Option })
---	--local self = setmetatable({
---	--	ClassName = "Option";
---	--	_v = value;
---	--	_s = value ~= nil;
---	--}, Option)
---	return self as Option<T>
+--function Option.__eq<T>(self: Option<T>, opt: Option<T>): boolean
+--    print("Checking equality")
+--    if Option.Is(opt) then
+--        if self:IsSome() and opt:IsSome() then
+--            return self:Unwrap() == opt:Unwrap()
+--        elseif self:IsNone() and opt:IsNone() then
+--            return true
+--        end
+--    end
+--    return false
 --end
 
-
---Option.None = Option._new(nil)
-
+-- Don't have to use the Global option, can use this one instead
 return Option
---[[]]
+
 
 
 

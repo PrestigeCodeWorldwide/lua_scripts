@@ -12,7 +12,7 @@ local it = require("busted").it
 --- @type table
 local assert = require("busted").assert
 
-local Option = require("option")
+require("option")
 
 describe("Option Some tests", function()
     it("Should be able to construct an Option.Some from new", function()		
@@ -36,21 +36,235 @@ describe("Option Some tests", function()
 	end)
 end)
 
---describe("Option None tests", function()
---    it("Should be able to construct an Option.None from singleton", function()		
---        local o = Option.None
---        assert.is_false(o:IsSome())
---        assert.is_true(o:IsNone())
---    end)
+describe("Option None tests", function()
+    it("Should be able to construct an Option.None from singleton", function()		
+        local o = Option.None
+        assert.is_false(o:IsSome())
+        assert.is_true(o:IsNone())
+    end)
 	
---	it("Should be able to construct an Option.None from new", function()		
---		local o = Option.new(nil)
---		assert.is_false(o:IsSome())
---		assert.is_true(o:IsNone())
---        assert.is_true(o == Option.None)
---		assert.is_true(o == None)	
---	end) 		
---end) 
+	it("Should be able to construct an Option.None from Global", function()		
+        local o = None
+        assert.is_false(o:IsSome())
+        assert.is_true(o:IsNone())
+		assert.is_true(o == Option.None)
+		assert.is_true(o == None)
+    end)
+	
+	it("Should be able to construct an Option.None from new", function()		
+		local o = Option.new(nil)
+		assert.is_false(o:IsSome())
+        assert.is_true(o:IsNone())      
+        assert.is_true(o == Option.None)
+		assert.is_true(o == None)	
+	end) 		
+end)
+
+describe("Option Methods ", function()
+    it("Should be able to wrap a value into an Option", function()
+        local o = Option.Wrap(5)
+        assert.is_true(o:IsSome())
+        assert.is_false(o:IsNone())
+    end)
+
+    it("Should be able to identify an Option", function()
+        local o = Option.Wrap(5)
+        assert.is_true(Option.Is(o))
+    end)
+
+    it("Should be able to assert an Option", function()
+        local o = Option.Wrap(5)
+        Option.Assert(o)  -- Should not throw an error
+    end)
+
+    it("Should be able to deserialize an Option", function()
+        local data = { ClassName = "Option", Value = 5 }
+        local o = Option.Deserialize(data)
+        assert.is_true(o:IsSome())
+        assert.is_false(o:IsNone())
+    end)
+
+    it("Should be able to serialize an Option", function()
+        local o = Option.Wrap(5)
+        local data = o:Serialize()
+        assert.are.same(data, { ClassName = "Option", Value = 5 })
+    end)
+
+    it("Should be able to check if an Option is None", function()
+        local o = Option.Wrap(nil)
+        assert.is_true(o:IsNone())
+    end)
+
+    it("Should be able to expect a value from an Option", function()
+        local o = Option.Wrap(5)
+        assert.are.equal(o:Expect("Expected a value"), 5)
+    end)
+
+    it("Should be able to expect None from an Option", function()
+        local o = Option.Wrap(nil)
+        o:ExpectNone("Expected None")  -- Should not throw an error
+    end)
+end)
+
+describe("Option unwrap tests", function()
+    it("Should be able to unwrap a value from an Option", function()
+        local o = Option.Wrap(5)
+        assert.are.equal(o:Unwrap(), 5)
+    end)
+
+    it("Should raise an error when trying to unwrap None", function()
+        local o = Option.Wrap(nil)
+        assert.has_error(function() o:Unwrap() end, "Cannot unwrap an Option of None type")
+    end)
+
+    it("Should be able to unwrap a value or return a default", function()
+        local o = Option.Wrap(5)
+        assert.are.equal(o:UnwrapOr(10), 5)
+
+        local oNone = Option.Wrap(nil)
+        assert.are.equal(oNone:UnwrapOr(10), 10)
+    end)
+
+    it("Should be able to unwrap a value or return the result of a function", function()
+        local o = Option.Wrap(5)
+        assert.are.equal(o:UnwrapOrElse(function() return 10 end), 5)
+
+        local oNone = Option.Wrap(nil)
+        assert.are.equal(oNone:UnwrapOrElse(function() return 10 end), 10)
+    end)
+end)
+
+describe("Option logic tests", function()
+    it("Should return the second Option if the first is 'Some'", function()
+        local o1 = Option.Wrap(5)
+        local o2 = Option.Wrap(10)
+        assert.are.equal(o1:And(o2):Unwrap(), 10)
+    end)
+
+    it("Should transform the contained value with a function if the Option is 'Some'", function()
+        local o = Option.Wrap(5)
+        local result = o:AndThen(function(value) return Option.Wrap(value * 2) end)
+        assert.are.equal(result:Unwrap(), 10)
+    end)
+
+    it("Should return the first Option if it is 'Some', otherwise returns the second Option", function()
+        local o1 = Option.Wrap(5)
+        local o2 = Option.Wrap(10)
+        assert.are.equal(o1:Or(o2):Unwrap(), 5)
+
+        local oNone = Option.Wrap(nil)
+        assert.are.equal(oNone:Or(o2):Unwrap(), 10)
+    end)
+
+    it("Should return the first Option if it is 'Some', otherwise the result of the function", function()
+        local o = Option.Wrap(5)
+        assert.are.equal(o:OrElse(function() return Option.Wrap(10) end):Unwrap(), 5)
+
+        local oNone = Option.Wrap(nil)
+        assert.are.equal(oNone:OrElse(function() return Option.Wrap(10) end):Unwrap(), 10)
+    end)
+
+    it("Should return the first Option if only one of the two Options is 'Some', otherwise 'None'", function()
+        local o1 = Option.Wrap(5)
+        local o2 = Option.Wrap(10)
+        assert.is_true(o1:XOr(o2):IsNone())
+
+        local oNone = Option.Wrap(nil)
+        assert.are.equal(oNone:XOr(o2):Unwrap(), 10)
+    end)
+	
+	it("Should return true if the Option contains the value", function()
+        local o = Option.Wrap(5)
+        assert.is_true(o:Contains(5))
+    end)
+
+    it("Should return false if the Option does not contain the value", function()
+        local o = Option.Wrap(5)
+        assert.is_false(o:Contains(10))
+    end)
+
+    it("Should return false if the Option is None", function()
+        local o = Option.Wrap(nil)
+        assert.is_false(o:Contains(5))
+    end)
+end)
+
+describe("Option.Filter tests", function()
+    it("Should return the Option if it is 'Some' and the predicate returns true", function()
+        local o = Option.Wrap(5)
+        local result = o:Filter(function(value) return value > 0 end)
+        assert.are.equal(result:Unwrap(), 5)
+    end)
+
+    it("Should return 'None' if the Option is 'Some' and the predicate returns false", function()
+        local o = Option.Wrap(5)
+        local result = o:Filter(function(value) return value < 0 end)
+        assert.is_true(result:IsNone())
+    end)
+
+    it("Should return 'None' if the Option is 'None'", function()
+        local o = Option.Wrap(nil)
+        local result = o:Filter(function(value) return value > 0 end)
+        assert.is_true(result:IsNone())
+    end)
+end)
+
+describe("Option.Match tests", function()
+    it("Should call the 'Some' function if the Option is 'Some'", function()
+        local o = Option.Wrap(5)
+        local result = o:Match({
+            Some = function(value) return value * 2 end,
+            None = function() return 0 end
+        })
+        assert.are.equal(result, 10)
+    end)
+
+    it("Should call the 'None' function if the Option is 'None'", function()
+        local o = Option.Wrap(nil)
+        local result = o:Match({
+            Some = function(value) return value * 2 end,
+            None = function() return 0 end
+        })
+        assert.are.equal(result, 0)
+    end)
+
+    it("Should raise an error if the 'Some' function is missing", function()
+        local o = Option.Wrap(5)
+        assert.has_error(function()
+            o:Match({
+                None = function() return 0 end
+            })
+        end, "Missing 'Some' match")
+    end)
+
+    it("Should raise an error if the 'None' function is missing", function()
+        local o = Option.Wrap(5)
+        assert.has_error(function()
+            o:Match({
+                Some = function(value) return value * 2 end
+            })
+        end, "Missing 'None' match")
+    end)
+end)
+
+describe("Option.__tostring tests", function()
+    it("Should return a string representation of the Option if it is 'Some'", function()
+        local o = Option.Wrap(5)
+        local optStr = tostring(o)
+		print("Opt str is: " .. optStr)
+        assert.are.equal(optStr, "Some(5)")
+    end)
+
+    it("Should return 'Option<None>' if the Option is 'None'", function()
+        local o = Option.Wrap(nil)
+        assert.are.equal(tostring(o), "None")
+    end)
+
+    it("Should return 'nil' if the Option is nil", function()
+        local o = nil
+        assert.are.equal(tostring(o), "nil")
+    end)
+end)
 
 describe("Basic unit testing framework test", function()
   describe("should be awesome", function()

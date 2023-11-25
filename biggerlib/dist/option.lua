@@ -78,36 +78,24 @@ Option = {}
 
 
 
+function Option.__tostring(self)
+   print("Tostringing")
+   if self == nil then return "nil" end
 
-
-
-
-function Option:IsSome()
-   return self._s
+   if self:IsSome() then
+      return "Some(" .. tostring(self.value) .. ")"
+   else
+      return "None"
+   end
 end
+
+None = setmetatable({ value = nil, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring })
+Option.None = None
 
 function Option.new(value)
-   local self = setmetatable({
-      ClassName = "Option",
-      _v = value,
-      _s = value ~= nil,
-   }, {
-      __index = Option,
-   })
-
-
-
-   return self
+   if value == nil then return Option.None end
+   return setmetatable({ value = value, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring })
 end
-
-function Some(value)
-   assert(value ~= nil, "Option.Some() value cannot be nil")
-   return Option.Some(value)
-end
-Option.None = Option.new(nil)
-
-None = Option.None
-
 
 
 
@@ -120,22 +108,16 @@ end
 
 
 
-
-
-function Option.Match(self, matches)
-   local onSome = matches.Some
-   local onNone = matches.None
-   assert(type(onSome) == "function", "Missing 'Some' match")
-   assert(type(onNone) == "function", "Missing 'None' match")
-   if self:IsSome() then
-      return onSome(self:Unwrap())
-   else
-      return onNone()
-   end
+function Some(value)
+   return Option.Some(value)
 end
 
 
 
+
+function Option:IsSome()
+   return self.value ~= nil
+end
 
 
 
@@ -151,8 +133,13 @@ end
 
 
 
-function Option.Is(obj)
-   return type(obj) == "table" and getmetatable(obj) == Option
+
+function Option.Is(value)
+   if type(value) == "table" then
+      return true
+   end
+   return false
+
 end
 
 
@@ -181,17 +168,15 @@ end
 function Option.Serialize(self)
    return {
       ClassName = self.ClassName,
-      Value = self._v,
+      Value = self.value,
    }
 end
 
 
 
 
-
-
 function Option.IsNone(self)
-   return not self._s
+   return self.value == nil
 end
 
 
@@ -201,7 +186,7 @@ end
 
 function Option.Expect(self, msg)
    assert(self:IsSome(), msg)
-   return self._v
+   return self.value
 end
 
 
@@ -324,8 +309,17 @@ end
 
 
 
+function Option.Contains(self, value)
+   return self:IsSome() and self.value == value
+end
+
+
+
+
+
+
 function Option.Filter(self, predicate)
-   if self:IsNone() or not predicate(self._v) then
+   if self:IsNone() or not predicate(self.value) then
       return Option.None
    else
       return self
@@ -336,42 +330,17 @@ end
 
 
 
-
-function Option.Contains(self, value)
-   return self:IsSome() and self._v == value
-end
-
-
-
-
-
-function Option.__tostring(self)
-   if self == nil then return "nil" end
-   print(self)
+function Option.Match(self, matches)
+   local onSome = matches.Some
+   local onNone = matches.None
+   assert(type(onSome) == "function", "Missing 'Some' match")
+   assert(type(onNone) == "function", "Missing 'None' match")
    if self:IsSome() then
-      return "Option<" .. type(self._v) .. ">"
+      return onSome(self:Unwrap())
    else
-      return "Option<None>"
+      return onNone()
    end
 end
-
-
-
-
-
-
-function Option.__eq(self, opt)
-   print("Checking equality")
-   if Option.Is(opt) then
-      if self:IsSome() and opt:IsSome() then
-         return self:Unwrap() == opt:Unwrap()
-      elseif self:IsNone() and opt:IsNone() then
-         return true
-      end
-   end
-   return false
-end
-
 
 
 
