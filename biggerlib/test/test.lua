@@ -251,15 +251,14 @@ describe("Option.__tostring tests", function()
     it("Should return a string representation of the Option if it is 'Some'", function()
         local o = Option.Wrap(5)
         local optStr = tostring(o)
-		print("Opt str is: " .. optStr)
         assert.are.equal(optStr, "Some(5)")
     end)
-
+    
     it("Should return 'Option<None>' if the Option is 'None'", function()
         local o = Option.Wrap(nil)
         assert.are.equal(tostring(o), "None")
     end)
-
+    
     it("Should return 'nil' if the Option is nil", function()
         local o = nil
         assert.are.equal(tostring(o), "nil")

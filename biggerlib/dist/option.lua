@@ -43,6 +43,8 @@ require('logger')
 
 
 
+
+
 Option = {}
 
 
@@ -79,7 +81,6 @@ Option = {}
 
 
 function Option.__tostring(self)
-   print("Tostringing")
    if self == nil then return "nil" end
 
    if self:IsSome() then
@@ -94,8 +95,12 @@ Option.None = None
 
 function Option.new(value)
    if value == nil then return Option.None end
+
    return setmetatable({ value = value, ClassName = "Option" }, { __index = Option, __tostring = Option.__tostring })
 end
+
+
+
 
 
 
@@ -139,37 +144,12 @@ function Option.Is(value)
       return true
    end
    return false
-
 end
 
 
 
 function Option.Assert(obj)
    assert(Option.Is(obj), "Result was not of type Option")
-end
-
-
-
-
-
-function Option.Deserialize(data)
-   assert(data.ClassName == "Option", "Invalid data for deserializing Option")
-   if data.Value == nil then
-      return Option.None
-   else
-      return Option.Some(data.Value)
-   end
-end
-
-
-
-
-
-function Option.Serialize(self)
-   return {
-      ClassName = self.ClassName,
-      Value = self.value,
-   }
 end
 
 
@@ -346,19 +326,25 @@ end
 
 
 
+function Option.Deserialize(data)
+   assert(data.ClassName == "Option", "Invalid data for deserializing Option")
+   if data.Value == nil then
+      return Option.None
+   else
+      return Option.Some(data.Value)
+   end
+end
 
 
 
 
 
-
-
-
-
-
-
-
-
+function Option.Serialize(self)
+   return {
+      ClassName = self.ClassName,
+      Value = self.value,
+   }
+end
 
 
 

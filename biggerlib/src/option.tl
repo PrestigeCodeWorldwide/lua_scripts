@@ -3,11 +3,13 @@ tl.loader()
 
 require('logger')
 
+--- Type for Serialized Option Value
 local record SerializedOptionValue<T>
     ClassName: string
     Value: T
 end
 
+--- Type for Option.Match predicate
 local record MatchFunctions<T, R1, R2>
     Some: function(T): R1
     None: function(): R2
@@ -69,17 +71,16 @@ global record Option<T>
     XOr: function(self: Option<T>, optB: Option<T>): Option<T> -- A method to return the first Option if only one of the two Options is Some, otherwise None.
     Filter: function(self: Option<T>, predicate: function(value: T): boolean): Option<T> -- A method to return the Option if it is Some and the predicate returns true, otherwise None.
     Contains: function(self: Option<T>, value: T): boolean -- A method to check if the Option is Some and contains the specified value.
-    metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.
-    --metamethod __eq: function(self: Option<T>, opt: Option<T>): boolean -- A metamethod to check equality between two Options.
-	metamethod __call: function(self: Option<T>, value: T) : Option<T>	
+    metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.	
 end 
+
+--#region Metaprogramming
 
 --- Gets a string representation of the Option.
 --- @generic T
 --- @param self Option<T>
 --- @return string
 function Option.__tostring<T>(self: Option<T>): string
-    print("Tostringing")
     if self is nil then return "nil" end
 	
     if self:IsSome() then		
@@ -94,8 +95,12 @@ Option.None = None
 
 function Option.new<T>(value: T): Option<T>
 	if value == nil then return Option.None end
+	
 	return setmetatable({value = value, ClassName = "Option"} as Option<T>, {__index = Option, __tostring = Option.__tostring})
 end
+
+--#endregion Metaprogramming
+--#region Methods
 
 --- @generic T
 --- @param value T
@@ -139,37 +144,12 @@ function Option.Is(value: any): boolean
 		return true
 	end
 	return false
-    --return obj._s ~= nil and obj._v ~= nil and obj.ClassName ~= nil and obj.ClassName == "Option"
 end
 
 ---Asserts that a given object is an Option
 ---The Assert function doesn't need to be generic since it doesn't depend on the type of Option
 function Option.Assert(obj: any)
     assert(Option.Is(obj), "Result was not of type Option")
-end
-
---- Deserialize an Option from a Serialized value
---- @generic T
---- @param data SerializedOptionValue<T>
---- @return Option<T>
-function Option.Deserialize<T>(data: SerializedOptionValue<T>): Option<T>
-    assert(data.ClassName == "Option", "Invalid data for deserializing Option")
-    if data.Value == nil then
-        return Option.None  -- Return the global None for empty Option
-    else
-        return Option.Some(data.Value)  -- Return Option with value
-    end
-end
-
---- Serialize an Option to a SerializedOptionValue
---- @generic T
---- @param self Option<T>
---- @return SerializedOptionValue<T>
-function Option.Serialize(self: Option<T>): SerializedOptionValue<T>
-    return {
-        ClassName = self.ClassName,
-        Value = self.value,
-    }
 end
 
 --- @generic T
@@ -342,129 +322,30 @@ function Option.Match<T, R1, R2>(self: Option<T>, matches: MatchFunctions<T, R1,
     end
 end
 
+--- Deserialize an Option from a Serialized value
+--- @generic T
+--- @param data SerializedOptionValue<T>
+--- @return Option<T>
+function Option.Deserialize<T>(data: SerializedOptionValue<T>): Option<T>
+    assert(data.ClassName == "Option", "Invalid data for deserializing Option")
+    if data.Value == nil then
+        return Option.None  -- Return the global None for empty Option
+    else
+        return Option.Some(data.Value)  -- Return Option with value
+    end
+end
 
-
---- Checks equality between two Options.  I don't think this is necessary, but it's here for completeness.
+--- Serialize an Option to a SerializedOptionValue
 --- @generic T
 --- @param self Option<T>
---- @param opt Option<T>
---- @return boolean
---function Option.__eq<T>(self: Option<T>, opt: Option<T>): boolean
---    print("Checking equality")
---    if Option.Is(opt) then
---        if self:IsSome() and opt:IsSome() then
---            return self:Unwrap() == opt:Unwrap()
---        elseif self:IsNone() and opt:IsNone() then
---            return true
---        end
---    end
---    return false
---end
+--- @return SerializedOptionValue<T>
+function Option.Serialize(self: Option<T>): SerializedOptionValue<T>
+    return {
+        ClassName = self.ClassName,
+        Value = self.value,
+    }
+end
+-- #endregion Methods
 
--- Don't have to use the Global option, can use this one instead
+-- Don't have to use the Global Option, can use this one instead
 return Option
-
-
-
-
-
-
---[[CONSTRUCTORS:
-		
-		Option.Some(anyNonNilValue): Option<any>
-		Option.Wrap(anyValue): Option<any>
-		
-		Option(): Option.Some(anyNonNilValue) or None if value is nil
-
-	
-	STATIC FIELDS:
-
-		None: Option<None>
-
-
-	STATIC METHODS:
-
-		Option.Is(obj): boolean
-
-
-	METHODS:
-
-		opt:Match(): (matches: MatchTable) -> any
-		opt:IsSome(): boolean
-		opt:IsNone(): boolean
-		opt:Unwrap(): any
-		opt:Expect(errMsg: string): any
-		opt:ExpectNone(errMsg: string): void
-		opt:UnwrapOr(default: any): any
-		opt:UnwrapOrElse(default: () -> any): any
-		opt:And(opt2: Option<any>): Option<any>
-		opt:AndThen(predicate: (unwrapped: any) -> Option<any>): Option<any>
-		opt:Or(opt2: Option<any>): Option<any>
-		opt:OrElse(orElseFunc: () -> Option<any>): Option<any>
-		opt:XOr(opt2: Option<any>): Option<any>
-		opt:Contains(value: any): boolean
-
-	--------------------------------------------------------------------
-
-	Options are useful for handling nil-value cases. Any time that an
-	operation might return nil, it is useful to instead return an
-	Option, which will indicate that the value might be nil, and should
-	be explicitly checked before using the value. This will help
-	prevent common bugs caused by nil values that can fail silently.
-
-
-	Example:
-
-	print(Option(nil))       --> None
-	print(Option(nil):IsNone()) --> true
-	print(Option(nil):IsSome()) --> false
-	print(Option(1))         --> Some(1)
-	print(Option(1):IsNone()) --> false
-	print(Option(1):IsSome()) --> true
-	
-	local mySome = Option(1)
-	Option.Assert(mySome) -- error if mySome isn't an Option
-	mySome:Match({
-		Some = function(value)
-			print('MATCHED Some: ' .. value)
-		end,
-		None = function()
-			print('MATCHED None')
-		end,
-	}) -- prints "MATCHED Some: 1"
-	
-	local myNone = Option(nil)
-	Option.Assert(myNone)
-	myNone:Match({
-		Some = function(value)
-			print('MATCHED Some: ' .. value)
-		end,
-		None = function()
-			print('MATCHED None')
-		end,
-	}) -- prints "MATCHED None"
-	
-	local myExtractedValue = mySome:Match({
-		Some = function(value)
-			return value
-		end,
-		None = function()
-			return nil
-		end,
-	})
-	assert(myExtractedValue == 1) -- passes
-		
-	-- Raw check:
-	if result2:IsSome() then
-		local value = result2:Unwrap() -- Explicitly call Unwrap
-		print("Value of result2:", value)
-	end
-	
-	if result3:IsNone() then
-		print("No result for result3")
-	end
-	
-	-- Bad, will throw error bc result4 is none:
-	local value = result4:Unwrap()
-
----]]
