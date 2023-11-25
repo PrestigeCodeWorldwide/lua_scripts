@@ -1,4 +1,8 @@
-local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then local p, m = pcall(require, 'compat53.module'); if p then _tl_compat = m end end; local assert = _tl_compat and _tl_compat.assert or assert
+local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 then local p, m = pcall(require, 'compat53.module'); if p then _tl_compat = m end end; local assert = _tl_compat and _tl_compat.assert or assert; local tl = require("tl")
+tl.loader()
+
+require('logger')
+
 
 
 
@@ -75,6 +79,31 @@ Option = {}
 
 
 
+
+
+
+function Option:IsSome()
+   return self._s
+end
+
+function Option._new(value)
+
+   local newOpt = {
+      ClassName = "Option",
+      _v = value,
+      _s = value ~= nil,
+      IsSome = Option.IsSome,
+   }
+
+   local some = newOpt:IsSome()
+
+   if some == true then
+      print("returning an Option.SOME")
+   else
+      print("Returning Option.None")
+   end
+   return newOpt
+end
 
 
 
@@ -176,11 +205,6 @@ function Option.Serialize(self)
 end
 
 
-
-
-function Option.IsSome(self)
-   return self._s
-end
 
 
 
@@ -367,15 +391,6 @@ function Option.__eq(self, opt)
 end
 
 
-function Option._new(value)
-   local instance = setmetatable({
-      ClassName = "Option",
-      _v = value,
-      _s = value ~= nil,
-   }, { __index = Option })
-
-   return instance
-end
 
 
 
@@ -389,10 +404,12 @@ end
 
 
 
-require('src.logger')
-local o = Option.Some(5)
-dump(o, "Option.Some(5)")
 
-Option.None = Option._new(nil)
+
+
+
+
+
+
 
 return Option

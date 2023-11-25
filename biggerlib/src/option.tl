@@ -1,9 +1,3 @@
-
-
---package.path = package.path .. ';../dist/?.lua'
---package.path = package.path .. ';../vendor/?.lua'
---package.path = package.path .. ';../src/?.tl'
-
 local tl = require("tl")
 tl.loader()
 
@@ -53,7 +47,7 @@ global record Option<T>
     ClassName: string -- The name of the class. (Option)
     _v: T | nil -- The value contained in the Option, if any.
     _s: boolean -- A boolean indicating whether the Option contains a value (true) or is None (false).
-    __index: table -- A table containing the Option methods.
+    --__index: table -- A table containing the Option methods.
     --_new: function(value: T): Option<T> -- A constructor for an Option containing a value.
    
     Some: function(value: T): Option<T> -- A constructor for an Option containing a value.
@@ -63,7 +57,6 @@ global record Option<T>
     Deserialize: function(data: SerializedOptionValue<T>): Option<T> -- A method to deserialize an Option from a table.
     Serialize: function(self: Option<T>): SerializedOptionValue<T> -- A method to serialize an Option to a table.    	
     Match: function<T, R1, R2>(self: Option<T>, matches: MatchFunctions<R1, R2>): R1 | R2 --A method to handle the contents of an Option based on provided functions for Some and None.
-    IsSome: function(self: Option<T>): boolean -- A method to check if the Option contains a value.
     IsNone: function(self: Option<T>): boolean -- A method to check if the Option is empty (None).
     Expect: function(self: Option<T>, msg: string): T -- A method to return the contained value or raise an error with the provided message if the Option is None.
     ExpectNone: function(self: Option, msg: string) -- A method to assert that the Option is None or raise an error with the provided message.
@@ -80,11 +73,37 @@ global record Option<T>
     metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.
     metamethod __eq: function(self: Option<T>, opt: Option<T>): boolean -- A metamethod to check equality between two Options.
 	metamethod __call: function(T | nil) : Option<T>
+	None: Option<T> -- A static representation of an empty Option.   
+	
 	_new: function(value: T|nil): Option<T> -- A constructor for an Option containing a value.
-	 None: Option<T> -- A static representation of an empty Option.   
+    IsSome: function(self: Option<T>): boolean -- A method to check if the Option contains a value.	 
 end
 
+--- @generic T
+--- @param self Option<T>
+--- @return boolean
+function Option:IsSome(): boolean
+    return self._s
+end
 
+function Option._new<T>(value: T | nil): Option<T>
+    
+	local newOpt: Option<T> = { 
+		ClassName = "Option",
+		_v = value,
+		_s = value ~= nil,
+		IsSome = Option.IsSome,
+	}
+	--print("New value from inside _new:")
+	local some = newOpt:IsSome() -- error: Attempt to call method IsSome (a nil value)
+	--print(tostring(some), "CALLED ISSOME AND GOT THIS BACK:") -- prints *
+	if some == true then
+		print("returning an Option.SOME")
+	else
+		print("Returning Option.None")
+	end
+	return newOpt	
+end
 
 --[[
 --- @generic T
@@ -185,12 +204,7 @@ function Option.Serialize(self: Option<T>): SerializedOptionValue<T>
     }
 end
 
---- @generic T
---- @param self Option<T>
---- @return boolean
-function Option.IsSome<T>(self: Option<T>): boolean
-    return self._s
-end
+
 
 --- @generic T
 --- @param self Option<T>
@@ -379,15 +393,7 @@ end
 
 
 
-function Option._new<T>(value: T | nil): Option<T>
-    local instance = setmetatable({
-        ClassName = "Option",
-        _v = value,
-        _s = value ~= nil
-    }, { __index = Option })
 
-    return instance as Option<T>
-end
 --function Option._new<T>(value: any): Option<T>
 --	   local self = setmetatable({
 --        ClassName = "Option";
@@ -402,10 +408,9 @@ end
 --	return self as Option<T>
 --end
 
-local o = Option.Some(5)
-dump(o, "Option.Some(5)")
 
-Option.None = Option._new(nil)
+
+--Option.None = Option._new(nil)
 
 return Option
 --[[]]

@@ -1,6 +1,7 @@
 return {
     include_dir = {
-        "vendor/",        
+        "vendor/",
+		"src/"   
     },
     source_dir = "src/",
 	build_dir = "dist/",

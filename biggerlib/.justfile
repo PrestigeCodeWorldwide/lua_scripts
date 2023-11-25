@@ -2,4 +2,4 @@
     tl build
 
 @test: build
-    cd test && lua test.lua
+    cd test && busted test.lua
