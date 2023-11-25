@@ -87,36 +87,35 @@ function Option:IsSome()
 end
 
 function Option.new(value)
-   local self = setmetatable({}, { __index = Option })
-   self.ClassName = "Option"
-   self._v = value
-   self._s = value ~= nil
+   local self = setmetatable({
+      ClassName = "Option",
+      _v = value,
+      _s = value ~= nil,
+   }, {
+      __index = Option,
+   })
+
+
+
    return self
 end
 
+function Some(value)
+   assert(value ~= nil, "Option.Some() value cannot be nil")
+   return Option.Some(value)
+end
+Option.None = Option.new(nil)
+
+None = Option.None
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function Option.Some(value)
+   assert(value ~= nil, "Option.Some() value cannot be nil")
+   return Option.new(value)
+end
 
 
 
@@ -137,13 +136,6 @@ end
 
 
 
-
-
-
-function Option.Some(value)
-   assert(value ~= nil, "Option.Some() value cannot be nil")
-   return Option.new(value)
-end
 
 
 
@@ -369,6 +361,7 @@ end
 
 
 function Option.__eq(self, opt)
+   print("Checking equality")
    if Option.Is(opt) then
       if self:IsSome() and opt:IsSome() then
          return self:Unwrap() == opt:Unwrap()
@@ -378,7 +371,6 @@ function Option.__eq(self, opt)
    end
    return false
 end
-
 
 
 

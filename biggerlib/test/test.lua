@@ -14,17 +14,43 @@ local assert = require("busted").assert
 
 local Option = require("option")
 
-
-
 describe("Option Some tests", function()
-    it("Should be able to construct an Option.Some", function()		
+    it("Should be able to construct an Option.Some from new", function()		
         local o = Option.new(5)
-   
-		
         assert.is_true(o:IsSome())
+        assert.is_false(o:IsNone())
+    end)
+	
+	it("Should be able to create a new Option.Some from Option.Some directly", function()		
+		-- Some here is technically global but the LSP can't handle it from teal
+		local o = Option.Some(5)
+		assert.is_true(o:IsSome())
 		assert.is_false(o:IsNone())
-	end)	
+    end)
+	
+	it("Should be able to create a new Option.Some from global Some directly", function()		
+		-- Some here is technically global but the LSP can't handle it from teal
+		local o = Some(5)
+		assert.is_true(o:IsSome())
+		assert.is_false(o:IsNone())
+	end)
 end)
+
+--describe("Option None tests", function()
+--    it("Should be able to construct an Option.None from singleton", function()		
+--        local o = Option.None
+--        assert.is_false(o:IsSome())
+--        assert.is_true(o:IsNone())
+--    end)
+	
+--	it("Should be able to construct an Option.None from new", function()		
+--		local o = Option.new(nil)
+--		assert.is_false(o:IsSome())
+--		assert.is_true(o:IsNone())
+--        assert.is_true(o == Option.None)
+--		assert.is_true(o == None)		
+--	end)		
+--end)
 
 describe("Busted unit testing framework", function()
   describe("should be awesome", function()

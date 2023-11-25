@@ -72,7 +72,7 @@ global record Option<T>
     Contains: function(self: Option<T>, value: T): boolean -- A method to check if the Option is Some and contains the specified value.
     metamethod __tostring: function(self: Option<T>): string -- A metamethod to get a string representation of the Option.
     metamethod __eq: function(self: Option<T>, opt: Option<T>): boolean -- A metamethod to check equality between two Options.
-	metamethod __call: function(T | nil) : Option<T>
+	metamethod __call: function(self: Option<T>, value: T | nil) : Option<T>
 	None: Option<T> -- A static representation of an empty Option.   
 	
 	new: function(value: T|nil): Option<T> -- A constructor for an Option containing a value.
@@ -87,36 +87,35 @@ function Option:IsSome(): boolean
 end
 
 function Option.new<T>(value: T|nil): Option<T>
-	local self: Option<T> = setmetatable({}, { __index = Option})
-	self.ClassName = "Option"
-	self._v = value
-	self._s = value ~= nil
+	local self: Option<T> = setmetatable({
+		ClassName = "Option",
+		_v = value,
+		_s = value ~= nil,
+	}, { 
+		__index = Option,		
+	})
+	--self.ClassName = "Option"
+	--self._v = value
+	--self._s = value ~= nil
 	return self
 end
 
---[[
---- @generic T
---- @param value T | nil
---- @return Option<T>
-function Option._new<T>(value: T): Option<T>
-    
-    -- Create a new Option instance for non-nil values
-    local optionInstance: Option<T> = {
-        ClassName = "Option",
-        _v = value,
-        _s = value ~= nil,
-    }
-    
-    setmetatable(optionInstance, {
-        __call = function(_self, optionValue: T): Option<T>
-            local newOption = Option._new(optionValue)
-            return newOption
-        end
-    })
-    
-    return optionInstance
-end]]
+global function Some<T>(value: T): Option<T>
+	assert(value ~= nil, "Option.Some() value cannot be nil")
+	return Option.Some(value)
+end
+Option.None = Option.new(nil)
 
+global None = Option.None
+
+
+--- @generic T
+--- @param value T
+--- @return Option<T>
+function Option.Some<T>(value: T): Option<T>
+	assert(value ~= nil, "Option.Some() value cannot be nil")
+	return Option.new(value)
+end
 
 
 --- @generic T, R1, R2
@@ -137,13 +136,6 @@ end
 
 
 
---- @generic T
---- @param value T
---- @return Option<T>
-function Option.Some<T>(value: T): Option<T>
-	assert(value ~= nil, "Option.Some() value cannot be nil")
-	return Option.new(value)
-end
 
 --- @generic T
 --- @param value T | nil
@@ -369,6 +361,7 @@ end
 --- @param opt Option<T>
 --- @return boolean
 function Option.__eq<T>(self: Option<T>, opt: Option<T>): boolean
+    print("Checking equality")
     if Option.Is(opt) then
         if self:IsSome() and opt:IsSome() then
             return self:Unwrap() == opt:Unwrap()
@@ -396,7 +389,6 @@ end
 --	--}, Option)
 --	return self as Option<T>
 --end
-
 
 
 --Option.None = Option._new(nil)
