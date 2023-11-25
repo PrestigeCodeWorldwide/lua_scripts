@@ -48,17 +48,14 @@ end)
 --		assert.is_false(o:IsSome())
 --		assert.is_true(o:IsNone())
 --        assert.is_true(o == Option.None)
---		assert.is_true(o == None)		
---	end)		
---end)
+--		assert.is_true(o == None)	
+--	end) 		
+--end) 
 
-describe("Busted unit testing framework", function()
+describe("Basic unit testing framework test", function()
   describe("should be awesome", function()
-    it("should be easy to use", function()
-      assert.truthy("Yup.")
-    end)
-
-    it("should have lots of features", function()
+    it("should have some nice features", function()
+	  assert.truthy("Yup")
       -- deep check comparisons!
       assert.are.same({ table = "great"}, { table = "great" })
 
