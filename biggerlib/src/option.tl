@@ -75,7 +75,7 @@ global record Option<T>
 	metamethod __call: function(T | nil) : Option<T>
 	None: Option<T> -- A static representation of an empty Option.   
 	
-	_new: function(value: T|nil): Option<T> -- A constructor for an Option containing a value.
+	new: function(value: T|nil): Option<T> -- A constructor for an Option containing a value.
     IsSome: function(self: Option<T>): boolean -- A method to check if the Option contains a value.	 
 end
 
@@ -86,24 +86,12 @@ function Option:IsSome(): boolean
     return self._s
 end
 
-function Option._new<T>(value: T | nil): Option<T>
-    
-	local newOpt: Option<T> = { 
-		ClassName = "Option",
-		_v = value,
-		_s = value ~= nil,
-		IsSome = Option.IsSome,
-		IsNone = Option.IsNone,
-	}
-	--print("New value from inside _new:")
-	local some = newOpt:IsSome() -- error: Attempt to call method IsSome (a nil value)
-	--print(tostring(some), "CALLED ISSOME AND GOT THIS BACK:") -- prints *
-	if some == true then
-		print("returning an Option.SOME")
-	else
-		print("Returning Option.None")
-	end
-	return newOpt	
+function Option.new<T>(value: T|nil): Option<T>
+	local self: Option<T> = setmetatable({}, { __index = Option})
+	self.ClassName = "Option"
+	self._v = value
+	self._s = value ~= nil
+	return self
 end
 
 --[[
@@ -154,7 +142,7 @@ end
 --- @return Option<T>
 function Option.Some<T>(value: T): Option<T>
 	assert(value ~= nil, "Option.Some() value cannot be nil")
-	return Option._new(value)
+	return Option.new(value)
 end
 
 --- @generic T

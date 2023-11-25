@@ -18,7 +18,7 @@ local Option = require("option")
 
 describe("Option Some tests", function()
     it("Should be able to construct an Option.Some", function()		
-        local o = Option._new(5)
+        local o = Option.new(5)
    
 		
         assert.is_true(o:IsSome())

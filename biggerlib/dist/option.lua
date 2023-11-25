@@ -86,24 +86,12 @@ function Option:IsSome()
    return self._s
 end
 
-function Option._new(value)
-
-   local newOpt = {
-      ClassName = "Option",
-      _v = value,
-      _s = value ~= nil,
-      IsSome = Option.IsSome,
-      IsNone = Option.IsNone,
-   }
-
-   local some = newOpt:IsSome()
-
-   if some == true then
-      print("returning an Option.SOME")
-   else
-      print("Returning Option.None")
-   end
-   return newOpt
+function Option.new(value)
+   local self = setmetatable({}, { __index = Option })
+   self.ClassName = "Option"
+   self._v = value
+   self._s = value ~= nil
+   return self
 end
 
 
@@ -154,7 +142,7 @@ end
 
 function Option.Some(value)
    assert(value ~= nil, "Option.Some() value cannot be nil")
-   return Option._new(value)
+   return Option.new(value)
 end
 
 
