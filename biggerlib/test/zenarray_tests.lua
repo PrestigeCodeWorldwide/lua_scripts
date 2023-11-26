@@ -101,3 +101,61 @@ describe("ZenTable Match and Keys Methods", function()
         assert.are.same(keys, {1, 2, 3})
     end)
 end)
+
+describe("ZenArray Advanced Functionality", function()
+    it("Should correctly add elements using push", function()
+        local zt = newArray(1, 2)
+        zt:push(3)
+		zt:push(4)
+        assert.are.same(zt._data, {1, 2, 3, 4})
+    end)
+
+    it("Should handle edge cases gracefully", function()
+        local zt = newArray()
+        assert.is_false(zt:remove(1))  -- Removing from empty array
+        assert.is_nil(zt:find(1))      -- Finding in empty array
+    end)
+
+    it("Should correctly insert an element", function()
+        local zt = newArray(1, 2)
+        zt:insert(3) -- Assuming insert method takes (value, position)
+        assert.are.same(zt._data, {1, 2, 3})
+    end)
+end)
+
+describe("ZenArray Error Handling", function()
+    it("Should handle invalid input for map function", function()
+        local zt = newArray(1, 2, 3)
+        local status, err = pcall(function() zt:map("not a function") end)
+        assert.is_false(status)  -- pcall returns false if there's an error
+        assert.is_not_nil(err)   -- err should contain error information
+    end)
+
+    it("Should handle invalid input for forEach function", function()
+        local zt = newArray(1, 2, 3)
+        local status, err = pcall(function() zt:forEach("not a function") end)
+        assert.is_false(status)
+        assert.is_not_nil(err)
+    end)
+
+    it("Should handle invalid input for filter function", function()
+        local zt = newArray(1, 2, 3)
+        local status, err = pcall(function() zt:filter("not a function") end)
+        assert.is_false(status)
+        assert.is_not_nil(err)
+    end)
+
+    it("Should handle invalid input for count function", function()
+        local zt = newArray(1, 2, 3)
+        local status, err = pcall(function() zt:count("not a function") end)
+        assert.is_false(status)
+        assert.is_not_nil(err)
+    end)
+
+    it("Should handle invalid input for match function", function()
+        local zt = newArray(1, 2, 3)
+        local status, err = pcall(function() zt:match("not a function") end)
+        assert.is_false(status)
+        assert.is_not_nil(err)
+    end)
+end)

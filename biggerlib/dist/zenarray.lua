@@ -21,6 +21,7 @@ ZenArray = {}
 
 
 
+
 function newArray(...)
    local data = { ... }
 
@@ -42,6 +43,7 @@ function newArray(...)
       keys = ZenArray.keys,
       map = ZenArray.map,
       push = ZenArray.push,
+      insert = ZenArray.insert,
    }
 
 
@@ -85,6 +87,12 @@ end
 
 function ZenArray.insert(self, value)
    table.insert(self._data, value)
+   return self
+end
+
+function ZenArray.push(self, value)
+   self:insert(value)
+   return self
 end
 
 function ZenArray.contains(self, value)

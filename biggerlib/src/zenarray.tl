@@ -17,7 +17,8 @@ global record ZenArray<T>
   keys: function(self: ZenArray<T>): {number | string}
   forEach: function(self: ZenArray<T>, fn: function(T|any, ...: any), ...: any): ZenArray<T>
   map: function<T,R>(self: ZenArray<T>, fn: lume.MapFunction<T, R>): ZenArray<R> 
-  push: function(self: ZenArray<T>, ...: T): T...
+  push: function(self: ZenArray<T>, value: T): ZenArray<T>
+  insert:  function(self: ZenArray<T>, value: T): ZenArray<T>
   filter: function(self: ZenArray<T>, func: (function(T):boolean), retainkeys: (boolean | nil)): ZenArray<T>
 end
 	
@@ -41,7 +42,8 @@ global function newArray<T>(...: T): ZenArray<T>
     clone = ZenArray.clone,
     keys = ZenArray.keys,
     map = ZenArray.map,
-    push = ZenArray.push
+    push = ZenArray.push,
+	insert = ZenArray.insert,
   }
   
   --local instance = setmetatable({_data = data} as ZenArray<T>, {__index = ZenArray})
@@ -83,8 +85,14 @@ function ZenArray.match<T>(self: ZenArray<T>, func: function(T):boolean): (T, (n
   return lume.match(self._data, func)
 end
 
-function ZenArray.insert<T>(self: ZenArray<T>, value: T)
+function ZenArray.insert<T>(self: ZenArray<T>, value: T): ZenArray<T>
   table.insert(self._data, value)
+  return self
+end
+
+function ZenArray.push<T>(self: ZenArray<T>, value: T): ZenArray<T>
+  self:insert(value)
+  return self
 end
 
 function ZenArray.contains<T>(self: ZenArray<T>, value: T): boolean
