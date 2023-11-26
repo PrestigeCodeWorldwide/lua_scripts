@@ -18,7 +18,7 @@ ArmorManager.__index = ArmorManager
 --- Creates a new instance of ArmorManager
 ---@return ArmorManager
 function ArmorManager.new()
-	local self = newTable(ArmorManager)
+	local self = newArray(ArmorManager)
 	return self
 end
 

@@ -18,7 +18,7 @@ InventoryManager.__index = InventoryManager
 --- Creates a new instance of InventoryManager
 ---@return InventoryManager
 function InventoryManager.new()
-	local self = newTable(InventoryManager)
+	local self = newArray(InventoryManager)
 	return self
 end
 
@@ -34,7 +34,7 @@ InventoryManager.InventoryCache = {
 ---@return BagInventory
 function InventoryManager.cacheBag(inBagToCache)
 	---@type BagInventory
-	local bagInventory = newTable()
+	local bagInventory = newArray()
 
 	local notifyPackName = mq.TLO.InvSlot(inBagToCache).Name()
 
@@ -61,7 +61,7 @@ end
 ---@return BagInventory[] | ZenTable
 function InventoryManager.cacheAllBagsInventories()
 	---@type BagInventory[] | ZenTable
-	local allBags = newTable()
+	local allBags = newArray()
 	-- 23, 32 are top level inventory slots according to EQ, prior to that are equipped items
 	for i in range(23, 32) do
 		allBags:insert(InventoryManager.cacheBag(i))
@@ -76,7 +76,7 @@ end
 ---@return TopLevelInventoryItem[] | ZenTable
 function InventoryManager.cacheTopLevelInventory()
 	---@type TopLevelInventoryItem[] | ZenTable
-	local topLevelInventory = newTable()
+	local topLevelInventory = newArray()
 
 	for i = 23, 32 do
 		local inventorySlot = mq.TLO.InvSlot(i)

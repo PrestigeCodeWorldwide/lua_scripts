@@ -76,7 +76,6 @@ global record Option<T>
 end 
 
 function Option:__eq(opt: Option<T>): boolean
-	print("Checking option equality")
 	if self == nil and opt == nil then
 		return true
 	end
@@ -217,8 +216,6 @@ end
 function Option.Unwrap<T>(self: Option<T>): T
     return self:Expect("Cannot unwrap an Option of None type")
 end
-
-
 
 --- Returns the contained value if the Option is Some, otherwise the result of the defaultFunc
 --- @generic T
@@ -368,5 +365,4 @@ function Option.Serialize(self: Option<T>): SerializedOptionValue<T>
 end
 -- #endregion Methods
 
--- Don't have to use the Global Option, can use this one instead
 return Option

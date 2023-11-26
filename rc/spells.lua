@@ -15,11 +15,11 @@ SpellsManager.__index = SpellsManager
 --- Creates a new instance of SpellsManager
 ---@return SpellsManager
 function SpellsManager.new()
-    local self = newTable(SpellsManager)
+    local self = newArray(SpellsManager)
     return self
 end
 
-SpellsManager.RuneTiers = newTable({
+SpellsManager.RuneTiers = newArray({
 	minor = "Minor",
 	lesser = "Lesser",
 	median = "Median",
@@ -45,7 +45,7 @@ function SpellsManager.learnSpellRunes(runeTier, nameString)
 	end
 
 	function filterRewardsRetainingIndices(rewards, substring)
-		local filteredRewards = newTable()
+		local filteredRewards = newArray()
 		for index, item in ipairs(rewards) do
 			if not string.find(item, substring) then
 				--table.insert(filteredRewards, {index = index, value = item})
@@ -59,7 +59,7 @@ function SpellsManager.learnSpellRunes(runeTier, nameString)
 
 	local rsol = getOpenRewardSelectionOptionList()
 	dump(rsol, "Reward selection option list")
-	local rewards = newTable()
+	local rewards = newArray()
 	local itemCount = rsol.Items()
 	dump(itemCount, "Item count")
 	for i = 1, itemCount do
@@ -71,7 +71,7 @@ function SpellsManager.learnSpellRunes(runeTier, nameString)
 
 	local filteredRewardsWithIndices = filterRewardsRetainingIndices(rewards, nameString)
 	dump(filteredRewardsWithIndices, "Filtered rewards")
-	local indicesAlreadyUsed = newTable()
+	local indicesAlreadyUsed = newArray()
 	local totalIndices = #filteredRewardsWithIndices
 
 	--iterate the filtered rewards and select each one

@@ -29,7 +29,7 @@ UIManager.__index = UIManager
 --- Creates a new instance of UIManager
 ---@return UIManager
 function UIManager.new()
-	local self = newTable(UIManager)
+	local self = newArray(UIManager)
 	return self
 end
 

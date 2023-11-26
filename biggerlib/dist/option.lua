@@ -76,7 +76,6 @@ Option = {}
 
 
 function Option:__eq(opt)
-   print("Checking option equality")
    if self == nil and opt == nil then
       return true
    end
@@ -217,8 +216,6 @@ end
 function Option.Unwrap(self)
    return self:Expect("Cannot unwrap an Option of None type")
 end
-
-
 
 
 
@@ -366,7 +363,6 @@ function Option.Serialize(self)
       Value = self.value,
    }
 end
-
 
 
 return Option

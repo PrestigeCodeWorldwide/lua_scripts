@@ -3,7 +3,7 @@
 
 
 
-function range(i, to, inc)
+local function range(i, to, inc)
    if i == nil then
       return nil
    end
@@ -26,3 +26,5 @@ function range(i, to, inc)
       return i
    end
 end
+
+return range
