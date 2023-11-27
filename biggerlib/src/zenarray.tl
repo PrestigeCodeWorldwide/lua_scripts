@@ -20,7 +20,7 @@ global record ZenArray<T>
   filter: function(self: ZenArray<T>, func: (function(T):boolean), retainkeys: (boolean | nil)): ZenArray<T>
 end
 	
-global function newArray<T>(...: T): ZenArray<T>    	
+global function newArray<T>(baseMetatable: metatable | nil, ...: T): ZenArray<T>    	
   	local data = {...} 
 	
   	local instance : ZenArray<T> = {	
@@ -43,6 +43,10 @@ global function newArray<T>(...: T): ZenArray<T>
     push = ZenArray.push,
 	insert = ZenArray.insert,
   }
+  
+  if baseMetatable then
+		setmetatable(instance, baseMetatable)
+	end
   
   return instance
 end

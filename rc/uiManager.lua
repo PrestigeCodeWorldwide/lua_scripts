@@ -21,19 +21,9 @@ local Inventory = require("inventory")
 ---@field clickCombineButton fun()
 ---@field checkWindowExists fun(window: any): boolean
 ---@field putCursorItemInEmptyInventorySlot fun()
----@field closeAllBags fun()
+---@field closeAllBags fun(self)
 ---@field findEmptyTopLevelInventorySlot fun(self): Option<number>
 local UIManager = {}
-UIManager.__index = UIManager
-
---- Creates a new instance of UIManager
----@return UIManager
-function UIManager.new()
-	local self = newArray(UIManager)
-	return self
-end
-
-
 
 --- Finds an item in the inventory cache by name
 ---@param itemID number
@@ -64,13 +54,13 @@ end
 ---@param itemData ItemData
 ---@return string
 function UIManager.getCtrlPickupItemCommand(itemData)
-    local pickupItemCmd = "/ctrlkey /itemnotify in "
-        .. itemData.notifyPackName
-        .. " "
-        .. itemData.notifyInvSlot2
-        .. " leftmouseup"
+	local pickupItemCmd = "/ctrlkey /itemnotify in "
+		.. itemData.notifyPackName
+		.. " "
+		.. itemData.notifyInvSlot2
+		.. " leftmouseup"
 
-    return pickupItemCmd
+	return pickupItemCmd
 end
 
 --- Finds an item in the inventory cache by name
@@ -93,18 +83,18 @@ function UIManager.findItemInBagByName(itemName)
 			end
 		end
 	end
-	
+
 	-- If we reach this point, the item was not found
 	return Option.None
 end
 
 function UIManager.pickUpItemOntoCursor(itemName)
 	info("Picking up item onto cursor by name: " .. itemName)
-	
+
 	-- THIS METHOD WORKS
 	---@type Option
-    local foundItem = UIManager.findItemInBagByName(itemName)
-		
+	local foundItem = UIManager.findItemInBagByName(itemName)
+
 	---@type ItemData
 	local item = foundItem:Expect("Item not found in inventory")
 	dump(item, "Item data")
@@ -113,7 +103,7 @@ function UIManager.pickUpItemOntoCursor(itemName)
 		.. " "
 		.. tostring(item.notifyInvSlot2 + 1) -- off by ones are great
 		.. " leftmouseup"
-	
+
 	dump(pickupItemCmd, "Pickup item command")
 
 	mq.cmd(pickupItemCmd)
@@ -155,7 +145,7 @@ function UIManager.checkWindowExists(window)
 	end
 
 	local windowString = tostring(window)
-	if windowString == "FALSE" then
+	if windowString == "FALSE" or windowString == "NULL" then
 		return false
 	else
 		return true
@@ -171,8 +161,9 @@ end
 
 --- MQ has no ability to sort, find, iterate, or otherwise interact with any root window beyond the first of each type
 --- This bypasses our inability to find the window we need by closing all of them and then opening the one we want
-function UIManager.closeAllBags()
+function UIManager:closeAllBags()
 	local window = mq.TLO.Window("ContainerWindow")
+	dump(window, "Container Window::")
 	while UIManager.checkWindowExists(window) do
 		dump(window, "Window")
 		--mq.cmd("/notify " .. i .. " 0 leftmouseup")
@@ -190,6 +181,14 @@ function UIManager:findEmptyTopLevelInventorySlot()
 			return inventoryItem.ItemSlotID
 		end
 	end))
+end
+UIManager.__index = UIManager
+
+--- Creates a new instance of UIManager
+---@return UIManager
+function UIManager.new()
+	local self = newArray(UIManager)
+	return self
 end
 
 ---@type UIManager

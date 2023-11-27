@@ -86,7 +86,7 @@ function InventoryManager.cacheTopLevelInventory()
 
 		topLevelInventory:insert({
 			ItemSlotID = itemSlotID,
-			Item = Option(invItem),
+			Item = Option.Wrap(invItem),
 			Name = inventorySlotName,
 		})
 	end
@@ -97,7 +97,7 @@ end
 --- cache entire inventory (Top level items and all items in top level containers, not bank)
 function InventoryManager:recacheInventory()
 	---@type UIManager
-    local UI = require("uiManager")
+	local UI = require("uiManager")
 	---@type TopLevelInventoryItem[] | ZenTable
 	local topLevelInventory = InventoryManager.cacheTopLevelInventory()
 	local openSlot = UI:findEmptyTopLevelInventorySlot()

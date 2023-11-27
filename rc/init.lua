@@ -12,13 +12,12 @@ local Spells = require("spells")
 local Armor = require("armor")
 local Inventory = require("inventory")
 
--- TODO LATER: problem - the autoinv command puts the item we need into the open top level inv slot we need to keep open
 local function main()
 	-- pause cwtn plugins/bard
 	mq.cmd("/" .. mq.TLO.Me.Class.ShortName() .. " pause on")
 
 	info("Closing open bags")
-	UI.closeAllBags()
+	UI:closeAllBags()
 	info("Caching inventory")
 	Inventory.recacheInventory()
 	mq.delay(1)
