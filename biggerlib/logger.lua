@@ -2,7 +2,7 @@ local _tl_compat; if (tonumber((_VERSION or ''):match('[%d.]*$')) or 0) < 5.3 th
 local timestamps = false
 
 
-function logInfo(...)
+function info(...)
    local timestampPrefix = timestamps and "\a-w[" .. os.date("%X") .. "]\ax" or ""
    local output = string.format(timestampPrefix .. log_prefix .. string.format(...) .. "\ax")
    print(output)
@@ -40,3 +40,11 @@ function dump(data, logPrefix, depth)
    end
    print(logPrefix .. " : " .. _dumpRecurse(data, logPrefix, depth))
 end
+
+
+
+
+return {
+   info = info,
+   dump = dump,
+}

@@ -122,3 +122,5 @@ end
 function ZenArray.find<T>(self: ZenArray<T>, value: T): number | nil
   return lume.find(self._data, value)
 end
+
+return ZenArray

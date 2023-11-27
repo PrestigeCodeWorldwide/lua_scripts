@@ -2,12 +2,13 @@
 local mq = require("mq")
 ---@type ImGui
 local imgui = require("ImGui")
-local lume = require("zen.biggerlib.vendor.lume")
+local lume = require("zen.biggerlib.lume")
+local ZenArray = require("zen.biggerlib.zenarray")
 -- Reminder you can access requires starting from the base /lua folder
-local BL = require("zen.biggerlib")
+require("zen.biggerlib.logger")
 
 ---@class SpellsManager
----@field RuneTiers ZenTable A list of rune tiers
+---@field RuneTiers ZenArray<string> A list of rune tiers
 ---@field learnSpellRunes fun(runeTier: string, nameString: string)
 local SpellsManager = {}
 SpellsManager.__index = SpellsManager
@@ -15,8 +16,8 @@ SpellsManager.__index = SpellsManager
 --- Creates a new instance of SpellsManager
 ---@return SpellsManager
 function SpellsManager.new()
-    local self = newArray(SpellsManager)
-    return self
+	local self = newArray(SpellsManager)
+	return self
 end
 
 SpellsManager.RuneTiers = newArray({
@@ -33,14 +34,14 @@ SpellsManager.RuneTiers = newArray({
 function SpellsManager.learnSpellRunes(runeTier, nameString)
 	-- Produces "Median Spellbound Lamp" etc
 	local runeName = runeTier .. " " .. nameString
-	
+
 	local function useNextRuneItem()
 		mq.cmd('/itemnotify "' .. runeName .. '" rightmouseup')
 		mq.delay(5000)
 	end
 
 	local function getOpenRewardSelectionOptionList()
----@diagnostic disable-next-line: undefined-field
+		---@diagnostic disable-next-line: undefined-field
 		return mq.TLO.Window("RewardSelectionWnd/RewardPageTabWindow").Tab(1).Child("RewardSelectionOptionList")
 	end
 

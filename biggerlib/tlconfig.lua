@@ -4,7 +4,7 @@ return {
 		"src/"   
     },
     source_dir = "src/",
-	build_dir = "dist/",
+	build_dir = "./",
     --[[ 
 	include_dir {string} prepend dir to module search path
 	include     {string} Set of files to compile

@@ -2,9 +2,9 @@
 local mq = require("mq")
 ---@type ImGui
 local imgui = require("ImGui")
-local lume = require("zen.biggerlib.vendor.lume")
+local lume = require("zen.biggerlib.lume")
 -- Reminder you can access requires starting from the base /lua folder
-local BL = require("biggerlib")
+require("zen.biggerlib.logger")
 local UI = require("uiManager")
 
 ---@class ArmorManager

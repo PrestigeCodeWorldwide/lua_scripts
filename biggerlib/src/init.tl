@@ -1,3 +1,4 @@
-local mq = require("mq")
-
-mq.cmd("/say test")
+require "logger"
+require "option"
+require "utils"
+require "zenarray"

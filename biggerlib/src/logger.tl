@@ -2,7 +2,7 @@ local log_prefix = "\a-t[\ax\ayBL\ax\a-t]\ax \aw"
 local timestamps = false
 
 --- Simple output log formatted somewhat nicely
-global function logInfo(...: string)
+global function info(...: string)
 	local timestampPrefix = timestamps and "\a-w[" .. os.date("%X") .. "]\ax" or ""
 	local output = string.format(timestampPrefix .. log_prefix .. string.format(...) .. "\ax")
 	print(output)	
@@ -44,3 +44,7 @@ end
 
 
 
+return {
+	info = info,
+	dump = dump,
+}

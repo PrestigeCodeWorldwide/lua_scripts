@@ -122,3 +122,5 @@ end
 function ZenArray.find(self, value)
    return lume.find(self._data, value)
 end
+
+return ZenArray
