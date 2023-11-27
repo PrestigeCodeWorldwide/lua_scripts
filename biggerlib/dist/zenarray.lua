@@ -20,8 +20,6 @@ ZenArray = {}
 
 
 
-
-
 function newArray(...)
    local data = { ... }
 
@@ -45,8 +43,6 @@ function newArray(...)
       push = ZenArray.push,
       insert = ZenArray.insert,
    }
-
-
 
    return instance
 end

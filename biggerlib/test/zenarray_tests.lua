@@ -30,7 +30,7 @@ describe("ZenTable Modification Methods", function()
         assert.is_true(zt:remove(2))
         assert.is_false(zt:contains(2))
     end)
-
+    
     it("Should be able to clear all values in ZenTable", function()
         local zt = newArray(1, 2, 3)
         zt:clear()

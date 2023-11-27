@@ -8,7 +8,7 @@ global record Mq
   configDir: string
   luaDir: string
   moduleDir: string
-  cmd: function(...: {string})
+  cmd: function(...: string | {string})
   cmdf: function(command: string, ...: {any})
   delay: function(delayValue: number | string, condition: nil | function(): boolean)
   gettime: function(): number
@@ -1783,3 +1783,4 @@ end
 TLO.Ground = {} as Ground
 
 
+return Mq

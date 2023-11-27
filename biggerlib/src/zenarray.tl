@@ -2,8 +2,6 @@ package.path = package.path .. ';../vendor/?.lua'
 local lume = require "lume"
 
 global record ZenArray<T>
-  --{ZenArray<T>}
-  -- Definitions of the methods
   _data: {T}
     
   contains: function(self: ZenArray<T>, value: T): boolean
@@ -45,8 +43,6 @@ global function newArray<T>(...: T): ZenArray<T>
     push = ZenArray.push,
 	insert = ZenArray.insert,
   }
-  
-  --local instance = setmetatable({_data = data} as ZenArray<T>, {__index = ZenArray})
   
   return instance
 end
