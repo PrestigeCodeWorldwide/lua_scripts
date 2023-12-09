@@ -1,5 +1,6 @@
 ---@meta RaidCopyTypes
-local Option, None = require "biggerlib.option"
+local Option, None = require("option")
+local ZenArray = require("zenarray")
 
 ---@class ItemData Inventory item data to be cached - gives ability to notify item via packname and slot2
 ---@field actualItemName string Name of the item in-game
@@ -14,24 +15,18 @@ local Option, None = require "biggerlib.option"
 
 ---@class BagInventory : ItemData[]
 
----@class InventoryType : ZenTable
----@field topLevelInventory TopLevelInventoryItem[] | ZenTable
----@field bagsInventory BagInventory[] | ZenTable
----@field openTopLevelInventorySlot Option(number)
+---@class InventoryType
+--@field topLevelInventory TopLevelInventoryItem[] | ZenArray
+---@field topLevelInventory ZenArray
+---@field bagsInventory BagInventory[] | ZenArray
+---@field openTopLevelInventorySlot Option<number>
 
 --- Data bag for an armor set, such as "Spiritually faded luclinite" NoS armor
----@class ArmorSet : ZenTable
----@field Level number Level required for making the armor set 
+---@class ArmorSet
+---@field Level number Level required for making the armor set
 ---@field Expansion string
----@field Slots table<string, ArmorSetSlot> | ZenTable
+---@field Slots table<string, ArmorSetSlot> | ZenArray
 
----@class ArmorSetSlot : ZenTable
+---@class ArmorSetSlot
 ---@field ingredients string[] List of ingredient names
 ---@field container string Name of the container
-
-
-
-
-
-
-

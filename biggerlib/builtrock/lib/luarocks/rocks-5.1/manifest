@@ -1,0 +1,59 @@
+commands = {}
+dependencies = {
+   biggerlib = {
+      ["1.0-1"] = {
+         {
+            constraints = {
+               {
+                  op = ">=",
+                  version = {
+                     5, 1, string = "5.1"
+                  }
+               },
+               {
+                  op = "<",
+                  version = {
+                     5, 4, string = "5.4"
+                  }
+               }
+            },
+            name = "lua"
+         }
+      }
+   }
+}
+modules = {
+   logger = {
+      "biggerlib/1.0-1"
+   },
+   lume = {
+      "biggerlib/1.0-1"
+   },
+   option = {
+      "biggerlib/1.0-1"
+   },
+   utils = {
+      "biggerlib/1.0-1"
+   },
+   zenarray = {
+      "biggerlib/1.0-1"
+   }
+}
+repository = {
+   biggerlib = {
+      ["1.0-1"] = {
+         {
+            arch = "installed",
+            commands = {},
+            dependencies = {},
+            modules = {
+               logger = "logger.lua",
+               lume = "lume.lua",
+               option = "option.lua",
+               utils = "utils.lua",
+               zenarray = "zenarray.lua"
+            }
+         }
+      }
+   }
+}

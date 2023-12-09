@@ -20,35 +20,33 @@ global record ZenArray<T>
   filter: function(self: ZenArray<T>, func: (function(T):boolean), retainkeys: (boolean | nil)): ZenArray<T>
 end
 	
-global function newArray<T>(baseMetatable: metatable | nil, ...: T): ZenArray<T>    	
+global function newArray<T>(baseMetatable: metatable<ZenArray<T>> | nil, ...: T): ZenArray<T>    	
   	local data = {...} 
 	
   	local instance : ZenArray<T> = {	
-    -- underlying data
-	_data = data,
-    
-    -- Assigning the existing ZenArray methods to the new instance
-    filter = ZenArray.filter,
-    contains = ZenArray.contains,
-    remove = ZenArray.remove,
-    forEach = ZenArray.forEach,
-    isarray = ZenArray.isarray,
-    clear = ZenArray.clear,
-    match = ZenArray.match,
-    find = ZenArray.find,
-    count = ZenArray.count,
-    clone = ZenArray.clone,
-    keys = ZenArray.keys,
-    map = ZenArray.map,
-    push = ZenArray.push,
-	insert = ZenArray.insert,
-  }
+		-- underlying data
+		_data = data,
+		
+		-- Assigning the existing ZenArray methods to the new instance
+		filter = ZenArray.filter,
+		contains = ZenArray.contains,
+		remove = ZenArray.remove,
+		forEach = ZenArray.forEach,
+		isarray = ZenArray.isarray,
+		clear = ZenArray.clear,
+		match = ZenArray.match,
+		find = ZenArray.find,
+		count = ZenArray.count,
+		clone = ZenArray.clone,
+		keys = ZenArray.keys,
+		map = ZenArray.map,
+		push = ZenArray.push,
+		insert = ZenArray.insert,
+  	}  
   
-  if baseMetatable then
-		setmetatable(instance, baseMetatable)
-	end
+	local arrayWithMetatable: ZenArray<T> = setmetatable(instance, baseMetatable)
   
-  return instance
+    return arrayWithMetatable
 end
 	
     

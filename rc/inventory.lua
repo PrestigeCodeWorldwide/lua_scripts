@@ -1,16 +1,16 @@
 ---@type Mq
 local mq = require("mq")
-local BL = require("zen.biggerlib")
-require("zen.biggerlib.option")
---@type UIManager
---local UI = require("uiManager")
+require("logger")
+require("option")
+require("zenarray")
+require("utils")
 
 --- This InventoryManager is a singleton providing access to all functionality related to interacting with a character's Inventory cache (Not including bank yet)
 ---@class InventoryManager
 ---@field InventoryCache InventoryType The cache of the character's inventory
 ---@field cacheBag fun(inBagToCache: number): BagInventory Caches the inventory of a single bag or container
----@field cacheAllBagsInventories fun(): BagInventory[] | ZenTable Caches inventory of all bags in top level character inventory slots
----@field cacheTopLevelInventory fun(): TopLevelInventoryItem[] | ZenTable cache top level inventory items
+---@field cacheAllBagsInventories fun(): BagInventory[] | ZenArray Caches inventory of all bags in top level character inventory slots
+---@field cacheTopLevelInventory fun(): TopLevelInventoryItem[] | ZenArray cache top level inventory items
 ---@field recacheInventory fun(self) Recaches the character's inventory
 local InventoryManager = {}
 InventoryManager.__index = InventoryManager
@@ -58,13 +58,13 @@ function InventoryManager.cacheBag(inBagToCache)
 end
 
 -- Caches inventory of all bags in top level character inventory slots
----@return BagInventory[] | ZenTable
+---@return ZenArray<BagInventory>
 function InventoryManager.cacheAllBagsInventories()
-	---@type BagInventory[] | ZenTable
-	local allBags = newArray()
+	---@type ZenArray<BagInventory>
+	local allBags = newArray(BagInventory)
 	-- 23, 32 are top level inventory slots according to EQ, prior to that are equipped items
 	for i in range(23, 32) do
-		allBags:insert(InventoryManager.cacheBag(i))
+		allBags.insert(InventoryManager.cacheBag(i))
 	end
 
 	--mq.cmd(notifyCommand)
@@ -73,9 +73,9 @@ function InventoryManager.cacheAllBagsInventories()
 end
 
 --- cache top level inventory items
----@return TopLevelInventoryItem[] | ZenTable
+---@return TopLevelInventoryItem[] | ZenArray
 function InventoryManager.cacheTopLevelInventory()
-	---@type TopLevelInventoryItem[] | ZenTable
+	---@type TopLevelInventoryItem[] | ZenArray
 	local topLevelInventory = newArray()
 
 	for i = 23, 32 do
@@ -98,11 +98,11 @@ end
 function InventoryManager:recacheInventory()
 	---@type UIManager
 	local UI = require("uiManager")
-	---@type TopLevelInventoryItem[] | ZenTable
+	---@type ZenArray<TopLevelInventoryItem>
 	local topLevelInventory = InventoryManager.cacheTopLevelInventory()
 	local openSlot = UI:findEmptyTopLevelInventorySlot()
 
-	---@type BagInventory[] | ZenTable
+	---@type ZenArray<BagInventory>
 	local bagsInventory = InventoryManager.cacheAllBagsInventories()
 	---@type InventoryType
 	self.InventoryCache = {

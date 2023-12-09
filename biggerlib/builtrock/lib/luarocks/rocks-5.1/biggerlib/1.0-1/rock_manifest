@@ -1,0 +1,10 @@
+rock_manifest = {
+   ["biggerlib-1.0-1.rockspec"] = "d3b2992cd4740e0d55d876158eb79dee",
+   lua = {
+      ["logger.lua"] = "f2c2a38555f2929588089bf376b6601a",
+      ["lume.lua"] = "3106a911d21af1fee1a244f325001f01",
+      ["option.lua"] = "7cdfc7a3105fad4141bff9b53dead6d2",
+      ["utils.lua"] = "cb1d5e0aaab2e526ed4610c87122a91f",
+      ["zenarray.lua"] = "1731ea956ed41cf36655d7dcbbb87528"
+   }
+}

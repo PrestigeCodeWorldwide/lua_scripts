@@ -3,7 +3,7 @@
 -- @param to integer
 -- @param inc integer
 -- @return function
-local function range(i: integer, to: integer, inc: integer): function
+global function range(i: integer, to: integer, inc: integer): function
     if i == nil then
         return nil -- range(--[[ no args ]]) -> return "nothing" to fail the loop in the caller
     end

@@ -1,6 +1,3 @@
-local tl = require("tl")
-tl.loader()
-
 require('logger')
 
 --- Type for Serialized Option Value

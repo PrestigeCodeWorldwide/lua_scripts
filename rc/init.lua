@@ -2,15 +2,15 @@
 local mq = require("mq")
 ---@type ImGui
 local imgui = require("ImGui")
-local lume = require("zen.biggerlib.lume")
--- Reminder you can access requires starting from the base /lua folder
-require("zen.biggerlib.logger")
 
-local UI = require("uiManager")
+local lume = require("lume")
+require("logger")
 
-local Spells = require("spells")
 local Armor = require("armor")
+local Spells = require("spells")
+
 local Inventory = require("inventory")
+local UI = require("uiManager")
 
 local function main()
 	-- pause cwtn plugins/bard
@@ -19,7 +19,7 @@ local function main()
 	info("Closing open bags")
 	UI:closeAllBags()
 	info("Caching inventory")
-	Inventory.recacheInventory()
+	Inventory:recacheInventory()
 	mq.delay(1)
 
 	--local itemByID = findItemInBagByID(159852):Expect("Item nothing found")

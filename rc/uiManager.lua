@@ -3,8 +3,8 @@ local mq = require("mq")
 ---@type ImGui
 local imgui = require("ImGui")
 
-local lume = require("zen.biggerlib.lume")
-require("zen.biggerlib.logger")
+local lume = require("lume")
+local logger = require("logger")
 
 ---@type InventoryManager
 local Inventory = require("inventory")
@@ -41,12 +41,15 @@ function UIManager.findItemInBagByID(itemID)
 			-- Check if the actualItemName matches the itemName we're looking for
 			if itemData.itemID == itemID then
 				-- Return the matching itemData
-				return Option(itemData)
+				info("Found a match, returning wrapped option")
+				return Option.Wrap(itemData)
 			end
 		end
 	end
 
 	-- If we reach this point, the item was not found
+
+	info("No match found, returning none")
 	return Option.None
 end
 
@@ -72,19 +75,29 @@ function UIManager.findItemInBagByName(itemName)
 		return Option.None
 	end
 
+	local baginv = Inventory.InventoryCache.bagsInventory
+	dump(baginv, "baginv")
+
+	local name = "bob"
+	local job = "builder"
+
 	-- Iterate over each bag in the bagInventory
 	for _, bag in ipairs(Inventory.InventoryCache.bagsInventory) do
 		-- Iterate over each item in the current bag
 		for _, itemData in ipairs(bag) do
 			-- Check if the actualItemName matches the itemName we're looking for
+			--print(" triggers this one
+			print("itemData.actualItemName: " .. itemData.actualItemName .. " itemName: " .. itemName)
 			if itemData.actualItemName == itemName then
 				-- Return the matching itemData
-				return Option(itemData)
+				info("Found a match, returning wrapped option")
+				return Option.Wrap(itemData)
 			end
 		end
 	end
 
 	-- If we reach this point, the item was not found
+	info("No match found, returning none")
 	return Option.None
 end
 
@@ -176,11 +189,17 @@ end
 --- Finds open top level inventory slot
 ---@return Option<number>
 function UIManager:findEmptyTopLevelInventorySlot()
-	return Option(Inventory.InventoryCache.topLevelInventory:match(function(inventoryItem)
+	--return Option(Inventory.InventoryCache.topLevelInventory:match(function(inventoryItem)
+	--	if inventoryItem.Item:IsNone() then
+	--		return inventoryItem.ItemSlotID
+	--	end
+	--end))
+	for _, inventoryItem in pairs(Inventory.InventoryCache.topLevelInventory) do
 		if inventoryItem.Item:IsNone() then
 			return inventoryItem.ItemSlotID
 		end
-	end))
+	end
+	return nil -- Return nil if no empty slot is found
 end
 UIManager.__index = UIManager
 

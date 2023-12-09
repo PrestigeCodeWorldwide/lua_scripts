@@ -2,10 +2,11 @@
 local mq = require("mq")
 ---@type ImGui
 local imgui = require("ImGui")
-local lume = require("zen.biggerlib.lume")
-local ZenArray = require("zen.biggerlib.zenarray")
+
+local ZenArray = require("zenarray")
+local lume = require("lume")
 -- Reminder you can access requires starting from the base /lua folder
-require("zen.biggerlib.logger")
+require("logger")
 
 ---@class SpellsManager
 ---@field RuneTiers ZenArray<string> A list of rune tiers
