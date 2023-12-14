@@ -366,7 +366,7 @@ local function MoveToCamp()
 	print("\apAllowing Time to Buff")
 	-- Change this delay to increase buff time or to help with Meding to full
 	mq.delay(30000)
-	SetPull()
+	--SetPull()
 	SetCamp = false
 end
 
@@ -387,6 +387,19 @@ local function SetIgnores()
 end
 
 SetIgnores()
+
+--- @class WaypointStep
+--- @field loc string
+
+--- @type WaypointStep[]
+local WaypointSteps = {}
+
+local function AddWaypointStep()
+	local loc = mq.TLO.Me.LocYXZ()
+	table.insert(WaypointSteps, loc)
+end
+
+local function PROCEED() end
 
 -- laurioninn is 859
 -- pal/lomen is 861 (pallomen)
@@ -409,6 +422,7 @@ while Run == true do
 				-- Change the Time here based on when you want to exit
 				-- Leaving early prevents getting stuck with the task after completion
 				while mq.TLO.Task("Final Fugue").Timer.TotalMinutes() >= 240 do
+					PROCEED()
 					mq.delay(1000)
 				end
 				-- Make sure to change that time here as well!

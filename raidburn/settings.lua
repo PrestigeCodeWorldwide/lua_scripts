@@ -77,14 +77,12 @@ function settings.init()
 		settings.setDefaults("all")
 		settings.listCommands()
 	elseif configData then -- file loaded, put content into your config table
-		print("Config data received no error")
-
 		local conf = configData()
-		BL.log.dump(conf, "Config Data from file")
-		print("After configData called")
+		--BL.log.dump(conf, "Config Data from file")
+		--print("After configData called")
 		-- instead of replacing settings, i want to merge them
 		mergeSettings(settings, conf.settings)
-		BL.log.dump(settings, "ConfSettings transferred")
+		--BL.log.dump(settings, "ConfSettings transferred")
 
 		--settings.setDefaults() -- check for missing settings
 		--settings.listCommands()

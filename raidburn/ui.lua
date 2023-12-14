@@ -13,7 +13,7 @@ local ui = {
 }
 
 local selectedListItem = { nil, 0 } -- {key, index}
-local selectedClass = "Cleric" -- Left hand menu selected item
+local selectedClass = "Shadow Knight" -- Default to shadow knight bc that's the one that gets triggered manually
 
 local somekvpair = "default"
 function ui.buildWindow()
@@ -21,30 +21,19 @@ function ui.buildWindow()
 	ImGui.SetWindowSize(240, 500, ImGuiCond.Once)
 	local x, y = ImGui.GetContentRegionAvail()
 	local buttonHalfWidth = (x / 2) - 4
-	local buttonThirdWidth = (x / 4) - 1
-
-	if ImGui.Button("Pause") then
-		State.togglePause()
-	end
-	ImGui.SameLine()
-	if State.paused == false then
-		ImGui.TextColored(0, 0.75, 0, 1, "Running")
-	else
-		ImGui.TextColored(0.75, 0, 0, 1, "Paused")
-	end
-
-	ImGui.Separator()
 
 	State.driver, update = ImGui.Checkbox("Driver", State.driver)
 	if update then
 		settings.boolSync()
 	end
 
-	if ImGui.Button("Refresh", buttonHalfWidth, 0) then
-		ui.eventHandlers.refresh()
+	State.runCircleRotation, update = ImGui.Checkbox("Run Circle of Power Rotation", State.runCircleRotation)
+	if update then
+		settings.boolSync()
 	end
+
 	ImGui.Separator()
-	if ImGui.Button("BURN NOW", buttonHalfWidth, 0) then
+	if ImGui.Button("ALL BURN NOW", buttonHalfWidth, 0) then
 		Burn.triggerFullBurn()
 	end
 	----ImGui.SameLine()
@@ -85,11 +74,11 @@ function ui.LeftPaneWindow()
 			ImGui.TableSetupScrollFreeze(0, 1) -- Make row always visible
 			ImGui.TableHeadersRow()
 
-			for key, className in pairs(State.Classes) do
+			for className, _ in pairs(SPELLS_BY_CLASS) do
 				ImGui.TableNextRow()
 				ImGui.TableNextColumn()
 				local popStyleColor = false
-				ImGui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1)
+				ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
 				popStyleColor = true
 
 				local sel = ImGui.Selectable(className, selectedClass == className)
@@ -154,31 +143,21 @@ local spellInput = ""
 function ui.drawClassSection(className, sectionProperties)
 	-- Draw main section control switches first
 	if ImGui.BeginChild(className) then
-		if ImGui.Button("Add Spell") then
-			print("Adding new spell to " .. className)
-			table.insert(SPELLS_BY_CLASS[className], spellInput)
-		end
-		ImGui.SameLine()
-
-		spellInput = ImGui.InputText("", tostring(spellInput))
-
-		ImGui.Separator()
 		-- Draw spells for class
-		for _, spell in ipairs(SPELLS_BY_CLASS[className]) do
+		for spell, aaID in pairs(SPELLS_BY_CLASS[className]) do
 			ui.drawSpell(spell)
 			ImGui.SameLine()
 			ImGui.Text(spell)
 			ImGui.SameLine()
 			local doSpell = ImGui.Button("Do Now")
 			if doSpell then
-				BL.log.info("Doing spell stub: " .. spell)
 				Burn.emitSpellEvent(className, spell)
 			end
 		end
 		ImGui.Separator()
 
 		-- Draw characters of class with enable/disable checkbox
-		ImGui.TextColored(0, 0, 1, 1, "Toon List")
+		ImGui.TextColored(0, 0, 1, 1, "Class Currently In Raid Zone:")
 		--utils.dump(state.ClassInZone, "Dumping class by classname")
 		for keyClassStr, valueListOfToons in pairs(State.ClassInZone) do
 			--printf("Comparing %s to %s", value, className)
@@ -192,7 +171,7 @@ function ui.drawClassSection(className, sectionProperties)
 				for charName, spellState in pairs(valueListOfToons) do
 					--print("Found matching value: " .. toon.CleanName())
 					--BL.log.dump(toon, "Dumping toon")
-					charName = charName
+					charName = charName()
 					if charName == nil then
 						charName = "NIL"
 					end
@@ -245,7 +224,7 @@ function ui.drawSpell(spellName)
 end
 
 function ui.mainWindowEvent()
-	Open, ShowUI = ImGui.Begin("Burninator", true)
+	Open, ShowUI = ImGui.Begin("RaidBurn", true)
 	if ShowUI then
 		ui.buildWindow()
 	end
@@ -254,7 +233,7 @@ end
 
 function ui.init(eventHandlers)
 	ui.eventHandlers = eventHandlers
-	mq.imgui.init("Burninator", ui.mainWindowEvent)
+	mq.imgui.init("RaidBurn", ui.mainWindowEvent)
 end
 
 return ui
