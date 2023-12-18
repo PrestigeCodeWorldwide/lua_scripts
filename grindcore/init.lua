@@ -1,8 +1,11 @@
-print(
-	"\ayFinal Fugue grind starting.  All of your boxes should be in Laurion Inn already, and you should be running this on your tank only!  Requires Dannet"
-)
+---@type Mq
 local mq = require("mq")
------------------------------------------ Hylander Double Invis Lua ----------------------------------------------------------
+--- @type ImGui
+require("ImGui")
+local BL = require("biggerlib")
+
+-- #region DoubleInvis
+
 local function classShortName(x)
 	local y = mq.TLO.Group.Member(x).Class.ShortName()
 	return y
@@ -167,6 +170,7 @@ end
     mq.exit()
 end--]]
 ----------------------------------------End of Hylander's Double Invis Lua-----------------------------------------------------------------
+-- #endregion DoubleInvis
 
 ------------------------------------------Start Shei Camp Lua - Aaly ------------------------------------------------------
 -- Information for Quest NPC
@@ -320,15 +324,15 @@ local function inME()
 	zoneIn()
 end
 --Setting Puller Settings
-local function SetPull()
+local function SetPullSettings()
 	print("\apSetting Puller Settings")
-	mq.cmdf("/%s pullradius 9999", myClass)
+	mq.cmdf("/%s pullradius 500", myClass)
 	mq.cmdf("/%s pullarch 360", myClass)
-	mq.cmdf("/%s zHigh 900", myClass)
-	mq.cmdf("/%s zLow 900", myClass)
+	mq.cmdf("/%s zHigh 100", myClass)
+	mq.cmdf("/%s zLow 100", myClass)
 	-- Watch CC&Healer Mana
-	mq.cmdf("/%s GroupWatch 2", myClass)
-	mq.cmdf("/%s mode huntertank", myClass)
+
+	mq.cmdf("/%s mode pullertank", myClass)
 	mq.cmdf("/%s pause off", myClass)
 end
 
@@ -365,7 +369,7 @@ local function MoveToCamp()
 	MakeMeVis()
 	print("\apAllowing Time to Buff")
 	-- Change this delay to increase buff time or to help with Meding to full
-	mq.delay(30000)
+	mq.delay(3000)
 	--SetPull()
 	SetCamp = false
 end
@@ -393,18 +397,121 @@ SetIgnores()
 
 --- @type WaypointStep[]
 local WaypointSteps = {}
+local CurrentWaypointStep = 1
+
+local function SetPalTestWaypoints()
+	table.insert(WaypointSteps, "-417, 797, -17.66")
+	table.insert(WaypointSteps, "-348, 961, -22.62")
+	table.insert(WaypointSteps, "1247, 254, 31")
+end
 
 local function AddWaypointStep()
 	local loc = mq.TLO.Me.LocYXZ()
 	table.insert(WaypointSteps, loc)
 end
 
-local function PROCEED() end
+local function GetDistanceFromTwoLocYXZ(loc1, loc2)
+	local coords = loc1 .. ":" .. loc2
+	local distToWaypoint = mq.TLO.Math.Distance(coords)()
+	BL.dump(distToWaypoint, "distToWaypoint")
+	return distToWaypoint
+end
+
+local function CheckNavArrived()
+	local loc1 = mq.TLO.Me.LocYXZ()
+	local loc2 = WaypointSteps[CurrentWaypointStep]
+	local distToWaypoint = GetDistanceFromTwoLocYXZ(loc1, loc2)
+	BL.dump(distToWaypoint, "distToWaypoint")
+	return distToWaypoint < 20
+end
+
+local function StartNavToCurrentWaypoint()
+	local loc = WaypointSteps[CurrentWaypointStep]
+	mq.cmdf("/nav locyxz %s", loc)
+end
+
+local function AdvanceCurrentWaypoint() end
+
+local function CheckWaypointListIsCompleted()
+	if CurrentWaypointStep >= #WaypointSteps then
+		return true
+	end
+	return false
+end
+
+-- Runs once we arrive at a waypoint, go into camp mode and pull all the stuff
+local function PullNearbyThings()
+	mq.cmd("/dgga /boxr camp")
+	mq.delay(1000)
+	mq.cmd("/dgga /boxr unpause")
+	mq.delay(1000)
+	SetPullSettings()
+
+	-- figure out when we're out of mobs to pull.
+	while mq.TLO.SpawnCount("npc targetable radius 500 zradius 100")() > 1 do
+		mq.delay(1000)
+	end
+end
+
+local function PROCEED()
+	--sanity check
+	if CheckWaypointListIsCompleted() then
+		BL.error("PROCEED() called when waypoint list is already completed!")
+		return
+	end
+
+	-- Here we check to see if we're in combat, if not we check for next waypoint to travel to
+	while mq.TLO.Me.CombatState() == "COMBAT" do
+		BL.info("In combat")
+		if mq.TLO.Navigation.Active() then
+			mq.cmd("/nav stop")
+			mq.delay(500)
+		end
+		mq.cmd("/dgga /boxr unpause")
+		mq.delay(1000)
+		mq.cmd("/dgge /boxr chase")
+		mq.delay(1000)
+		local myClassShortNameToLower = mq.TLO.Me.Class.ShortName():lower()
+		mq.cmdf("/%s mode tank ", myClassShortNameToLower)
+		mq.delay(1000)
+	end
+
+	if not mq.TLO.Navigation.Active() then
+		BL.info("Nav isn't active")
+		local weArrived = CheckNavArrived()
+		--if its not active because we've reached the waypoint, move to next waypoint
+		if weArrived then
+			PullNearbyThings()
+			AdvanceCurrentWaypoint()
+		else
+			--if its not active because we're not moving, start moving
+			StartNavToCurrentWaypoint()
+		end
+	end
+
+	-- check to see if we've finished all waypoints
+	--CheckWaypointListIsCompleted()
+end
 
 -- laurioninn is 859
 -- pal/lomen is 861 (pallomen)
 --main loop
+
+SetPalTestWaypoints()
+
 while Run == true do
+	--local coords = "-970, 164, 48.66" .. ":" .. mq.TLO.Me.LocYXZ()
+	--local distToWaypoint = mq.TLO.Math.Distance(coords)
+
+	--local currentWPString = coords
+	----BL.dump(currentWPString, "currentWPString")
+	--mq.cmdf("/nav locyxz %s", currentWPString)
+	--mq.delay(1000)
+
+	--if distToWaypoint < 20 then
+	--	--move to next waypoint
+	--end
+
 	if mq.TLO.Zone.ID() == 859 then
 		--print("In Inn")
 		Missing()
@@ -417,16 +524,20 @@ while Run == true do
 			--print("In Pallomen")
 			while SetCamp == true do
 				MoveToCamp()
+				BL.info("Done moving to camp")
+				mq.cmd("/nav stop")
+				mq.delay(50)
 			end
 			if mq.TLO.Task("Final Fugue").ID() ~= nil then
 				-- Change the Time here based on when you want to exit
 				-- Leaving early prevents getting stuck with the task after completion
-				while mq.TLO.Task("Final Fugue").Timer.TotalMinutes() >= 240 do
+				while mq.TLO.Task("Final Fugue").Timer.TotalMinutes() >= 240 and not CheckWaypointListIsCompleted() do
+					BL.info("PROCEEDing")
 					PROCEED()
 					mq.delay(1000)
 				end
 				-- Make sure to change that time here as well!
-				if mq.TLO.Task("Final Fugue").Timer.TotalMinutes() <= 240 then
+				if mq.TLO.Task("Final Fugue").Timer.TotalMinutes() <= 240 or CheckWaypointListIsCompleted() then
 					DropTask()
 				end
 			end
