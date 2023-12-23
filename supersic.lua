@@ -46,15 +46,20 @@ local function doTankLoop()
 		local targetID = nextTarget.ID()
 		local targetDistance = nextTarget.Distance()
 
-		while currentXtar < getXTargetCount() and targetDistance > 5000 do
+		while currentXtar <= getXTargetCount() and targetDistance > 5000 do
 			currentXtar = currentXtar + 1
 			nextTarget = mq.TLO.Me.XTarget(currentXtar)
 			targetID = nextTarget.ID()
 			targetDistance = nextTarget.Distance()
 		end
-		if currentXtar <= getXTargetCount() then
+		if currentXtar < getXTargetCount() and targetDistance > 5000 then
 			-- no xtar targets in range
-			--BL.warn("We have xtarget targets out of range!  They're probably stuck")
+			BL.warn(
+				"We have xtarget targets out of range!  They're probably stuck with distance: %d, currentXtar: %d getTargetCount: %d",
+				targetDistance,
+				currentXtar,
+				getXTargetCount()
+			)
 			return
 		end
 
