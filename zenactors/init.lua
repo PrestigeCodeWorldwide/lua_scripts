@@ -27,7 +27,7 @@ local ClientSendMessage = {
 
 
 
-local host, port = "127.0.0.1", 8080
+local host, port = "164.152.109.187", 8080
 
 local tcp = assert(socket:tcp())
 tcp:connect(host, port)

@@ -17,8 +17,6 @@ use tokio::time::timeout;
 use uuid::Uuid;
 type AnyResult = anyhow::Result<()>;
 
-pub const ADDR: &str = "0.0.0.0:8080";
-
 #[derive(Debug, Display, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct ClientId(Uuid);
 
@@ -68,6 +66,8 @@ struct Server {
     pub clients: HashMap<ClientId, Client>,
     pub writers: HashMap<ClientId, WriteHalf<TcpStream>>,
 }
+
+pub const ADDR: &str = "0.0.0.0:8080";
 
 #[tokio::main]
 async fn main() -> AnyResult {
