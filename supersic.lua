@@ -16,7 +16,7 @@ local function checkIAmGroupTank()
 		return true
 	else
 		BL.warn("I am NOT group tank role!  Please fix for SicTank to work!")
-		mq.cmd("/g WARNING: MY GROUP MAIN TANK ROLE IS NOT SET. SuperSic.lua will not work!")
+		--mq.cmd("/g WARNING: MY GROUP MAIN TANK ROLE IS NOT SET. SuperSic.lua will not work!")
 		return false
 	end
 end

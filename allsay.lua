@@ -2,20 +2,34 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 
-local function boxPrep()
-	mq.cmd("/dgga /assist off")
-	mq.cmd("/dgge /boxr pause")
-	mq.delay(1000)
+local function IAmDriver()
+	local driver = mq.TLO.Group.MainTank()
+	if driver == mq.TLO.Me.CleanName() then
+		return true
+	else
+		return false
+	end
+end
 
+local function boxPrep()
+	if not IAmDriver() then
+		return
+	end
+
+	mq.cmd("/dgga /assist off")
 	local assistName = mq.TLO.Group.MainTank.CleanName()
 
 	mq.cmdf("/dgge /assist %s", assistName)
-	mq.delay(500)
+	mq.delay(100)
 	mq.cmd("/dgga /makemevisible")
-	mq.delay(500)
+	mq.delay(100)
 end
 
 local function sayCommandHandler(...)
+	if not IAmDriver() then
+		return
+	end
+
 	local args = { ... }
 
 	boxPrep()
@@ -25,7 +39,6 @@ local function sayCommandHandler(...)
 
 	mq.cmd("/dgga /say " .. sayPhrase)
 	mq.delay(500)
-	mq.cmd("/dgga /boxr unpause")
 end
 
 mq.bind("/asay param", sayCommandHandler)
@@ -34,8 +47,7 @@ mq.bind("/ahail", function()
 	boxPrep()
 
 	mq.cmd("/dgga /keypress HAIL")
-	mq.delay(500)
-	mq.cmd("/dgga /boxr unpause")
+	mq.delay(100)
 end)
 
 local groundSpawnPickupMatcherText = "#*#GROUNDPICKUP #1# #2#.#*#"
@@ -56,20 +68,32 @@ mq.event("GroundSpawnPickup", groundSpawnPickupMatcherText, function(line, charn
 
 	grounditem.Grab()
 	mq.delay(1000)
+	if mq.TLO.Cursor() == nil then
+		BL.warn("Cursor is nil, so I couldn't grab the item!")
+		mq.cmd("/g Cursor is nil, so I couldn't grab the item!")
+		mq.delay(1000)
+	else
+		mq.cmd("/g Cursor is not nil, so I grabbed the item!")
+	end
 	mq.cmd("/autoinventory")
 	mq.delay(1000)
 	mq.cmdf("/fs Done Grab for %s", charname)
-	mq.cmd("/boxr unpause")
 end)
 
 local function leadCharacterThroughLootProcess(characterName, spawnName)
 	BL.info("Sending %s to loot ground item %s once it spawns", characterName, spawnName)
 	local itsMeLooting = false
+
+	-- Have driver search the whole zone for the ground spawn, but the rest
+	-- must wait on that specific one to respawn so we don't have to worry about nav'ing to them
+	local searchRadius = ""
 	if characterName == mq.TLO.Me.CleanName() then
 		itsMeLooting = true
+		searchRadius = " radius 9999"
+	else
+		searchRadius = " radius 30"
 	end
-
-	local groundItem = mq.TLO.Ground.Search(spawnName)
+	local groundItem = mq.TLO.Ground.Search(spawnName .. searchRadius)
 
 	-- only spew once per character instead of inside while loop
 	if BL.IsNil(groundItem()) then
@@ -94,23 +118,16 @@ local function leadCharacterThroughLootProcess(characterName, spawnName)
 		groundY or -9865,
 		groundZ or -9854
 	)
-	-- Pause automation
-	if itsMeLooting then
-		mq.cmd("/boxr pause")
-	else
-		mq.cmdf("/dex %s /boxr pause", characterName)
-	end
-	mq.delay(1000)
 
 	-- nav to ground item
 	BL.info("Nav to ground item")
-	if itsMeLooting then
-		mq.cmdf("/nav locxyz %d %d %d", groundX, groundY, groundZ)
-		BL.WaitForNav()
-	else
+	-- Move driver to the item and wait until nav'd there, boxes should be on /chase
+	mq.cmdf("/nav locxyz %d %d %d", groundX, groundY, groundZ)
+	BL.WaitForNav()
+	if not itsMeLooting then
 		--everyone else should already be there since self goes first, but we'll give them a bump anyway
 		mq.cmdf("/dex %s /nav locxyz %d %d %d", characterName, groundX, groundY, groundZ)
-		mq.delay(5000)
+		mq.delay(2000)
 	end
 
 	BL.info("Nav to ground item complete")
@@ -156,6 +173,9 @@ local function groundSpawnPickupCommandHandler(...)
 	local spawn = args[1]
 	InitializeGroupCache()
 
+	BL.cmd.pauseAutomation()
+	mq.delay(1000)
+
 	-- foreach group member once spawn is spawned, send the event to them
 	for _, memberName in ipairs(GroupCache) do
 		if memberName and memberName ~= "NONE" then
@@ -167,6 +187,7 @@ local function groundSpawnPickupCommandHandler(...)
 	end
 	BL.info("Ground Spawn Process Completed!")
 	mq.cmd("/fs Ground Spawn Process Completed!")
+	BL.cmd.resumeAutomation()
 end
 
 mq.bind("/aground", groundSpawnPickupCommandHandler)
@@ -175,7 +196,7 @@ local function allGiveItemToTargetHandler(...)
 	local args = { ... }
 
 	--local itemName = args[1]
-
+	BL.cmd.pauseAutomation()
 	-- make our full phrase
 	local itemName = table.concat(args, " ")
 
@@ -187,7 +208,7 @@ local function allGiveItemToTargetHandler(...)
 	BL.info("Navving to target")
 	mq.cmd("/dgga /nav target")
 	BL.MakeGroupVisible()
-	BL.cmd.pauseAutomation()
+
 	mq.delay(2000)
 	-- give him item somehow
 	BL.info("Picking up item onto cursor")

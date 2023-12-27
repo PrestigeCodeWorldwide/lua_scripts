@@ -20,6 +20,7 @@ local function main()
 	UI:closeAllBags()
 	info("Caching inventory")
 	Inventory:recacheInventory()
+	
 	mq.delay(1)
 
 	--local itemByID = findItemInBagByID(159852):Expect("Item nothing found")

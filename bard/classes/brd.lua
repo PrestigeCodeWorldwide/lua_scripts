@@ -7,7 +7,7 @@ local abilities = require("ability")
 local common = require("common")
 local state = require("state")
 local assist = require("routines.assist")
-
+local BL = require("biggerlib")
 local zen
 
 function class.init(_zen)
@@ -65,6 +65,16 @@ end
 function class.sitCheck()
 	-- get main assist
 	local myAssist = assist.getMainAssist()
+	if not myAssist then
+		return
+	end
+
+	if type(myAssist) == "string" then
+		myAssist = mq.TLO.Spawn.Search(myAssist)
+	end
+	if type(myAssist) == "number" then
+		myAssist = mq.TLO.Spawn(myAssist)
+	end
 	-- see if he's sitting
 	local isSitting = myAssist.Sitting()
 	local meSitting = mq.TLO.Me.Sitting()

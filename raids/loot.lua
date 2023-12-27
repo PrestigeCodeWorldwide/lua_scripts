@@ -27,7 +27,7 @@ local function lootCorpseForItem(itemNameToLoot)
 	end)
 	if not mq.TLO.Window("LootWnd").Open() then
 		BL.warn("Can't loot %s right now", mq.TLO.Target.CleanName())
-
+		
 		return false
 	end
 	mq.delay(1000, function()

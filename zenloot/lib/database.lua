@@ -4,7 +4,7 @@ local mq = require("mq")
 local PackageMan = require("mq/PackageMan")
 local sql = PackageMan.Require("lsqlite3")
 
-Database = {
+local Database = {
 	database = nil,
 	path = ("%s/yalm/items.db"):format(mq.luaDir),
 }
@@ -41,5 +41,7 @@ Database.QueryDatabaseForItemName = function(item_name)
 	end
 	return item_db
 end
+
+Database.database = assert(Database.OpenDatabase())
 
 return Database

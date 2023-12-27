@@ -4,13 +4,11 @@ local LIP = require("lib/LIP")
 local utils = require("lib/ed/utils")
 local dannet = require("lib/dannet/helpers")
 
+local Database = require("lib.database") -- used for checking collectible/ts status
 -- something here does something, don't unrequire them
 local PackageMan = require("mq/PackageMan")
 local Utils = require("mq/Utils")
 require("yalm.lib.database")
-
--- used for checking collectible/ts status
-Database.database = assert(Database.OpenDatabase())
 
 local BL = require("biggerlib")
 -- Configure Knightly Write...ly
@@ -758,7 +756,13 @@ function ZenLoot.handle_master_looting(tradeskillLooter, collectionLooter)
 					mq.delay(ZenLoot.new_item_delay .. "s")
 
 					if itemName == mq.TLO.AdvLoot[LootListTLO](1).Name() then
+						BL.info("about to query database for itemid: " .. item_id)
 						local dbItem = Database.QueryDatabaseForItemId(item_id)
+
+						if dbItem == nil then
+							BL.info("Couldn't find db item ")
+							return
+						end
 
 						if dbItem.collectible == 1 then
 							if collectionLooter == "NONE" then
