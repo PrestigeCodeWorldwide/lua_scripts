@@ -5,7 +5,7 @@ local timer = require('utils.timer')
 local state = require('state')
 
 ---@enum AbilityTypes
-AbilityTypes = {
+MGBAbilityTypes = {
 	Spell = 1,
 	AA = 2,
 	Disc = 3,
@@ -62,7 +62,7 @@ AbilityTypes = {
 local Ability = {
 	ID = 0,
 	Name = '',
-	CastType = AbilityTypes.Spell,
+	CastType = MGBAbilityTypes.Spell,
 }
 
 local zen
@@ -127,9 +127,9 @@ function Ability.shouldUseSpell(spell, skipSelfStack)
 					logger.debug(
 						logger.flags.ability.validation,
 						'spell should match caretaker but doesn\'t: '
-							.. spell.Name()
-							.. ' vs '
-							.. 'Jonathan\'s Mightful Caretaker'
+						.. spell.Name()
+						.. ' vs '
+						.. 'Jonathan\'s Mightful Caretaker'
 					)
 					logger.debug(
 						logger.flags.ability.validation,
@@ -204,7 +204,7 @@ end
 
 function Ability.canUseSpell(spell, abilityType, skipReagentCheck)
 	logger.debug(logger.flags.ability.validation, 'ENTER canUseSpell \ag%s\ax', spell.Name())
-	if abilityType == AbilityTypes.Spell and not mq.TLO.Me.SpellReady(spell.Name())() then
+	if abilityType == MGBAbilityTypes.Spell and not mq.TLO.Me.SpellReady(spell.Name())() then
 		if logger.flags.common.cast then
 			logger.debug(
 				logger.flags.ability.validation,
@@ -229,7 +229,7 @@ function Ability.canUseSpell(spell, abilityType, skipReagentCheck)
 		return false
 	end
 	if
-		abilityType ~= AbilityTypes.Item
+		abilityType ~= MGBAbilityTypes.Item
 		and (
 			spell.Mana() > mq.TLO.Me.CurrentMana()
 			or spell.EnduranceCost() > mq.TLO.Me.CurrentEndurance()
@@ -289,11 +289,11 @@ function Ability.use(theAbility, doSwap)
 		return result
 	end
 	if
-		(theAbility:isReady() or (theAbility.CastType == AbilityTypes.Spell and doSwap))
+		(theAbility:isReady() or (theAbility.CastType == MGBAbilityTypes.Spell and doSwap))
 		and (not theAbility.condition or theAbility.condition(theAbility))
 		and zen.class.isAbilityEnabled(theAbility.opt)
 	then
-		if theAbility.CastType == AbilityTypes.Spell and doSwap then
+		if theAbility.CastType == MGBAbilityTypes.Spell and doSwap then
 			result = Ability.swapAndCast(theAbility, state.swapGem)
 		else
 			--if theAbility.pause then mq.cmd('/squelch /dga zen /squelch /zen pauseforbuffs') end
@@ -322,7 +322,7 @@ end
 ---@param spellData table #
 ---@return Ability #
 function Spell:new(spellData)
-	local spell = Ability:new(spellData, AbilityTypes.Spell)
+	local spell = Ability:new(spellData, MGBAbilityTypes.Spell)
 	setmetatable(spell, self)
 	self.__index = self
 	self.tostring = Ability.tostring
@@ -396,7 +396,7 @@ local Disc = {}
 ---@param spellData table #
 ---@return Ability #
 function Disc:new(spellData)
-	local disc = Ability:new(spellData, AbilityTypes.Disc)
+	local disc = Ability:new(spellData, MGBAbilityTypes.Disc)
 	setmetatable(disc, self)
 	self.__index = self
 	self.tostring = Ability.tostring
@@ -436,8 +436,8 @@ function Disc:execute()
 					'Use Disc: \ag%s\ax%s',
 					self.Name,
 					self.TargetType == 'Single'
-							and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-						or ''
+					and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
+					or ''
 				)
 			)
 		end
@@ -466,8 +466,8 @@ function Disc:use(overwrite)
 					'Use Disc: \ag%s\ax%s',
 					self.Name,
 					self.TargetType == 'Single'
-							and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-						or ''
+					and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
+					or ''
 				)
 			)
 		end
@@ -491,8 +491,8 @@ function Disc:use(overwrite)
 					'Use Disc: \ag%s\ax%s',
 					self.Name,
 					self.TargetType == 'Single'
-							and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-						or ''
+					and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
+					or ''
 				)
 			)
 		end
@@ -518,7 +518,7 @@ local AA = {}
 ---@param spellData table #
 ---@return Ability #
 function AA:new(spellData)
-	local aa = Ability:new(spellData, AbilityTypes.AA)
+	local aa = Ability:new(spellData, MGBAbilityTypes.AA)
 	setmetatable(aa, self)
 	self.__index = self
 	self.tostring = Ability.tostring
@@ -544,7 +544,7 @@ function AA:execute()
 				'Use AA: \ag%s\ax%s',
 				self.Name,
 				self.TargetType == 'Single' and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-					or ''
+				or ''
 			)
 		)
 	end
@@ -566,7 +566,7 @@ function AA:use()
 				'Use AA: \ag%s\ax%s',
 				self.Name,
 				self.TargetType == 'Single' and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-					or ''
+				or ''
 			)
 		)
 	end
@@ -587,7 +587,7 @@ local Item = {}
 ---@param spellData table #
 ---@return Ability #
 function Item:new(spellData)
-	local item = Ability:new(spellData, AbilityTypes.Item)
+	local item = Ability:new(spellData, MGBAbilityTypes.Item)
 	setmetatable(item, self)
 	self.__index = self
 	self.tostring = Ability.tostring
@@ -621,7 +621,7 @@ function Item:execute()
 				'Use Item: \ag%s\ax%s',
 				self.Name,
 				self.TargetType == 'Single' and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-					or ''
+				or ''
 			)
 		)
 	end
@@ -648,7 +648,7 @@ function Item:use()
 				'Use Item: \ag%s\ax%s',
 				theItem,
 				self.TargetType == 'Single' and (' on \at%s\ax'):format(mq.TLO.Target.CleanName())
-					or ''
+				or ''
 			)
 		)
 	end
@@ -669,7 +669,7 @@ local Skill = {}
 ---@param spellData table #
 ---@return Ability #
 function Skill:new(spellData)
-	local skill = Ability:new(spellData, AbilityTypes.Skill)
+	local skill = Ability:new(spellData, MGBAbilityTypes.Skill)
 	setmetatable(skill, self)
 	self.__index = self
 	self.tostring = Ability.tostring
@@ -762,23 +762,23 @@ end
 
 function Ability:setSpellType()
 	if mq.TLO.Me.AltAbility(self.CastName).Spell() then
-		self.CastType = AbilityTypes.AA
+		self.CastType = MGBAbilityTypes.AA
 	elseif mq.TLO.Me.Book(self.CastName)() then
-		self.CastType = AbilityTypes.Spell
+		self.CastType = MGBAbilityTypes.Spell
 		self.SpellInBook = true
 	elseif mq.TLO.Me.CombatAbility(self.CastName)() then
-		self.CastType = AbilityTypes.Disc
+		self.CastType = MGBAbilityTypes.Disc
 	elseif mq.TLO.Me.Ability(self.CastName)() then
-		self.CastType = AbilityTypes.Skill
+		self.CastType = MGBAbilityTypes.Skill
 	elseif mq.TLO.FindItem('=' .. self.CastName)() then
-		self.CastType = AbilityTypes.Item
+		self.CastType = MGBAbilityTypes.Item
 	else
-		self.CastType = AbilityTypes.None
+		self.CastType = MGBAbilityTypes.None
 	end
 end
 
 function Ability:setSpellData()
-	if self.CastType == AbilityTypes.Item then
+	if self.CastType == MGBAbilityTypes.Item then
 		local itemRef
 		if tonumber(self.CastName) then
 			itemRef = mq.TLO.FindItem(self.CastName)
@@ -796,7 +796,7 @@ function Ability:setSpellData()
 
 		self.SpellName = itemSpellRef.Name()
 		self.CastID = itemRef.ID()
-	elseif self.CastType == AbilityTypes.AA then
+	elseif self.CastType == MGBAbilityTypes.AA then
 		local aaRef = mq.TLO.Me.AltAbility(self.CastName)
 		local aaSpellRef = aaRef.Spell
 		self:setCommonSpellData(aaSpellRef)
@@ -804,19 +804,19 @@ function Ability:setSpellData()
 		self.RecastTime = aaRef.ReuseTime()
 		self.SpellName = aaSpellRef.Name()
 		self.CastID = aaRef.ID()
-	elseif self.CastType == AbilityTypes.Spell then
+	elseif self.CastType == MGBAbilityTypes.Spell then
 		local spellRef = mq.TLO.Spell(self.CastName)
 		self:setCommonSpellData(spellRef)
 
 		self.Mana = spellRef.Mana()
 		self.CastID = self.SpellID
-	elseif self.CastType == AbilityTypes.Disc then
+	elseif self.CastType == MGBAbilityTypes.Disc then
 		local spellRef = mq.TLO.Spell(self.CastName)
 		self:setCommonSpellData(spellRef)
 
 		self.EnduranceCost = spellRef.EnduranceCost()
 		self.CastID = self.SpellID
-	elseif self.CastType == AbilityTypes.Skill then
+	elseif self.CastType == MGBAbilityTypes.Skill then
 		-- nothing to do
 	end
 
@@ -897,7 +897,7 @@ end
 
 return {
 	init = Ability.init,
-	Types = AbilityTypes,
+	Types = MGBAbilityTypes,
 	canUseSpell = Ability.canUseSpell,
 	use = Ability.use,
 	swapAndCast = Ability.swapAndCast,

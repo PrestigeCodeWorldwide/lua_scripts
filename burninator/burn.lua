@@ -96,21 +96,23 @@ Burn.meCastSpell = function(spellname)
 	for className, spellList in pairs(SPELLS_BY_CLASS) do
 		for spell, spellInfo in pairs(spellList) do
 			if spell == spellname then
-				--BL.info("Found spell %s in class %s", spell, className)
+				BL.info("Found spell %s in class %s", spell, className)
 				local aaId = SPELLS_BY_CLASS[className][spell]
-				--BL.info("AAID is %d", aaId)
+				BL.info("AAID is %d", aaId)
 				if aaId > 0 then
 					BL.info("Activating AA %d", tostring(aaId))
 					mq.cmdf("/alt activate %s", tostring(aaId))
 					mq.delay(5000)
-				elseif aaId == AbilityTypes.Spell then
+				elseif aaId == MGBAbilityTypes.Spell then
 					BL.info("Casting spell %s", spellname)
 					mq.cmdf("/cast %s", spellname)
 					mq.delay(5000)
-				elseif aaId == AbilityTypes.Disc then
+				elseif aaId == MGBAbilityTypes.Disc then
 					BL.info("Activating disc %s", spellname)
 					mq.cmdf("/disc %s", spellname)
 					mq.delay(5000)
+				else
+					BL.warn("Unknown ability type for %s", spellname)
 				end
 				--mq.cmdf("/cast %d", aaId)
 				--mq.delay(5000)
@@ -136,10 +138,9 @@ Burn.burninateEventHandler = function(line, spellToCast, toonToCast)
 end
 
 local function _findNextCharacterToCast(className, spellName)
-	State.refreshClassList()
-	local chosenCharacter = ""
-	local lowestLastUsed = 2 ^ 63 - 1
-	--BL.info("In find next char to cast with %s and %s", className, spellName)
+	--State.refreshClassList()
+	local chosenCharacter = nil
+	local lowestLastUsed = 99999999999999
 	local classInZone = State.ClassInZone[className]
 
 	if classInZone == nil then
@@ -149,11 +150,17 @@ local function _findNextCharacterToCast(className, spellName)
 
 	for charName, char in pairs(State.ClassInZone[className]) do
 		if char.SpellState[spellName].LastUsed < lowestLastUsed then
+			BL.info("Found a lower last used for %s!  Previous: %s new: %s",
+				charName, lowestLastUsed, char.SpellState[spellName].LastUsed)
+
 			lowestLastUsed = char.SpellState[spellName].LastUsed
 			chosenCharacter = charName
+		else
+			BL.info("Previous last used %s was lower than %s - %s", lowestLastUsed, charName,
+				char.SpellState[spellName].LastUsed)
 		end
 	end
-	if chosenCharacter == "" then
+	if chosenCharacter == nil then
 		BL.warn("No character found for class %s", className)
 		return
 	end
@@ -170,7 +177,7 @@ Burn.emitSpellEvent = function(className, spellName)
 
 	local chosenCharacter = _findNextCharacterToCast(className, spellName)
 
-	State:UpdateSpellStateOnUse(className, chosenCharacter, spellName)
+	State.UpdateSpellStateOnUse(className, chosenCharacter, spellName)
 
 	if chosenCharacter == nil then
 		BL.warn("No character found for class %s!  We can't use %s", className, spellName)
@@ -296,6 +303,7 @@ function Burn.Init()
 		Burn.handleCircleOfPowerListResponse
 	)
 	mq.event("doCircleOfPower", "#*#DOCIRCLEOFPOWER #1#.#*#", Burn.DoCircleOfPowerEventHandler)
+	State.refreshClassList()
 end
 
 return Burn

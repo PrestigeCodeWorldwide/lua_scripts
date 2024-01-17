@@ -7,7 +7,7 @@ local BL = require("biggerlib")
 --- to signify that this is instead a spell, pass 0
 --- to signify that this is instead a clicky, pass -1
 
-AbilityTypes = BL.Enum([[		
+MGBAbilityTypes = BL.Enum([[		
 	Disc = -20
 	Spell = -1
 	Item = -100
@@ -39,10 +39,10 @@ SPELLS_BY_CLASS = {
 	},
 	["Beastlord"] = {
 		["Paragon of Spirit"] = 128,
-		["Spiritual Enduement"] = 0
+		["Spiritual Evolution"] = MGBAbilityTypes.Spell,
 	},
 	["Berserker"] = {
-		["War Cry of Dravel"] = AbilityTypes.Disc,
+		["War Cry of Dravel"] = MGBAbilityTypes.Disc,
 	},
 }
 
@@ -164,17 +164,22 @@ function State.refreshClassList()
 	--BL.log.dump(State.ClassInZone)
 end
 
-function State:UpdateSpellStateOnUse(class, characterName, spellName)
-	local charactersInZoneOfClass = self.ClassInZone[class]
-	if charactersInZoneOfClass == nil then
-		BL.log.warn("No characters found for class: %s", class)
+function State.UpdateSpellStateOnUse(class, characterName, spellName)
+	BL.info("In State:UpdateSpellStateOnUse")
+
+	if State.ClassInZone[class] == nil then
+		BL.warn("No characters found for class: %s", class)
 		return
 	end
-	local character = charactersInZoneOfClass[characterName]
 
-	local spellState = character.SpellState[spellName]
+
+	local spellState = State.ClassInZone[class][characterName].SpellState[spellName]
 	if spellState then
-		spellState.LastUsed = mq.gettime()
+		State.ClassInZone[class][characterName].SpellState[spellName].LastUsed = mq.gettime()
+		BL.info("Setting last used for %s to %d", spellName,
+			State.ClassInZone[class][characterName].SpellState[spellName].LastUsed)
+	else
+		BL.warn("Couldn't find spell state")
 	end
 end
 
