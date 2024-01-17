@@ -165,11 +165,12 @@ function ui.drawInputText(labelText, idText, resultVar, helpText, xOffset, yOffs
 	ImGui.SameLine()
 	local _, y = ImGui.GetCursorPos()
 	ImGui.SetCursorPosY(y - 3)
-	ImGui.SetCursorPosX(mid_x + xOffset)
-	resultVar = ImGui.InputText(idText, resultVar)
+    ImGui.SetCursorPosX(mid_x + xOffset)
+	local textChanged = false
+	resultVar, textChanged = ImGui.InputText(idText, resultVar)
 	--[[resultVar = ImGui.InputText(labelText, resultVar)
 	helpMarker(helpText)]]
-	return resultVar
+	return resultVar, textChanged
 end
 
 function ui.getNextXY(startY, yAvail, xOffset, yOffset, maxY)
@@ -200,8 +201,14 @@ local function drawConfigurationForCategory(configs)
 			config.set(cfgKey, ui.drawComboBox(cfg.label, cfg.value, cfg.options, true, cfg.tip, xOffset, yOffset))
 		elseif cfg.type == "inputint" then
 			config.set(cfgKey, ui.drawInputInt(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
-		elseif cfg.type == "inputtext" then
-			config.set(cfgKey, ui.drawInputText(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
+        elseif cfg.type == "inputtext" then
+            -- mq.cmdf("/dobserve %s -q Target", assistName) -- do this if dirty
+            local newText, textChanged = ui.drawInputText(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset)
+			-- Set observer for out-of-group target access
+			if textChanged and cfgKey == "ASSISTNAMES" then
+				mq.cmdf("/dobserve %s -q Target", newText)
+			end
+			config.set(cfgKey, newText)
 		end
 		xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
 	end

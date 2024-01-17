@@ -27,7 +27,7 @@ local MGBAAManager = {
 		aaId = 992,
 		IsActive = function()
 			local theBuff = mq.TLO.Me.Buff("Tranquil Blessing").ID()
-			--BL.log.info("ID of TB buff in IsActive is: " .. tostring(theBuff))
+			--BL.info("ID of TB buff in IsActive is: " .. tostring(theBuff))
 			return mq.TLO.Me.Buff("Tranquil Blessing").ID()
 		end,
 		Activate = function(self)
@@ -83,22 +83,22 @@ Burn.meCastSpell = function(spellname)
 	MGBAAManager.MassGroupBuff:Activate()
 
 	-- Pause so automation doesn't interrupt us
-	--BL.log.info("Boxr Pausing so automation doesn't interrupt us")
+	--BL.info("Boxr Pausing so automation doesn't interrupt us")
 	mq.cmd("/boxr pause")
 	mq.delay(100)
 
 	-- Cast spell (should have MGB/TB active already and be targeting the correct)
-	--BL.log.dump(spellname)
-	--BL.log.info("Casting spell: %s ", spellname)
+	--BL.dump(spellname)
+	--BL.info("Casting spell: %s ", spellname)
 
 	-- distinguish between AA and spell
 	---- first find the proper AAID from SPELLS_BY_CLASS
 	for className, spellList in pairs(SPELLS_BY_CLASS) do
 		for spell, spellInfo in pairs(spellList) do
 			if spell == spellname then
-				--BL.log.info("Found spell %s in class %s", spell, className)
+				--BL.info("Found spell %s in class %s", spell, className)
 				local aaId = SPELLS_BY_CLASS[className][spell]
-				--BL.log.info("AAID is %d", aaId)
+				--BL.info("AAID is %d", aaId)
 				if aaId > 0 then
 					BL.info("Activating AA %d", tostring(aaId))
 					mq.cmdf("/alt activate %s", tostring(aaId))
@@ -120,7 +120,7 @@ Burn.meCastSpell = function(spellname)
 	--mq.cmdf("/cast %s", spellname)
 	--mq.delay(5000)
 
-	BL.log.info("Completed casting spell: %s ", spellname)
+	BL.info("Completed casting spell: %s ", spellname)
 	mq.cmd("/boxr unpause")
 end
 
@@ -143,7 +143,7 @@ local function _findNextCharacterToCast(className, spellName)
 	local classInZone = State.ClassInZone[className]
 
 	if classInZone == nil then
-		BL.log.warn("No class in zone found for %s", className)
+		BL.warn("No class in zone found for %s", className)
 		return
 	end
 
@@ -154,7 +154,7 @@ local function _findNextCharacterToCast(className, spellName)
 		end
 	end
 	if chosenCharacter == "" then
-		BL.log.warn("No character found for class %s", className)
+		BL.warn("No character found for class %s", className)
 		return
 	end
 
@@ -164,7 +164,7 @@ end
 Burn.emitSpellEvent = function(className, spellName)
 	-- Reject non-driver requests
 	if not State.driver then
-		BL.log.warn("Not driver, rejecting request!")
+		BL.warn("Not driver, rejecting request!")
 		return
 	end
 
@@ -173,7 +173,7 @@ Burn.emitSpellEvent = function(className, spellName)
 	State:UpdateSpellStateOnUse(className, chosenCharacter, spellName)
 
 	if chosenCharacter == nil then
-		BL.log.warn("No character found for class %s!  We can't use %s", className, spellName)
+		BL.warn("No character found for class %s!  We can't use %s", className, spellName)
 		mq.cmdf("/rs WARNING WARNING No character found for class %s!  We can't use %s", className, spellName)
 		return
 	end
@@ -184,7 +184,7 @@ Burn.emitSpellEvent = function(className, spellName)
 end
 
 function Burn.TurnOffPluginUses()
-	BL.log.info("Turning off plugin uses")
+	BL.info("Turning off plugin uses")
 	local myClass = mq.TLO.Me.Class.ShortName()
 
 	if myClass == "SHD" then
@@ -211,7 +211,7 @@ function Burn.TurnOffPluginUses()
 end
 
 Burn.triggerFullBurn = function()
-	BL.log.info("Starting full burn!")
+	BL.info("Starting full burn!")
 	mq.cmd("/rs Starting full burn!")
 	-- go thru each spell and cast it
 	for className, spellList in pairs(SPELLS_BY_CLASS) do
@@ -220,7 +220,7 @@ Burn.triggerFullBurn = function()
 			mq.cmd("/rs Skipping " .. className .. " in full burn")
 		else
 			for spell, _ in pairs(spellList) do
-				BL.log.info("Casting spell %s for class %s", spell, className)
+				BL.info("Casting spell %s for class %s", spell, className)
 				Burn.emitSpellEvent(className, spell)
 			end
 		end

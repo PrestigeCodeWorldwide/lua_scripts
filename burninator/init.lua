@@ -7,9 +7,10 @@ local ui = require("ui")
 local Burn = require("burn")
 
 local function main()
+	terminate = false
 	mq.bind("/burn", Burn.args_cmd_handler)
 	settings.init()
-	BL.cmd.sendRaidChannelMessage("Raidburn Lua loaded")
+	BL.cmd.sendRaidChannelMessage("Burninator loaded")
 
 	Burn.Init()
 
@@ -20,18 +21,20 @@ local function main()
 
 	local PeriodicCoPCacheTimer = -1
 
-	while true or not terminate do
-		PeriodicCoPCacheTimer = PeriodicCoPCacheTimer - 1
-		if PeriodicCoPCacheTimer <= 0 then
-			PeriodicCoPCacheTimer = 10
-			if State.driver then
-				mq.cmd("/rs WHOCANPOWER.")
+	while not State.terminate do
+		if not State.paused then
+			PeriodicCoPCacheTimer = PeriodicCoPCacheTimer - 1
+			if PeriodicCoPCacheTimer <= 0 then
+				PeriodicCoPCacheTimer = 10
+				if State.driver and State.runCircleRotation then
+					--mq.cmd("/rs WHOCANPOWER.")
+				end
 			end
-		end
 
-		Burn.HandleCircleOfPower()
-		mq.doevents()
-		mq.delay(1000)
+			--Burn.HandleCircleOfPower()
+			mq.doevents()
+			mq.delay(100)
+		end
 	end
 
 	ui.destroy()

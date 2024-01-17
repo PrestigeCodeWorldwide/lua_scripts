@@ -249,13 +249,13 @@ mq.event(
 		if BL.IsNil(taskName) or BL.IsNil(taskStep) or BL.IsNil(taskStatus) then
 			return
 		end
-		BL.info(
-			"In final event of the chain setting %s to %s -- %s -- %s",
-			characterName,
-			taskName,
-			taskStep,
-			taskStatus
-		)
+		--BL.info(
+		--	"In final event of the chain setting %s to %s -- %s -- %s",
+		--	characterName,
+		--	taskName,
+		--	taskStep,
+		--	taskStatus
+		--)
 
 		group[characterName] = { taskName = taskName, taskStep = taskStep, taskStatus = taskStatus }
 	end

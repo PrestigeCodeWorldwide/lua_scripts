@@ -5,11 +5,12 @@ use futures::future::err;
 use log::debug;
 use paris::{error, info, warn, Logger};
 use serde::{Deserialize, Serialize};
-use std::clone;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::process::id;
 use std::sync::Arc;
 use std::time::Duration;
+use std::{clone, collections::HashSet};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, WriteHalf};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex, MutexGuard};
@@ -32,10 +33,8 @@ impl ClientId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientMessage {
-    pub clientOperation: ClientOperation,
-    pub message: Option<String>,
     pub clientId: Option<ClientId>,
-    pub mailbox: Option<String>, //like "default"
+    pub clientOperation: ClientOperation,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,11 +43,54 @@ enum ServerOperation {
     RequestCurrentTaskStep,
 }
 
+/* intended as a grouping of clients, so things like
+    "every one of your own characters" or "all the characters in the raid".
+    String currently for flexibility until I figure out something better.
+    Intended such that each client "connects" to one or more rooms at a time
+    and each room has 1 or more channels.  A message is sent to a Room/Channel combination
+*/
+#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, Eq, Hash)]
+pub struct Room(String);
+#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, Eq, Hash)]
+pub struct Channel(String);
+#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, Eq, Hash)]
+pub struct Message(String);
+
+impl Deref for Room {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Deref for Channel {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Deref for Message {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum ClientOperation {
-    ClientConnectAttempt,
-    Drop,
-    ClientMessage,
+    ConnectAttempt,  // connects to a socket
+    RoomJoin(Room),  // joins a room
+    RoomLeave(Room), // leaves a room
+    Disconnect,
+    Message {
+        room: Room,
+        channel: Channel,
+        message: Message,
+    },
 }
 
 pub struct Client {
@@ -65,6 +107,7 @@ impl Client {
 struct Server {
     pub clients: HashMap<ClientId, Client>,
     pub writers: HashMap<ClientId, WriteHalf<TcpStream>>,
+    pub rooms: HashMap<Room, HashSet<ClientId>>,
 }
 
 pub const ADDR: &str = "0.0.0.0:8080";
@@ -76,6 +119,7 @@ async fn main() -> AnyResult {
     let server = Arc::new(Mutex::new(Server {
         clients: HashMap::new(),
         writers: HashMap::new(),
+        rooms: HashMap::new(),
     }));
 
     //let mut clientStreams: HashMap<ClientId, Arc<Mutex<TcpStream>>> = HashMap::new();
@@ -103,21 +147,42 @@ async fn main() -> AnyResult {
             }
 
             // Spawn a task to listen for messages to send to the client
-            let server_clone = Arc::clone(&server);
-            let clientIdClone = clientId.clone();
+            let server_locked = Arc::clone(&server);
+            let client_id_clone = clientId.clone();
 
+            // Create a channel for sending dead client IDs
+            let (dead_client_sender, mut dead_client_receiver) = tokio::sync::mpsc::channel(100);
+            let server_locked_clone = Arc::clone(&server_locked);
+
+            // Thread that writes incoming messages to client
             tokio::spawn(async move {
+                // Wait for incoming message
                 while let Some(message) = rx.recv().await {
-                    let mut server = server_clone.lock().await;
-                    if let Some(writer) = server.writers.get_mut(&clientIdClone) {
+                    // lock server mutex
+                    let mut server = server_locked.lock().await;
+                    // obtain writer access
+                    if let Some(writer) = server.writers.get_mut(&client_id_clone) {
+                        // Send actual TCP message
                         if let Err(e) = writer.write_all(message.as_bytes()).await {
                             error!(
                                 "Failed to write message to client {}: {}",
                                 clientId.clone().0,
                                 e
                             );
+                            // Send dead client ID to the removal task
+                            if let Err(e) = dead_client_sender.send(client_id_clone).await {
+                                error!("Failed to send dead client ID: {}", e);
+                            }
                         }
                     }
+                }
+            });
+
+            // Spawn a task for removing dead clients
+            tokio::spawn(async move {
+                while let Some(dead_client_id) = dead_client_receiver.recv().await {
+                    let mut server = server_locked_clone.lock().await;
+                    server.writers.remove(&dead_client_id);
                 }
             });
 
@@ -136,47 +201,52 @@ async fn main() -> AnyResult {
                 info!("JSON Message is: {}", &json_message);
                 let message: Result<ClientMessage, _> = serde_json::from_str(&json_message);
                 match message {
-                    Ok(message) => match message.clientOperation {
-                        ClientOperation::ClientMessage => {
-                            // info!(
-                            //     "Received client message: {} to mailbox: {}",
-                            //     message.message.unwrap(),
-                            //     message.mailbox.unwrap()
-                            // );
+                    Ok(client_message) => match client_message.clientOperation {
+                        ClientOperation::Message {
+                            room,
+                            channel,
+                            message,
+                        } => {
                             // We need to send this client message out to every single stream in all the tokio spawns
-                            if let Some(msg) = message.message.clone() {
-                                // Clone the message here
-                                info!(
-                                    "Received client message: {} to mailbox: {}",
-                                    &msg,
-                                    message.mailbox.as_deref().unwrap_or("default")
-                                );
-                                // We need to send this client message out to every single stream in all the tokio spawns
-                                let server_guard = server.lock().await;
-                                let responseMsg = format!("{} RESPONSE", msg.clone());
-                                for (other_client_id, other_client) in server_guard.clients.iter() {
-                                    //Commented so that it'll broadcast to every client period including itself
-                                    //if *other_client_id != clientId {
-                                    // Use the cloned message
-                                    if let Err(e) = other_client.tx.send(responseMsg.clone()) {
-                                        // Clone again for each send
-                                        error!(
-                                            "Failed to send message to client {}: {}",
-                                            other_client_id, e
-                                        );
-                                    } else {
-                                        info!("Sent message to client: {}", other_client_id)
+
+                            // Clone the message here
+                            info!(
+                                "Received client message: {} to room: {} and channel: {} from id: {}",
+                                &message, &room, &channel, &client_message.clientId.unwrap().0
+                            );
+                            // We need to send this client message out to every single stream in all the tokio spawns
+                            let mut server_guard = server.lock().await;
+                            let responseMsg = format!("{} RESPONSE", message.clone());
+                            let mut dead_clients = Vec::new();
+
+                            if let Some(clients_in_room) = server_guard.rooms.get(&room) {
+                                for client_id in clients_in_room {
+                                    if let Some(client) = server_guard.clients.get(client_id) {
+                                        if let Err(e) = client.tx.send(responseMsg.clone()) {
+                                            error!(
+                                                "Failed to send message to client {}: {}",
+                                                client_id, e
+                                            );
+                                            // Queue dead client for removal
+                                            dead_clients.push(*client_id);
+                                        } else {
+                                            info!("Sent message to client: {}", client_id);
+                                        }
                                     }
-                                    //}
                                 }
                             }
+
+                            // Remove dead clients
+                            for client_id in dead_clients {
+                                server_guard.clients.remove(&client_id);
+                            }
                         }
-                        ClientOperation::Drop => {
+                        ClientOperation::Disconnect => {
                             info!("The client has terminated the connection.");
                             break;
                         }
-                        ClientOperation::ClientConnectAttempt => {
-                            info!("In clientannounce");
+                        ClientOperation::ConnectAttempt => {
+                            info!("In ClientConnectAttempt");
 
                             let tx_clone = tx.clone();
                             {
@@ -213,32 +283,24 @@ async fn main() -> AnyResult {
                             } else {
                                 error!("Writer for client ID not found");
                             }
-                            // let tx_clone = tx.clone();
-                            // {
-                            //     let mut server = server.lock().await;
-                            //     server.clients.insert(
-                            //         clientId.clone(),
-                            //         Client::new(clientId.clone(), tx_clone),
-                            //     );
-                            // }
-                            //
-                            // // send client its new ID back
-                            // let server_operation =
-                            //     ServerOperation::ClientConnectApproved(clientId.clone());
-                            // let operation_json = match serde_json::to_string(&server_operation) {
-                            //     Ok(str) => str,
-                            //     Err(err) => {
-                            //         error!(
-                            //             "Error occurred when serializing server operation: {}",
-                            //             err
-                            //         );
-                            //         continue;
-                            //     }
-                            // };
-                            //
-                            // info!("Writing to client stream");
-                            // stream.write_all(operation_json.as_bytes()).await.unwrap();
-                            // info!("Sent client response");
+                        }
+                        ClientOperation::RoomJoin(room) => {
+                            info!("Client {} joining room {}", clientId, room);
+                            let mut server = server.lock().await;
+                            server
+                                .rooms
+                                .entry(room.clone())
+                                .or_default()
+                                .insert(clientId);
+                            info!("Client {} joined room {}", clientId, room);
+                        }
+                        ClientOperation::RoomLeave(room) => {
+                            info!("Client {} leaving room {}", clientId, room);
+                            let mut server = server.lock().await;
+                            if let Some(clients_in_room) = server.rooms.get_mut(&room) {
+                                clients_in_room.remove(&clientId);
+                                info!("Client {} left room {}", clientId, room);
+                            }
                         }
                     },
                     Err(err) => {

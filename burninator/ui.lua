@@ -12,7 +12,7 @@ local ui = {
 	internal = {},
 }
 
-local selectedListItem = { nil, 0 } -- {key, index}
+local selectedListItem = { nil, 0 }   -- {key, index}
 local selectedClass = "Shadow Knight" -- Default to shadow knight bc that's the one that gets triggered manually
 
 local somekvpair = "default"
@@ -142,15 +142,18 @@ local spellInput = ""
 
 function ui.drawClassSection(className, sectionProperties)
 	-- Draw main section control switches first
+
 	if ImGui.BeginChild(className) then
 		-- Draw spells for class
 		for spell, aaID in pairs(SPELLS_BY_CLASS[className]) do
+			local doSpell = false
 			ui.drawSpell(spell)
 			ImGui.SameLine()
 			ImGui.Text(spell)
 			ImGui.SameLine()
-			local doSpell = ImGui.Button("Do Now")
+			doSpell = ImGui.Button("Do Now##" .. spell)
 			if doSpell then
+				BL.info("Doing spell %s", spell)
 				Burn.emitSpellEvent(className, spell)
 			end
 		end

@@ -1,79 +1,75 @@
---- @type Mq
 local mq = require('mq')
 
-local OnHitEventMatcher = '#1# hit#*#for 1 points of non-melee damage#*#'
+local noHitZoneShortName = {'PoKnowledge', 'Bazaar', 'Nexus', 'guildlobby'}
+local radiusZ = 30
+local radiusXY = 75
+local function isZoneAllowed(zoneShortName)
+	for _, noHitZone in ipairs(noHitZoneShortName) do
+		if zoneShortName == noHitZone then
+			return false
+		end
+	end
+	return true
+end
 
-mq.event('HitCurrentMobSuccessfullyEvent', OnHitEventMatcher, function()
-	print('HitCurrentMobSuccessfullyEvent')
+local successfullyHitTarget = false
+
+local OnHitEventMatcher = 'You hit #1# for 1 points #*#.'
+----
+mq.event('HitCurrentMobSuccessfullyEvent', OnHitEventMatcher, function(line, name)
+successfullyHitTarget = true
 end)
 
-local function main()
-	local NumMobs = 1
-	local MobAdded = 0
-	local MobRadius = 180
-	local MobHit = 0
+-- Define a predicate function that checks if the spawn is an NPC
+--local function isNPC(spawn)
+--	return spawn.Type() == 'NPC'
+--end
+--
+---- Call getFilteredSpawns with the predicate function
+--local npcs = mq.getFilteredSpawns(isNPC)
 
-	while true do
-		mq.delay(1000)
+local function hitAll()
+	if not isZoneAllowed(mq.TLO.Zone.ShortName()) then return end
+	mq.cmd("/hidecorpse all")
+	mq.delay(50)
+	mq.cmd("/nav spawn kodajii")
+	mq.delay(3000)
+	
+	local spawnCount = mq.TLO.SpawnCount("npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)()
+	local hitArrayID = {}
+	for i = 1, spawnCount do
+		local spawn = mq.TLO.NearestSpawn(i, "npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)
+		if spawn() and not (spawn.Name():find("pet") or spawn.Name():find("Pet")) then
+			hitArrayID[i] = spawn.ID()
+		end
 	end
+	
+	for i, npcID in ipairs(hitArrayID) do
+		local target = mq.TLO.Spawn(npcID)
+		target.DoTarget()
+		mq.cmdf("/dgza /echo Attacking new target : %s who is %d out of %d total", target.Name(), i, #hitArrayID)
+		successfullyHitTarget = false
+		
+		mq.cmd('/stick 8 uw !front')
+		mq.delay(20)
+		mq.cmd('/attack on')
+		
+		while not successfullyHitTarget do
+			mq.doevents()
+			mq.delay(200)
+		end
+		
+		mq.cmd('/attack off')
+	end
+	
+	mq.cmd("/dgza /echo DONE HITTING ALL!")
 end
---Sub Main
---  /declare MobID[100] int outer
---  /declare i int outer
---  /declare j int outer
---  /declare k int outer
---  /declare NumMobs int outer 1
---  /declare MobAdded int outer 0
---  /declare MobRadius int outer 180
---  /declare MobHit int outer 0
---  :loop
---    /delay 1
---    /if (${NearestSpawn[1,NPC zradius 100].Distance}>${MobRadius} && ${NumMobs}>1) {
---      /bc Reseting NumMobs = 1
---      /varset NumMobs 1
---    }
 
---    /if (${NearestSpawn[1,NPC zradius 100].Distance}>${MobRadius}) /goto :loop
+local function main()
+	mq.cmd("/dgza /echo Starting Golden Pick Hitall...")
+	mq.delay(100)
+	hitAll()
+end
 
---    /for k 1 to ${SpawnCount[NPC radius ${MobRadius} zradius 100]}
---      /varset MobAdded 0
+main()
 
---      /for j 1 to ${NumMobs}
---        /if (${MobID[${j}]}==${NearestSpawn[${k},NPC zradius 100 radius ${MobRadius}].ID}) /varset MobAdded 1
---      /next j
-
---      /if (!${MobAdded}) {
---        /tar id ${NearestSpawn[${k},NPC zradius 100 radius ${MobRadius}].ID}
---        /delay 20 ${Target.ID}==${NearestSpawn[${k},NPC zradius 20 radius ${MobRadius}].ID}
---        /if (${Target.ID}) {
---           /varset MobHit 0
---           /face fast
---           /attack on
---           /stick 10
-
---           /doevents
---           /for i 1 to 5
---             /attack on
---             /delay 1s ${MobHit}
---             /if (${MobHit}) /goto :isHit
---             /doevents
---           /next i
-
---           :isHit
---           /if (${MobHit}) {
---            /varcalc NumMobs ${NumMobs}+1
---            /varset MobID[${NumMobs}] ${Target.ID}
---            /bc Added [+y+]${Target.ID} as target ${NumMobs}
---          }
-
---          /attack off
---        }
---      }
---  /next k
-
---  /goto :loop
---/return
-
---Sub Event_OnHit(Line, cName)
---    /if (${cName.Equal[${Me.Name}]}) /varset MobHit 1
---/return

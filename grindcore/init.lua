@@ -1,8 +1,8 @@
 ---@type Mq
-local mq = require("mq")
+local mq = require('mq')
 --- @type ImGui
-require("ImGui")
-local BL = require("biggerlib")
+require('ImGui')
+local BL = require('biggerlib')
 
 -- #region DoubleInvis
 
@@ -20,7 +20,7 @@ end
 
 local function tell(delay, gm, aa)
 	local z = mq.cmdf(
-		"/timed %s /dex %s /multiline ; /stopcast; /timed 1 /alt act %s",
+		'/timed %s /dex %s /multiline ; /stopcast; /timed 1 /alt act %s',
 		delay,
 		mq.TLO.Group.Member(gm).Name(),
 		aa
@@ -34,11 +34,11 @@ local function all_double_invis()
 
 	for gm = 0, grpsize do
 		local name = mq.TLO.Group.Member(gm).Name()
-		local result1 = query(name, "Me.Invis[1]", 100)
-		local result2 = query(name, "Me.Invis[2]", 100)
+		local result1 = query(name, 'Me.Invis[1]', 100)
+		local result2 = query(name, 'Me.Invis[2]', 100)
 		local both_result = false
 
-		if result1 == "TRUE" and result2 == "TRUE" then
+		if result1 == 'TRUE' and result2 == 'TRUE' then
 			both_result = true
 			--print(string.format("\ay%s \at%s \ag%s", name, "DBL Invis: ", both_result))
 		else
@@ -55,14 +55,17 @@ end
 
 local function the_invis_thing()
 	--if i am bard or group has bard, do the bard invis thing
-	if mq.TLO.Spawn("Group Bard").ID() > 0 then
-		local bard = mq.TLO.Spawn("Group Bard").Name()
+	if mq.TLO.Spawn('Group Bard').ID() > 0 then
+		local bard = mq.TLO.Spawn('Group Bard').Name()
 		if bard == mq.TLO.Me.Name() then
-			mq.cmd("/mutliline ; /stopsong; /timed 1 /alt act 3704; /timed 3 /alt act 231")
+			mq.cmd('/mutliline ; /stopsong; /timed 1 /alt act 3704; /timed 3 /alt act 231')
 		else
-			mq.cmdf("/dex %s /multiline ; /stopsong; /timed 1 /alt act 3704; /timed 3 /alt act 231", bard)
+			mq.cmdf(
+				'/dex %s /multiline ; /stopsong; /timed 1 /alt act 3704; /timed 3 /alt act 231',
+				bard
+			)
 		end
-		print("\ag-->\atINVer: \ay", bard, "\at IVUer: \ay", bard, "\ag<--")
+		print('\ag-->\atINVer: \ay', bard, '\at IVUer: \ay', bard, '\ag<--')
 	else
 		--without a bard, find who can invis and who can IVU
 		local inver = 0
@@ -71,7 +74,7 @@ local function the_invis_thing()
 
 		--check classes that can INVIS only
 		for i = 0, grpsize do
-			if string.find("RNG DRU SHM", classShortName(i)) ~= nil then
+			if string.find('RNG DRU SHM', classShortName(i)) ~= nil then
 				inver = i
 				break
 			end
@@ -79,7 +82,7 @@ local function the_invis_thing()
 
 		--check classes that can IVU only
 		for i = 0, grpsize do
-			if string.find("CLR NEC PAL SHD", classShortName(i)) ~= nil then
+			if string.find('CLR NEC PAL SHD', classShortName(i)) ~= nil then
 				ivuer = i
 				break
 			end
@@ -88,7 +91,7 @@ local function the_invis_thing()
 		--check classes that can do BOTH
 		if inver == 0 then
 			for i = 0, grpsize do
-				if string.find("ENC MAG WIZ", classShortName(i)) ~= nil then
+				if string.find('ENC MAG WIZ', classShortName(i)) ~= nil then
 					inver = i
 					break
 				end
@@ -97,10 +100,10 @@ local function the_invis_thing()
 
 		if ivuer == 0 then
 			for i = grpsize, 0, -1 do
-				if string.find("ENC MAG WIZ", classShortName(i)) ~= nil then
+				if string.find('ENC MAG WIZ', classShortName(i)) ~= nil then
 					ivuer = i
 					if i == inver then
-						print("\arUnable to Double Invis")
+						print('\arUnable to Double Invis')
 						mq.exit()
 					end
 					break
@@ -110,48 +113,48 @@ local function the_invis_thing()
 
 		--catch anyone else in group
 		if
-			string.find("WAR MNK ROG BER", classShortName(inver)) ~= nil
-			or string.find("WAR MNK ROG BER", classShortName(ivuer)) ~= nil
+			string.find('WAR MNK ROG BER', classShortName(inver)) ~= nil
+			or string.find('WAR MNK ROG BER', classShortName(ivuer)) ~= nil
 		then
-			print("\arUnable to Double Invis")
+			print('\arUnable to Double Invis')
 			mq.exit()
 		end
 
 		print(
-			"\ag-->\atINVer: \ay",
+			'\ag-->\atINVer: \ay',
 			mq.TLO.Group.Member(inver).Name(),
-			"\at IVUer: \ay",
+			'\at IVUer: \ay',
 			mq.TLO.Group.Member(ivuer).Name(),
-			"\ag<--"
+			'\ag<--'
 		)
 
 		--if i am group leader and can INVIS, then do the INVIS thing
-		if classShortName(inver) == "SHM" and inver == 0 then
-			mq.cmd("/multiline ; /stopcast; /timed 3 /alt act 630")
-		elseif string.find("ENC MAG WIZ", classShortName(inver)) ~= nil then
-			mq.cmd("/multiline ; /stopcast; /timed 1 /alt act 1210")
-		elseif string.find("RNG DRU", classShortName(inver)) ~= nil then
-			mq.cmd("/multiline ; /stopcast; /timed 1 /alt act 518")
+		if classShortName(inver) == 'SHM' and inver == 0 then
+			mq.cmd('/multiline ; /stopcast; /timed 3 /alt act 630')
+		elseif string.find('ENC MAG WIZ', classShortName(inver)) ~= nil then
+			mq.cmd('/multiline ; /stopcast; /timed 1 /alt act 1210')
+		elseif string.find('RNG DRU', classShortName(inver)) ~= nil then
+			mq.cmd('/multiline ; /stopcast; /timed 1 /alt act 518')
 		end
 
 		--if i have an INVISER in the group, then 'tell them' do the INVIS thing
-		if classShortName(inver) == "SHM" and inver ~= 0 then
+		if classShortName(inver) == 'SHM' and inver ~= 0 then
 			tell(4, inver, 630)
-		elseif string.find("ENC MAG WIZ", classShortName(inver)) ~= nil then
+		elseif string.find('ENC MAG WIZ', classShortName(inver)) ~= nil then
 			tell(0, inver, 1210)
-		elseif string.find("RNG DRU", classShortName(inver)) ~= nil then
+		elseif string.find('RNG DRU', classShortName(inver)) ~= nil then
 			tell(5, inver, 518)
 		end
 
 		--if i am group leader and can IVU, then do the IVU thing
-		if string.find("CLR NEC PAL SHD", classShortName(ivuer)) ~= nil and ivuer == 0 then
-			mq.cmd("/multiline ; /stopcast; /timed 1 /alt activate 1212")
+		if string.find('CLR NEC PAL SHD', classShortName(ivuer)) ~= nil and ivuer == 0 then
+			mq.cmd('/multiline ; /stopcast; /timed 1 /alt activate 1212')
 		else
-			mq.cmd("/multiline ; /stopcast; /timed 1 /alt activate 280")
+			mq.cmd('/multiline ; /stopcast; /timed 1 /alt activate 280')
 		end
 
 		--if i have an IVUER in the group, then 'tell them' do the IVU thing
-		if string.find("CLR NEC PAL SHD", classShortName(ivuer)) ~= nil and ivuer ~= 0 then
+		if string.find('CLR NEC PAL SHD', classShortName(ivuer)) ~= nil and ivuer ~= 0 then
 			tell(2, ivuer, 1212)
 		else
 			tell(2, ivuer, 280)
@@ -174,7 +177,7 @@ end--]]
 
 ------------------------------------------Start Shei Camp Lua - Aaly ------------------------------------------------------
 -- Information for Quest NPC
-local npcName = "Shalowain"
+local npcName = 'Shalowain'
 --local npcID = 5033
 --To Identify our class shortname
 local myClass = mq.TLO.Me.Class.ShortName()
@@ -187,7 +190,11 @@ local function gmDistanceME()
 			local isMoving = mq.TLO.Group.Member(g).Moving()
 			local Member = mq.TLO.Group.Member(g).Name()
 			if not isMoving then
-				mq.cmdf("/multiline ; /dex %s /target Shalowain ; /timed 10 /dex %s /nav target", Member, Member)
+				mq.cmdf(
+					'/multiline ; /dex %s /target Shalowain ; /timed 10 /dex %s /nav target',
+					Member,
+					Member
+				)
 			end
 			mq.delay(1000)
 		end
@@ -203,7 +210,7 @@ local function gmDistanceInstance()
 		while Toon.Distance() > 20 do
 			local isMoving = mq.TLO.Group.Member(g).Moving()
 			if not isMoving then
-				mq.cmdf("/dex %s /nav locxy -521.27 -309.95", Member)
+				mq.cmdf('/dex %s /nav locxy -521.27 -309.95', Member)
 			end
 			mq.delay(1000)
 		end
@@ -220,7 +227,7 @@ local function comeToMe()
 			while Toon.Distance() > 20 do
 				local isMoving = mq.TLO.Group.Member(g).Moving()
 				if not isMoving then
-					mq.cmdf("/dex %s /nav spawn id %s", Member, MeID)
+					mq.cmdf('/dex %s /nav spawn id %s', Member, MeID)
 					mq.delay(1000)
 				end
 			end
@@ -229,7 +236,7 @@ local function comeToMe()
 end
 --This checks to see if i am moving and will wait to continue
 local function WaitOnNav()
-	print("\apStill Moving!")
+	print('\apStill Moving!')
 	while mq.TLO.Me.Moving() do
 		mq.delay(1000)
 	end
@@ -237,10 +244,10 @@ end
 
 -- This is checking if everyone in group is in zone, if not we waiting
 local function Missing()
-	print("In Missing")
+	print('In Missing')
 	if mq.TLO.Group.AnyoneMissing() == true then
-		print("\apWe Seem To Be Missing Some Group Members")
-		print("\apLets Give Them A Moment To Zone In")
+		print('\apWe Seem To Be Missing Some Group Members')
+		print('\apLets Give Them A Moment To Zone In')
 		while mq.TLO.Group.AnyoneMissing() == true do
 			mq.delay(5000)
 		end
@@ -257,38 +264,38 @@ end
 
 --This is to make us drop invis
 local function MakeMeVis()
-	mq.cmd("/dgga /makemevis")
+	mq.cmd('/dgga /makemevis')
 end
 
 local function amIClose()
-	mq.cmd("/boxr pause")
+	mq.cmd('/boxr pause')
 	if mq.TLO.Target.CleanName() ~= npcName then
-		print("\apI Am Not Close Enough To, targeting: " .. npcName)
-		mq.cmdf("/target %s", npcName)
+		print('\apI Am Not Close Enough To, targeting: ' .. npcName)
+		mq.cmdf('/target %s', npcName)
 		mq.delay(1000)
 	end
 
-	print("\apMoving To Shalowain")
-	mq.cmd("/nav target")
+	print('\apMoving To Shalowain')
+	mq.cmd('/nav target')
 	WaitOnNav()
 end
 
 local function getTask()
 	if myZone == 859 and mq.TLO.Target.Distance() <= 30 then
-		if mq.TLO.Task("Final Fugue").ID() == nil then
-			print("\apLooks Like We Dont Have Our Task, Lets Fix That!")
+		if mq.TLO.Task('Final Fugue').ID() == nil then
+			print('\apLooks Like We Dont Have Our Task, Lets Fix That!')
 			mq.delay(1000)
-			mq.cmdf("/%s mode 0", myClass)
+			mq.cmdf('/%s mode 0', myClass)
 			mq.delay(1000)
-			mq.cmd("/dgga /boxr pause")
+			mq.cmd('/dgga /boxr pause')
 			mq.delay(1000)
 			MakeMeVis()
 			mq.delay(1000)
 			if mq.TLO.Target.CleanName() ~= npcName then
-				mq.cmdf("/target %s", npcName)
+				mq.cmdf('/target %s', npcName)
 			end
 			mq.delay(2000)
-			mq.cmd("/say smaller")
+			mq.cmd('/say smaller')
 			mq.delay(5000)
 		end
 	end
@@ -297,21 +304,21 @@ end
 local function zoneIn()
 	--if myZone == 859 then
 	local GroupSize = mq.TLO.Group.Members()
-	if mq.TLO.Task("Final Fugue").ID() ~= nil then
-		print("\apWaiting For DynamicZone Flagging, Stand By!")
+	if mq.TLO.Task('Final Fugue').ID() ~= nil then
+		print('\apWaiting For DynamicZone Flagging, Stand By!')
 		while not mq.TLO.DynamicZone.Leader.Flagged() do
 			mq.delay(15000)
 		end
 		for g = 1, GroupSize, 1 do
 			local Member = mq.TLO.Group.Member(g).Name()
-			print("\ay-->", Member, "<--", "\apShould Be Zoning In Now")
-			mq.cmdf("/dex %s /travelto pallomen", Member)
+			print('\ay-->', Member, '<--', '\apShould Be Zoning In Now')
+			mq.cmdf('/dex %s /travelto pallomen', Member)
 		end
 		-- This is to make us the last to zone in
 		while mq.TLO.Group.AnyoneMissing() == false do
 			mq.delay(2000)
 		end
-		mq.cmd("/travelto pallomen")
+		mq.cmd('/travelto pallomen')
 	end
 	--end
 end
@@ -325,15 +332,15 @@ local function inME()
 end
 --Setting Puller Settings
 local function SetPullSettings()
-	print("\apSetting Puller Settings")
-	mq.cmdf("/%s pullradius 500", myClass)
-	mq.cmdf("/%s pullarch 360", myClass)
-	mq.cmdf("/%s zHigh 100", myClass)
-	mq.cmdf("/%s zLow 100", myClass)
+	print('\apSetting Puller Settings')
+	mq.cmdf('/%s pullradius 500', myClass)
+	mq.cmdf('/%s pullarch 360', myClass)
+	mq.cmdf('/%s zHigh 100', myClass)
+	mq.cmdf('/%s zLow 100', myClass)
 	-- Watch CC&Healer Mana
 
-	mq.cmdf("/%s mode pullertank", myClass)
-	mq.cmdf("/%s pause off", myClass)
+	mq.cmdf('/%s mode pullertank', myClass)
+	mq.cmdf('/%s pause off', myClass)
 end
 
 --Variable for our MoveToCamp, to stop it from repeating
@@ -341,17 +348,17 @@ local SetCamp = true
 
 -- This is going to drop our task for us safely
 local function DropTask()
-	print("\apWe Have Reached The End Of Our Time Here")
-	print("\apTime To Blow This Popsicle Stand!")
-	mq.cmdf("/%s mode tank", myClass)
-	while mq.TLO.Me.CombatState() == "COMBAT" do
+	print('\apWe Have Reached The End Of Our Time Here')
+	print('\apTime To Blow This Popsicle Stand!')
+	mq.cmdf('/%s mode tank', myClass)
+	while mq.TLO.Me.CombatState() == 'COMBAT' do
 		mq.delay(1000)
 	end
-	while mq.TLO.Task("Final Fugue").ID() and mq.TLO.Me.CombatState() ~= "COMBAT" do
+	while mq.TLO.Task('Final Fugue').ID() and mq.TLO.Me.CombatState() ~= 'COMBAT' do
 		mq.delay(1000)
-		mq.cmd("/kickp task")
+		mq.cmd('/kickp task')
 		mq.delay(1000)
-		mq.cmd("/yes")
+		mq.cmd('/yes')
 		mq.delay(60000)
 	end
 end
@@ -359,15 +366,15 @@ end
 -- This is once zoned into instance to wait for all to zone in, double invis, then nav to camp area.
 local function MoveToCamp()
 	Missing()
-	mq.cmd("/dgge /boxr unpause")
+	mq.cmd('/dgge /boxr unpause')
 	mq.delay(2000)
-	mq.cmd("/dgge /boxr chase")
+	mq.cmd('/dgge /boxr chase')
 	mq.delay(1000)
-	print("\apWe Are Going Into Tank Mode to Ensure We Don't Have A Suprise Guest")
-	mq.cmdf("/%s mode tank", myClass)
-	mq.cmdf("/%s pause off", myClass)
+	print('\apWe Are Going Into Tank Mode to Ensure We Don\'t Have A Suprise Guest')
+	mq.cmdf('/%s mode tank', myClass)
+	mq.cmdf('/%s pause off', myClass)
 	MakeMeVis()
-	print("\apAllowing Time to Buff")
+	print('\apAllowing Time to Buff')
 	-- Change this delay to increase buff time or to help with Meding to full
 	mq.delay(3000)
 	--SetPull()
@@ -400,9 +407,9 @@ local WaypointSteps = {}
 local CurrentWaypointStep = 1
 
 local function SetPalTestWaypoints()
-	table.insert(WaypointSteps, "-417, 797, -17.66")
-	table.insert(WaypointSteps, "-348, 961, -22.62")
-	table.insert(WaypointSteps, "1247, 254, 31")
+	table.insert(WaypointSteps, '-417, 797, -17.66')
+	table.insert(WaypointSteps, '-348, 961, -22.62')
+	table.insert(WaypointSteps, '1247, 254, 31')
 end
 
 local function AddWaypointStep()
@@ -411,9 +418,9 @@ local function AddWaypointStep()
 end
 
 local function GetDistanceFromTwoLocYXZ(loc1, loc2)
-	local coords = loc1 .. ":" .. loc2
+	local coords = loc1 .. ':' .. loc2
 	local distToWaypoint = mq.TLO.Math.Distance(coords)()
-	BL.dump(distToWaypoint, "distToWaypoint")
+	BL.dump(distToWaypoint, 'distToWaypoint')
 	return distToWaypoint
 end
 
@@ -421,13 +428,13 @@ local function CheckNavArrived()
 	local loc1 = mq.TLO.Me.LocYXZ()
 	local loc2 = WaypointSteps[CurrentWaypointStep]
 	local distToWaypoint = GetDistanceFromTwoLocYXZ(loc1, loc2)
-	BL.dump(distToWaypoint, "distToWaypoint")
+	BL.dump(distToWaypoint, 'distToWaypoint')
 	return distToWaypoint < 20
 end
 
 local function StartNavToCurrentWaypoint()
 	local loc = WaypointSteps[CurrentWaypointStep]
-	mq.cmdf("/nav locyxz %s", loc)
+	mq.cmdf('/nav locyxz %s', loc)
 end
 
 local function AdvanceCurrentWaypoint() end
@@ -441,14 +448,14 @@ end
 
 -- Runs once we arrive at a waypoint, go into camp mode and pull all the stuff
 local function PullNearbyThings()
-	mq.cmd("/dgga /boxr camp")
+	mq.cmd('/dgga /boxr camp')
 	mq.delay(1000)
-	mq.cmd("/dgga /boxr unpause")
+	mq.cmd('/dgga /boxr unpause')
 	mq.delay(1000)
 	SetPullSettings()
 
 	-- figure out when we're out of mobs to pull.
-	while mq.TLO.SpawnCount("npc targetable radius 500 zradius 100")() > 1 do
+	while mq.TLO.SpawnCount('npc targetable radius 500 zradius 100')() > 1 do
 		mq.delay(1000)
 	end
 end
@@ -456,28 +463,28 @@ end
 local function PROCEED()
 	--sanity check
 	if CheckWaypointListIsCompleted() then
-		BL.error("PROCEED() called when waypoint list is already completed!")
+		BL.error('PROCEED() called when waypoint list is already completed!')
 		return
 	end
 
 	-- Here we check to see if we're in combat, if not we check for next waypoint to travel to
-	while mq.TLO.Me.CombatState() == "COMBAT" do
-		BL.info("In combat")
+	while mq.TLO.Me.CombatState() == 'COMBAT' do
+		BL.info('In combat')
 		if mq.TLO.Navigation.Active() then
-			mq.cmd("/nav stop")
+			mq.cmd('/nav stop')
 			mq.delay(500)
 		end
-		mq.cmd("/dgga /boxr unpause")
+		mq.cmd('/dgga /boxr unpause')
 		mq.delay(1000)
-		mq.cmd("/dgge /boxr chase")
+		mq.cmd('/dgge /boxr chase')
 		mq.delay(1000)
 		local myClassShortNameToLower = mq.TLO.Me.Class.ShortName():lower()
-		mq.cmdf("/%s mode tank ", myClassShortNameToLower)
+		mq.cmdf('/%s mode tank ', myClassShortNameToLower)
 		mq.delay(1000)
 	end
 
 	if not mq.TLO.Navigation.Active() then
-		BL.info("Nav isn't active")
+		BL.info('Nav isn\'t active')
 		local weArrived = CheckNavArrived()
 		--if its not active because we've reached the waypoint, move to next waypoint
 		if weArrived then
@@ -520,24 +527,30 @@ while Run == true do
 		mq.delay(15000)
 	else
 		--print("In else")
-		if mq.TLO.Zone.ID() == 861 and mq.TLO.Task("Final Fugue").ID ~= nil then
+		if mq.TLO.Zone.ID() == 861 and mq.TLO.Task('Final Fugue').ID ~= nil then
 			--print("In Pallomen")
 			while SetCamp == true do
 				MoveToCamp()
-				BL.info("Done moving to camp")
-				mq.cmd("/nav stop")
+				BL.info('Done moving to camp')
+				mq.cmd('/nav stop')
 				mq.delay(50)
 			end
-			if mq.TLO.Task("Final Fugue").ID() ~= nil then
+			if mq.TLO.Task('Final Fugue').ID() ~= nil then
 				-- Change the Time here based on when you want to exit
 				-- Leaving early prevents getting stuck with the task after completion
-				while mq.TLO.Task("Final Fugue").Timer.TotalMinutes() >= 240 and not CheckWaypointListIsCompleted() do
-					BL.info("PROCEEDing")
+				while
+					mq.TLO.Task('Final Fugue').Timer.TotalMinutes() >= 240
+					and not CheckWaypointListIsCompleted()
+				do
+					BL.info('PROCEEDing')
 					PROCEED()
 					mq.delay(1000)
 				end
 				-- Make sure to change that time here as well!
-				if mq.TLO.Task("Final Fugue").Timer.TotalMinutes() <= 240 or CheckWaypointListIsCompleted() then
+				if
+					mq.TLO.Task('Final Fugue').Timer.TotalMinutes() <= 240
+					or CheckWaypointListIsCompleted()
+				then
 					DropTask()
 				end
 			end

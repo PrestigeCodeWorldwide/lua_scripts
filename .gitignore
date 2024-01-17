@@ -3,6 +3,7 @@
 node_modules/
 typedefs/
 _ReSharper.*
-bard.zip
-MQ_VSCode_Workspace.code-workspace
-/rust/actor_relay_service/target/
+*.zip
+*.code-workspace
+*.7z
+**/target/*

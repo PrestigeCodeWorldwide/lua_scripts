@@ -39,6 +39,7 @@ SPELLS_BY_CLASS = {
 	},
 	["Beastlord"] = {
 		["Paragon of Spirit"] = 128,
+		["Spiritual Enduement"] = 0
 	},
 	["Berserker"] = {
 		["War Cry of Dravel"] = AbilityTypes.Disc,

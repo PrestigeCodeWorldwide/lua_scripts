@@ -62,37 +62,40 @@ mq.event("enrageOff", "#1# is no longer enraged.", eventEnragedOff)
 ---@return integer @Returns the spawn ID of the configured main assist, otherwise 0.
 function assist.getAssistID()
 	local assist_id = 0
-	local assistValue = config.get("ASSIST")
-	if assistValue == "group" then
-		assist_id = mq.TLO.Group.MainAssist.ID()
-	elseif assistValue == "raid1" then
-		assist_id = mq.TLO.Raid.MainAssist(1).ID()
-	elseif assistValue == "raid2" then
-		assist_id = mq.TLO.Raid.MainAssist(2).ID()
-	elseif assistValue == "raid3" then
-		assist_id = mq.TLO.Raid.MainAssist(3).ID()
-	elseif assistValue == "manual" then
-		assist_id = UNIMPL
-	end
+    local assistValue = config.get("ASSIST")
+	local assistName = config.get("ASSISTNAMES")
+    if assistValue == "group" then
+        assist_id = mq.TLO.Group.MainAssist.ID()
+    elseif assistValue == "raid1" then
+        assist_id = mq.TLO.Raid.MainAssist(1).ID()
+    elseif assistValue == "raid2" then
+        assist_id = mq.TLO.Raid.MainAssist(2).ID()
+    elseif assistValue == "raid3" then
+        assist_id = mq.TLO.Raid.MainAssist(3).ID()
+    elseif assistValue == "manual" then
+        assist_id = mq.TLO.Spawn(assistName).ID()
+    end
+	--BL.info("In getAssistID, assist_id is %s", assist_id)
 	return assist_id
 end
 
----@return integer @Returns the spawn ID of the configured main assist, otherwise 0.
+---@return spawn|nil @Returns the spawn ID of the configured main assist, otherwise nil.
 function assist.getMainAssist()
-	local assist_id = 0
+	local assist_id = nil
 	local assistValue = config.get("ASSIST")
 	local assistName = config.get("ASSISTNAMES")
-	if assistValue == "group" then
-		assist_id = mq.TLO.Group.MainAssist
-	elseif assistValue == "raid1" then
-		assist_id = mq.TLO.Raid.MainAssist(1)
-	elseif assistValue == "raid2" then
-		assist_id = mq.TLO.Raid.MainAssist(2)
-	elseif assistValue == "raid3" then
-		assist_id = mq.TLO.Raid.MainAssist(3)
-	elseif assistValue == "manual" then
-		assist_id = mq.TLO.Spawn(assistName).ID()
-	end
+    if assistValue == "group" then
+        assist_id = mq.TLO.Group.MainAssist
+    elseif assistValue == "raid1" then
+        assist_id = mq.TLO.Raid.MainAssist(1)
+    elseif assistValue == "raid2" then
+        assist_id = mq.TLO.Raid.MainAssist(2)
+    elseif assistValue == "raid3" then
+        assist_id = mq.TLO.Raid.MainAssist(3)
+    elseif assistValue == "manual" then
+        assist_id = mq.TLO.Spawn(assistName)()
+    end
+	--BL.info("In getMainAssist, assist_id is %s", assist_id)
 	return assist_id
 end
 
@@ -110,7 +113,20 @@ function assist.getAssistSpawn()
 	elseif assistValue == "raid3" then
 		assist_target = mq.TLO.Me.RaidAssistTarget(3)
 	elseif assistValue == "manual" then
-		assist_target = -1
+        -- Get spawn of my person to assist
+        -- get their target
+        -- /dobserve dillana -q Target -- This will SET the observer for your manual assist
+        --mq.cmdf("/dobserve %s -q Target", assistName)
+        --mq.delay(50)
+		local newTarget = mq.TLO.DanNet(assistName).Observe("Target")()
+		--BL.info("In getAssistSpawn, newTarget is %s", newTarget)
+		if newTarget then
+			assist_target = mq.TLO.Spawn(newTarget)
+		else
+			assist_target = -1
+		end
+		-- To read it, use DanNet[name].Observe[query]
+		--assist_target = -1
 	else
 		assist_target = -1
 	end
@@ -162,29 +178,35 @@ function assist.shouldAssist(assist_target)
 	local mob_x = assist_target.X()
 	local mob_y = assist_target.Y()
 	--BL.info(2)
-	if not id or id == 0 or not hp or not mob_x or not mob_y then
-		--BL.info(3)
-		return false
-	end
-	if mob_type == "NPC" and hp < config.get("AUTOASSISTAT") then
-		BL.info(4)
-		if camp.Active and helpers.distance(camp.X, camp.Y, mob_x, mob_y) <= config.get("CAMPRADIUS") ^ 2 then
-			--BL.info(5)
-			return true
-		elseif
-			not camp.Active
-			and helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), mob_x, mob_y) <= config.get("CAMPRADIUS") ^ 2
-		then
-			--BL.info(6)
-			return true
-		else
-			BL.info(7)
-			return false
-		end
-	else
-		BL.info(8)
-		return false
-	end
+    if not id or id == 0 or not hp or not mob_x or not mob_y then
+        --BL.info(3)
+        return false
+    end
+	
+    if mob_type == "NPC" then
+        --BL.info(4)
+        -- do targeting and wait for hp to be set
+        assist_target.DoTarget()
+        mq.delay(1)
+        if hp < config.get("AUTOASSISTAT") then
+            if camp.Active and helpers.distance(camp.X, camp.Y, mob_x, mob_y) <= config.get("CAMPRADIUS") ^ 2 then
+                --BL.info(5)
+                return true
+            elseif
+                not camp.Active
+                and helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), mob_x, mob_y) <= config.get("CAMPRADIUS") ^ 2
+            then
+                --BL.info(6)
+                return true
+            else
+                BL.info(7)
+                return false
+            end
+        end
+    else
+        BL.info("8 - Either mob type not NPC (%s) or hp > autoassistat: %s", mob_type, hp)
+    end
+	return false
 end
 
 local sendPetTimer = timer:new(2000)
@@ -357,11 +379,11 @@ end
 function applyProperStickHow(config)
 	local stickhow = zen.class.OPTS.STICKHOW.value
 	if stickhow == nil then
-		printf(logger.logLine("StickHOW is empty, can't stick!"))
+		BL.info("StickHOW is empty, can't stick!")
 	else
 		--mq.cmdf('/squelch /stick snaproll moveback front %s uw', math.min(maxRangeTo * .75, 25))
 
-		printf(logger.logLine("Sticking with: %s", stickhow))
+		BL.info("Sticking with: %s", stickhow)
 		-- https://discord.com/channels/511690098136580097/840375268685119499/1168603138291400784
 		-- Need to set HoTT properly for stick front to work
 		mq.cmd("/stick set nohottfront on")

@@ -1,13 +1,13 @@
 --- @type Mq
-local mq = require("mq")
-local BL = require("biggerlib")
+local mq = require('mq')
+local BL = require('biggerlib')
 
 local debug = false
 local paused = false
 
 local devMode = true
-local devPath = "zen/supersic"
-local relPath = "supersic"
+local devPath = 'zen/supersic'
+local relPath = 'supersic'
 
 local function checkIAmGroupTank()
 	local groupTank = mq.TLO.Group.MainTank()
@@ -15,7 +15,7 @@ local function checkIAmGroupTank()
 	if groupTank == mq.TLO.Me.CleanName() then
 		return true
 	else
-		BL.warn("I am NOT group tank role!  Please fix for SicTank to work!")
+		--BL.warn("I am NOT group tank role!  Please fix for SicTank to work!")
 		--mq.cmd("/g WARNING: MY GROUP MAIN TANK ROLE IS NOT SET. SuperSic.lua will not work!")
 		return false
 	end
@@ -23,7 +23,7 @@ end
 
 local function printHelp()
 	BL.info(
-		"SuperSicTank loaded!  Use /sic pause on|off to pause and unpause. Use /sic debug show debug logs.  Now your Sic Tank mode will continue tanking until xtar is empty."
+		'SuperSicTank loaded!  Use /sic pause on|off to pause and unpause. Use /sic debug show debug logs.  Now your Sic Tank mode will continue tanking until xtar is empty.'
 	)
 end
 
@@ -39,7 +39,12 @@ local function doTankLoop()
 		return mq.TLO.Me.XTarget()
 	end
 
-	if cwtnState == "SicTank" and getXTargetCount() > 0 and not isAutoAttacking() and not mq.TLO.Me.Invis() then
+	if
+		cwtnState == 'SicTank'
+		and getXTargetCount() > 0
+		and not isAutoAttacking()
+		and not mq.TLO.Me.Invis()
+	then
 		--target xtar 1
 		local currentXtar = 1
 		local nextTarget = mq.TLO.Me.XTarget(currentXtar)
@@ -55,7 +60,7 @@ local function doTankLoop()
 		if currentXtar < getXTargetCount() and targetDistance > 5000 then
 			-- no xtar targets in range
 			BL.warn(
-				"We have xtarget targets out of range!  They're probably stuck with distance: %d, currentXtar: %d getTargetCount: %d",
+				'We have xtarget targets out of range!  They\'re probably stuck with distance: %d, currentXtar: %d getTargetCount: %d',
 				targetDistance,
 				currentXtar,
 				getXTargetCount()
@@ -64,7 +69,7 @@ local function doTankLoop()
 		end
 
 		if debug then
-			BL.info("Attacking next Xtar Target: %d", targetID)
+			BL.info('Attacking next Xtar Target: %d', targetID)
 		end
 
 		local target = mq.TLO.Spawn(targetID)
@@ -73,22 +78,22 @@ local function doTankLoop()
 		if target then
 			-- Note when using DoTarget(), or other Target TLO based things, you do not need the mq.delay like mq.cmd does
 			target.DoTarget()
-			mq.cmd("/attack on")
+			mq.cmd('/attack on')
 			if debug then
-				BL.info("Attacking engaged")
+				BL.info('Attacking engaged')
 			end
 		elseif debug then
-			BL.warn("No target found with id %d", targetID)
+			BL.warn('No target found with id %d', targetID)
 		end
 	elseif debug then
-		if cwtnState ~= "SicTank" then
-			BL.info("Not in SicTank mode")
+		if cwtnState ~= 'SicTank' then
+			BL.info('Not in SicTank mode')
 		end
 		if getXTargetCount() <= 0 then
-			BL.info("No xtar targets found")
+			BL.info('No xtar targets found')
 		end
 		if isAutoAttacking() then
-			BL.info("Already auto attacking")
+			BL.info('Already auto attacking')
 		end
 	end
 end
@@ -100,26 +105,26 @@ local function bind_ssic(...)
 	local key = args[1]
 	local value = args[2]
 
-	if not key or key == "help" then
+	if not key or key == 'help' then
 		printHelp()
-	elseif key == "pause" then
+	elseif key == 'pause' then
 		if value then
 			paused = value
 		else
 			paused = true -- default to true
 		end
-		BL.info("Supersic paused: %s", paused)
-	elseif key == "debug" then
+		BL.info('Supersic paused: %s', paused)
+	elseif key == 'debug' then
 		if value then
 			debug = value
 		else
 			debug = not debug -- flip
 		end
-		BL.info("Supersic debug: %s", debug)
+		BL.info('Supersic debug: %s', debug)
 	end
 end
 
-mq.bind("/ssic", bind_ssic)
+mq.bind('/ssic', bind_ssic)
 
 ------------------------------------------------- EXECUTION -------------------------------------------------
 printHelp()
