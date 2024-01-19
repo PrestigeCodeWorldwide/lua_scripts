@@ -23,10 +23,16 @@ use std::process::id;
 use std::sync::Arc;
 use std::time::Duration;
 use std::{clone, collections::HashSet};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, WriteHalf};
-use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, Mutex, MutexGuard};
 use tokio::time::timeout;
+use tokio::{
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, WriteHalf},
+    task::JoinHandle,
+};
+use tokio::{
+    net::{TcpListener, TcpStream},
+    try_join,
+};
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, LinesCodec};
 use uuid::Uuid;
@@ -42,6 +48,8 @@ type Rx = mpsc::UnboundedReceiver<String>;
 pub struct ZenActorClient {
     pub id: Option<ClientId>,
     pub shared_state: Arc<Mutex<VecDeque<String>>>,
+    writer_handle: Option<JoinHandle<()>>,
+    reader_handle: Option<JoinHandle<()>>,
 }
 
 impl ZenActorClient {
@@ -49,10 +57,30 @@ impl ZenActorClient {
         Self {
             id: None,
             shared_state: Arc::new(Mutex::new(VecDeque::new())),
+            writer_handle: None,
+            reader_handle: None,
         }
     }
 
-    pub async fn run() -> AnyResult {
+    pub async fn run(&mut self) -> AnyResult {
+        let handles = try_join!(
+            self.reader_handle.take().unwrap(),
+            self.writer_handle.take().unwrap()
+        )?;
+
+        Ok(())
+    }
+
+    pub async fn get_messages(&mut self) -> VecDeque<String> {
+        let mut messages: VecDeque<String> = VecDeque::new();
+
+        let mut shared_state = self.shared_state.lock().await;
+        messages.append(&mut shared_state.drain(..).collect::<VecDeque<String>>());
+
+        messages
+    }
+
+    pub async fn start(&mut self) -> AnyResult {
         let addr = env::args()
             .nth(1)
             .unwrap_or_else(|| "127.0.0.1:8080".to_string());
@@ -63,7 +91,7 @@ impl ZenActorClient {
 
         info!("Connected to server.");
 
-        tokio::spawn(async move {
+        let reader_handle = tokio::spawn(async move {
             loop {
                 let mut response = String::new();
                 match reader.read_line(&mut response).await {
@@ -82,15 +110,32 @@ impl ZenActorClient {
                 }
             }
         });
-        
-        let mut input_reader = tokio::io::BufReader::new(tokio::io::stdin());
-        loop {
-            let mut input = String::new();
-            input_reader.read_line(&mut input).await.unwrap();
 
-            writer_stream.write_all(input.as_bytes()).await?;
-            writer_stream.flush().await?;
-        }
+        let writer_handle = tokio::spawn(async move {
+            let mut input_reader = tokio::io::BufReader::new(tokio::io::stdin());
+            loop {
+                let mut input = String::new();
+                match input_reader.read_line(&mut input).await {
+                    Ok(_) => {
+                        if let Err(e) = writer_stream.write_all(input.as_bytes()).await {
+                            eprintln!("Failed to write to stream: {}", e);
+                            break;
+                        }
+                        if let Err(e) = writer_stream.flush().await {
+                            eprintln!("Failed to flush stream: {}", e);
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to read line: {}", e);
+                        break;
+                    }
+                }
+            }
+        });
+
+        self.reader_handle = Some(reader_handle);
+        self.writer_handle = Some(writer_handle);
 
         Ok(())
     }

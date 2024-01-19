@@ -1,5 +1,5 @@
 use simplelog::*;
-use zenactor_ffi::run;
+use zenactor_ffi::ZenActorClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,7 +14,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         TerminalMode::Mixed,
         ColorChoice::Always,
     )?;
-    run().await.unwrap();
+
+    let mut client = ZenActorClient::new();
+
+    client.start().await?;
+    client.run().await?;
 
     Ok(())
 }
