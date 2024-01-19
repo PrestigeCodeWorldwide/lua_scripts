@@ -97,7 +97,7 @@ fn init_logging() {
 fn attach() {
     unsafe {
         // Create a message box
-        // MessageBoxA(HWND(0), s!("ZOMG!"), s!("hello.dll"), Default::default());
+        MessageBoxA(HWND(0), s!("ZOMG!"), s!("hello.dll"), Default::default());
     };
 }
 

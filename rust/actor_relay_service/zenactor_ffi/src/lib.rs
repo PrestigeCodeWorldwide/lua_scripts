@@ -21,7 +21,6 @@ use std::net::SocketAddr;
 use std::ops::Deref;
 use std::process::id;
 use std::sync::Arc;
-use std::time::Duration;
 use std::{clone, collections::HashSet};
 use tokio::sync::{mpsc, Mutex, MutexGuard};
 use tokio::time::timeout;
@@ -36,7 +35,27 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Framed, LinesCodec};
 use uuid::Uuid;
+
+use std::ffi::c_char;
+use std::ffi::CString;
+use std::format as f;
+use std::time::{Duration, Instant};
+use windows::{
+    core::s,
+    Win32::Foundation::*,
+    Win32::{System::SystemServices::*, UI::WindowsAndMessaging::MessageBoxA},
+};
+
+/////////// TYPES
+type DWORD = u32;
+type FFIStringPtr = *const c_char;
 type AnyResult = anyhow::Result<()>;
+
+// example extern
+#[no_mangle]
+pub extern "C" fn add_in_rust(left: u32, right: u32) -> u32 {
+    left + right
+}
 
 /// Shorthand for the transmit half of the message channel.
 type Tx = mpsc::UnboundedSender<String>;
@@ -45,6 +64,7 @@ type Tx = mpsc::UnboundedSender<String>;
 type Rx = mpsc::UnboundedReceiver<String>;
 
 #[derive(Debug, Default)]
+#[repr(C)]
 pub struct ZenActorClient {
     pub id: Option<ClientId>,
     pub shared_state: Arc<Mutex<VecDeque<String>>>,
