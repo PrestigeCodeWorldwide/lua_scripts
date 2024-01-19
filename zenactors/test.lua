@@ -14,18 +14,27 @@ ZActor:Init("ActorTestRoom", "ActorTestChannel", function(message)
 end)
 
 ffi.cdef [[
+	typedef void* ZenActorClientPtr;	
 	int add_in_rust(unsigned int a, unsigned int b);
+	ZenActorClientPtr zen_actor_client_new(const char* room, const char* channel);
+	void zen_actor_client_interact(ZenActorClientPtr client);
+	char* zen_actor_client_get_messages_sync(ZenActorClientPtr client);
+	void zen_actor_client_free(ZenActorClientPtr client);	
 ]]
 
 local function TestFFIDllCall()
-	local rust_lib = ffi.load(
-		"G:\\Games\\EQHax\\RGLauncherTest\\lua\\zen\\rust\\actor_relay_service\\target\\debug\\zenactor_ffi.dll")
-	--local mydll = assert(package.loadlib(
-	--	"G:\\Games\\EQHax\\RGLauncherTest\\lua\\zen\\rust\\actor_relay_service\\target\\debug\\zenactor_ffi.dll",
-	--    "add_in_rust"))
+	local luadir = mq.luaDir .. "\\zen\\rust\\actor_relay_service\\target\\debug\\zenactor_ffi.dll"
+	BL.info("Lua dir: %s", luadir)
+
+	local rust_lib = ffi.load(luadir)
 	local result = rust_lib.add_in_rust(1, 2)
 	BL.info("Result from rust: %d", result)
-	--local result = mydll(1, 2)
+
+	local client = rust_lib.zen_actor_client_new("ActorTestRoom", "ActorTestChannel")
+	BL.info("Got client from rust new")
+	local messages = rust_lib.zen_actor_client_get_messages_sync(client)
+	BL.info("Got Messages from rust")
+	BL.info("Messages: %s", ffi.string(messages))
 end
 
 TestFFIDllCall()

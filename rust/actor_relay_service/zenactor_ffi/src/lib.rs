@@ -19,6 +19,7 @@ use std::env;
 use std::io;
 use std::net::SocketAddr;
 use std::ops::Deref;
+use std::os::raw::c_void;
 use std::process::id;
 use std::sync::Arc;
 use std::{clone, collections::HashSet};
@@ -57,6 +58,49 @@ pub extern "C" fn add_in_rust(left: u32, right: u32) -> u32 {
     left + right
 }
 
+#[no_mangle]
+pub extern "C" fn zen_actor_client_new() -> *mut c_void {
+    let client = Box::new(ZenActorClient::new());
+    Box::into_raw(client) as *mut c_void
+}
+
+#[no_mangle]
+pub extern "C" fn zen_actor_client_interact(client_ptr: *mut c_void) {
+    let client = unsafe {
+        assert!(!client_ptr.is_null());
+        &mut *(client_ptr as *mut ZenActorClient)
+    };
+    // Interact with the client here...
+}
+
+#[no_mangle]
+pub extern "C" fn zen_actor_client_get_messages_sync(client_ptr: *mut c_void) -> *mut c_char {
+    let client = unsafe {
+        assert!(!client_ptr.is_null());
+        &mut *(client_ptr as *mut ZenActorClient)
+    };
+
+    let messages = tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(client.get_messages());
+
+    // Convert messages to a format that can be returned via FFI
+    let messages_string = format!("{:?}", messages);
+    let c_string = CString::new(messages_string).unwrap();
+    c_string.into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn zen_actor_client_free(client_ptr: *mut c_void) {
+    if client_ptr.is_null() {
+        return;
+    }
+    // probably not safe: takes a raw pointer, checks if it's null, and if it's not, converts it back into a box, which will be dropped (and thus deallocated) when the function ends.
+    unsafe {
+        Box::from_raw(client_ptr as *mut ZenActorClient);
+    }
+}
+
 /// Shorthand for the transmit half of the message channel.
 type Tx = mpsc::UnboundedSender<String>;
 
@@ -74,9 +118,11 @@ pub struct ZenActorClient {
 
 impl ZenActorClient {
     pub fn new() -> Self {
+        let starter_messages = vec!["hello".to_string(), "world".to_string()];
+        let starter_messages: VecDeque<String> = starter_messages.into_iter().collect();
         Self {
             id: None,
-            shared_state: Arc::new(Mutex::new(VecDeque::new())),
+            shared_state: Arc::new(Mutex::new(starter_messages)),
             writer_handle: None,
             reader_handle: None,
         }
