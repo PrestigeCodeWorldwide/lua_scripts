@@ -3,6 +3,7 @@
 use derive_more::Display;
 use futures::future::err;
 use log::{debug, error, info, warn};
+
 use serde::{Deserialize, Serialize};
 use simplelog::*;
 use std::collections::HashMap;
@@ -17,98 +18,7 @@ use tokio::sync::{mpsc, Mutex, MutexGuard};
 use tokio::time::timeout;
 use uuid::Uuid;
 type AnyResult = anyhow::Result<()>;
-
-#[derive(Debug, Display, Clone, Copy, Serialize, Deserialize, Eq, PartialEq, Hash)]
-pub struct ClientId(Uuid);
-
-impl ClientId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-
-    pub fn get(&self) -> Uuid {
-        self.0
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct ClientMessage {
-    pub clientId: Option<ClientId>,
-    pub clientOperation: ClientOperation,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-enum ServerOperation {
-    ClientConnectApproved(ClientId),
-    RequestCurrentTaskStep,
-}
-
-/* intended as a grouping of clients, so things like
-    "every one of your own characters" or "all the characters in the raid".
-    String currently for flexibility until I figure out something better.
-    Intended such that each client "connects" to one or more rooms at a time
-    and each room has 1 or more channels.  A message is sent to a Room/Channel combination
-*/
-#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, Eq, Hash)]
-pub struct Room(String);
-#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, Eq, Hash)]
-pub struct Channel(String);
-#[derive(Debug, Clone, Serialize, Deserialize, Display, PartialEq, Eq, Hash)]
-pub struct Message(String);
-
-impl Deref for Room {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for Channel {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for Message {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-enum ClientOperation {
-    ConnectAttempt,  // connects to a socket
-    RoomJoin(Room),  // joins a room
-    RoomLeave(Room), // leaves a room
-    Disconnect,
-    Message {
-        room: Room,
-        channel: Channel,
-        message: Message,
-    },
-}
-
-pub struct Client {
-    pub tx: mpsc::UnboundedSender<String>,
-    pub clientId: ClientId,
-}
-
-impl Client {
-    fn new(clientId: ClientId, tx: mpsc::UnboundedSender<String>) -> Self {
-        Self { tx, clientId }
-    }
-}
-
-struct Server {
-    pub clients: HashMap<ClientId, Client>,
-    pub writers: HashMap<ClientId, WriteHalf<TcpStream>>,
-    pub rooms: HashMap<Room, HashSet<ClientId>>,
-}
+use protocol::*;
 
 pub const ADDR: &str = "0.0.0.0:8080";
 
@@ -142,20 +52,43 @@ async fn main() -> AnyResult {
 
         let server = Arc::clone(&server);
 
-        let (reader, writer) = tokio::io::split(stream);
+        let (reader, mut writer) = tokio::io::split(stream);
 
         // Spawn task for each client connection
         tokio::spawn(async move {
             let (mut tx, mut rx) = mpsc::unbounded_channel();
             let clientId = ClientId::new();
+
             {
                 let mut server = server.lock().await;
                 server
                     .clients
                     .insert(clientId.clone(), Client::new(clientId.clone(), tx.clone()));
+
+                // write client ID back
+                info!("Writing client ID {}", clientId.0.to_string());
+                
+                // Create a ClientConnectApproved instance
+                let client_connect_approved =
+                    ServerOperation::ClientConnectApproved(clientId.clone());
+
+                // Serialize it to a JSON string
+                let message = serde_json::to_string(&client_connect_approved).unwrap();
+
+                // Add a newline character at the end
+                let message_with_newline = format!("{}\n", message);
+                
+                // Write the serialized message to the client
+                writer
+                    .write_all(message_with_newline.as_bytes())
+                    .await
+                    .unwrap();
+                writer.flush().await.unwrap(); // Add this line
+
+                // stash the writer to use later
                 server.writers.insert(clientId.clone(), writer);
             }
-
+            
             // Spawn a task to listen for messages to send to the client
             let server_locked = Arc::clone(&server);
             let client_id_clone = clientId.clone();
