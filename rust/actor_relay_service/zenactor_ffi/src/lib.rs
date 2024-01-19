@@ -95,7 +95,8 @@ pub extern "C" fn zen_actor_client_free(client_ptr: *mut c_void) {
     if client_ptr.is_null() {
         return;
     }
-    // probably not safe: takes a raw pointer, checks if it's null, and if it's not, converts it back into a box, which will be dropped (and thus deallocated) when the function ends.
+    // probably not safe: takes a raw pointer, checks if it's null, and if it's not,
+    // converts it back into a box, which will be dropped (and thus deallocated) when the function ends.
     unsafe {
         Box::from_raw(client_ptr as *mut ZenActorClient);
     }
@@ -156,7 +157,7 @@ impl ZenActorClient {
         let mut reader = BufReader::new(reader_stream);
 
         info!("Connected to server.");
-
+        let shared_state = Arc::clone(&self.shared_state);
         let reader_handle = tokio::spawn(async move {
             loop {
                 let mut response = String::new();
@@ -168,6 +169,9 @@ impl ZenActorClient {
                     Ok(_) => {
                         info!("Response: {}.", response);
                         // put into message queue that lua can retrieve inside of Receive()
+                        let mut shared_state = shared_state.lock().await;
+                        shared_state.push_back(response);
+                        break;
                     }
                     Err(e) => {
                         info!("Error while reading response. Error {}", e);

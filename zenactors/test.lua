@@ -35,6 +35,9 @@ local function TestFFIDllCall()
 	local messages = rust_lib.zen_actor_client_get_messages_sync(client)
 	BL.info("Got Messages from rust")
 	BL.info("Messages: %s", ffi.string(messages))
+	-- CLEAN UP
+	rust_lib.zen_actor_client_free(client)
+	BL.info("Freed client")
 end
 
 TestFFIDllCall()
