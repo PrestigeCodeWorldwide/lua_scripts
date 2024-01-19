@@ -928,3 +928,14 @@ dependencies = [
  "uuid",
  "windows",
 ]
+
+[[package]]
+name = "zenactor_ffi_test"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "log",
+ "simplelog",
+ "tokio",
+ "zenactor_ffi",
+]

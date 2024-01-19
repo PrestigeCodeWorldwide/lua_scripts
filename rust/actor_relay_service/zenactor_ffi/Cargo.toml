@@ -4,7 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = [
+	"cdylib",
+	"lib",
+] # Both so that we can also build for our test crate in Rust
+#path = "src/lib.rs"
+
+#[[bin]]
+#name = "zenactor_ffi_bin"
+#path = "src/main.rs"
+
 
 [dependencies]
 anyhow = "1.0"

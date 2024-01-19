@@ -1,5 +1,5 @@
 use simplelog::*;
-use zenactor_ffi::ZenActorClient;
+use zenactor_ffi::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -15,10 +15,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ColorChoice::Always,
     )?;
 
-    let mut client = ZenActorClient::new();
+    //let rx: Rx = local::channel();
 
-    client.start().await?;
-    client.run().await?;
+    let mut client = crate::ZenActorClient::new();
+
+    client.init().await?;
 
     Ok(())
 }
