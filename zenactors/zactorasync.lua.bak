@@ -1,0 +1,222 @@
+--- @type Mq
+local mq = require('mq')
+local BL = require("biggerlib")
+local PackageMan = require('mq/PackageMan')
+local socket = PackageMan.Require('luasocket', 'socket')
+local cjson = PackageMan.Require('lua-cjson', 'cjson')
+local loop = require("socketloop")
+
+--- @class Settings
+local Settings = {
+	host = "127.0.0.1",
+	port = 8080,
+	channel = "testChannel",
+	room = "testRoom",
+	ClientId = cjson.null,
+	delay = 1031
+}
+
+--- @enum ConnectionState
+local ConnectionState = {
+	CONNECTING = 0,
+	CONNECTED = 1,
+	AWAITING_APPROVAL = 2
+}
+
+--- @class LuasocketTCP
+local luasocket_tcp = {
+	--- @type function
+	close = function() end,
+	--- @type function
+	--- @param data string The data to send to the server, as one string.
+	send = function(self, data) end,
+	--- @type function
+	--- @param pattern string The pattern to match for receiving data. "*l" for line, "*a" for all data, or a number for that many bytes.
+	--- @param prefix string|nil Optional prefix to prepend to the received data.
+	receive = function(self, pattern, prefix) end,
+}
+
+--- @class ZActor
+local ZActor = {
+	-- @type LuasocketTCP
+	--tcp = nil,
+	skt = nil,
+	--- @type ConnectionState
+	currentConnectionState = ConnectionState.CONNECTING
+}
+
+--- Should be called first, before anything else
+function ZActor:ConnectSocket()
+	--local tcp = assert(socket:tcp())
+	--tcp:connect(Settings.host, Settings.port)
+	--tcp:settimeout(3.0)
+	--self.tcp = tcp
+	BL.info("Connecting to %s:%s", Settings.host, Settings.port)
+	self.skt = assert(loop.connect(Settings.host, Settings.port))
+end
+
+--- @param room string Room loosely corresponds to "Group of characters across all computers who want to group together"
+--- @param channel string Channel loosely corresponds to "Which script is communicating to the Group"
+--- @param message string Message to actually send, should probably start with some sort of header for categorization
+local function sendActorMessage(room, channel, message)
+	local ClientSendMessage = {
+		clientId = Settings.ClientId,
+		clientOperation = {
+			Message = {
+				room = room,
+				channel = channel,
+				message = message
+			},
+		}
+	}
+	local json_message = cjson.encode(ClientSendMessage) .. "\n"
+	BL.info("Sending message JSON: %s", json_message)
+	ZActor.skt:send(json_message)
+end
+
+--- @param message string
+function ZActor.SendMessage(message)
+	sendActorMessage(Settings.room, Settings.channel, message)
+end
+
+function ZActor.SendClientConnectRequest()
+	local ClientConnectRequest = {
+		clientOperation = "ConnectAttempt",
+	}
+	local json_message = cjson.encode(ClientConnectRequest) .. "\n"
+	BL.dump(json_message, "Sending connect request:")
+	ZActor.skt:send(json_message)
+	currentState = ConnectionState.AWAITING_APPROVAL
+end
+
+function ZActor.SendRoomJoinRequest(room)
+	local RoomJoinRequest = {
+		clientId = Settings.ClientId,
+		clientOperation = {
+			RoomJoin = room
+		}
+	}
+	local json_message = cjson.encode(RoomJoinRequest) .. "\n"
+	BL.info("Sending room join request:")
+	ZActor.skt:send(json_message)
+	BL.dump(json_message)
+end
+
+function ZActor.SendRoomLeaveRequest(room)
+	local RoomLeaveRequest = {
+		clientOperation = {
+			RoomLeave = room
+		}
+	}
+
+	-- Use the cjson.encode function to convert the table into a JSON string, uses \n as stream ending delimiter	
+	local json_message = cjson.encode(RoomLeaveRequest) .. "\n"
+	ZActor.skt:send(json_message)
+	BL.info("Sent room leave request:")
+	BL.dump(json_message)
+end
+
+function ZActor.Init(room, channel, messageHandler)
+	Settings.room = room
+	Settings.channel = channel
+	--ZActor.Connect()
+	ZActor.messageHandler = messageHandler
+
+	ZActor:ConnectSocket()
+	ZActor.SendClientConnectRequest()
+	ZActor.SendRoomJoinRequest(Settings.room)
+	return true
+end
+
+local function HandleConnectingResponse(partial)
+	if BL.NotNil(partial) and type(partial) == "string" then
+		local message = cjson.decode(partial)
+		--set my new client ID from server
+
+		Settings.ClientId = message.ClientConnectApproved
+		currentState = ConnectionState.CONNECTED
+		BL.info("Set clientID from server successfully")
+	end
+end
+
+local function HandleConnectionApproval(partial)
+	BL.dump(partial, "PARTIAL")
+	if BL.IsNil(partial) then
+		BL.error("COULD NOT CONNECT TO SERVER!")
+		return false
+	end
+	local success, message = pcall(cjson.decode(partial))
+	if not success then
+		BL.error("COULD NOT CONNECT TO SERVER! " .. message)
+		return success
+	end
+	if message.ClientConnectApproved then
+		Settings.ClientId = message.ClientConnectApproved
+		currentState = ConnectionState.CONNECTED
+		BL.info("Set clientID from server successfully")
+		ZActor.SendRoomJoinRequest(Settings.room)
+	end
+	return success
+end
+
+function ZActor.Receive()
+	loop.newthread(ZActor.ReceiveCoroutine)
+	loop.start(1)
+end
+
+--- Checks for incoming tcp message from server
+-- @return messageReceived
+function ZActor.ReceiveCoroutine()
+	local messageReceived = nil
+	local s, status, partial = ZActor.skt:receive('*l')
+
+	--BL.dump(s, "S")
+	--BL.dump(status, "status")
+	--BL.dump(partial, "partial")
+
+	if currentState == ConnectionState.CONNECTING then
+		HandleConnectingResponse(partial)
+	elseif currentState == ConnectionState.AWAITING_APPROVAL and partial then
+		local connected = HandleConnectionApproval(partial)
+		if not connected then
+			BL.error("COULD NOT CONNECT TO SERVER!")
+			return nil
+		end
+	elseif currentState == ConnectionState.CONNECTED and partial then
+		--BL.info("In connectionState.CONNECTED and partial")
+		local status, message = pcall(cjson.decode, partial)
+		if not status then
+			message = partial
+		end
+		if message.RoomJoinApproved then
+			BL.info("Joined room successfully")
+		end
+		--BL.info(message)
+		--BL.dump(message, "Partial assembled from server:")
+		messageReceived = message
+	end
+	-- this is handled above i think? leaving it for now while i'm refactoring other things
+	if currentState == ConnectionState.CONNECTED then
+		--get messages from server
+		if BL.NotNil(partial) then
+			--BL.dump(partial, "Message From Server")
+			messageReceived = partial
+		end
+	end
+
+	-- Call user callback fn with message here
+	if BL.NotNil(messageReceived) then ZActor.messageHandler(messageReceived) end
+
+	return messageReceived
+end
+
+function ZActor:Disconnect()
+	self.SendRoomLeaveRequest(Settings.room)
+	self.skt:close()
+end
+
+------------------------ EXECUTION -------------------------------------------
+
+
+
+return ZActor

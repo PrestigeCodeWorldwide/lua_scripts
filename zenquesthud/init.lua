@@ -5,6 +5,11 @@ require("ImGui")
 local actors = require("actors")
 local BL = require("biggerlib")
 
+local SETTINGS = {
+	-- If True, will spam in-game fellowship chat for updates.  This enables cross-network updates at the price of lots of spam
+	useFellowship = false,
+}
+
 local shouldTerminate = false
 
 local group = {}
@@ -46,36 +51,17 @@ local function getMyCurrentQuestInfo()
 			CurrentObjectiveIndex = CurrentObjectiveIndex + 1
 		end
 		noForeverLoop = noForeverLoop + 1
-	--mq.delay(250)
+		--mq.delay(250)
 	until not statusIsDone(taskStatus) or noForeverLoop > 15
 	if noForeverLoop >= 15 then
 		BL.warn("Infinite loop detected in getMyCurrentQuestStepAndStatus")
 	end
-
-	--taskStatus = mq.TLO.Task(taskName).Objective(CurrentObjectiveIndex).Status()
-	--local taskStatus = mq.TLO.Task(taskName).Objective(currentObjective).Status ~= "DONE"
 
 	--mq.cmdf("/g TASK Name: %s Step: %s Status: %s", taskName, taskStep, taskStatus)
 	return tostring(taskName), tostring(taskStep), tostring(taskStatus)
 end
 
 local function sendMyCurrentQuestStepToFellowship(taskName, taskStep, taskStatus)
-	-- There is some good reason for needing to duplicate this, but i don't remember what it was
-	--local taskName = mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").List(1, 3)
-	---@diagnostic disable-next-line: param-type-mismatch
-	--local taskStep = mq.TLO.Task(taskName).Step
-
-	--local status = ""
-	--local CurrentObjectiveIndex = 0 -- note 0 start because we'll immediately increment it in repeat loop
-	--repeat
-	--	CurrentObjectiveIndex = CurrentObjectiveIndex + 1
-	--	status = mq.TLO.Task(taskName).Objective(CurrentObjectiveIndex).Status
-	--if statusIsDone(status) then
-
-	--end
-	--until not statusIsDone(status)
-	--status = mq.TLO.Task(taskName).Objective(CurrentObjectiveIndex).Status
-
 	mq.cmdf(
 		"/fs QSCR %s is on task !!%s!! step @@%s@@ status !!%s!!",
 		mq.TLO.Me.CleanName(),
@@ -83,7 +69,6 @@ local function sendMyCurrentQuestStepToFellowship(taskName, taskStep, taskStatus
 		taskStep,
 		tostring(taskStatus)
 	)
-	--mq.cmd("/fs QSCR one, two;;")
 end
 
 -- this is then message handler, so handle all messages we expect
@@ -106,13 +91,15 @@ local actor = actors.register(function(message)
 			taskStep = taskStep,
 			taskStatus = taskStatus,
 		})
-		-- For now, also echo it into fellowship until Actors support cross-computer communication
-		sendMyCurrentQuestStepToFellowship(taskName, taskStep, taskStatus)
+		-- For now,  also echo it into fellowship until Actors support cross-computer communication
+
+		if SETTINGS.useFellowship then
+			sendMyCurrentQuestStepToFellowship(taskName, taskStep, taskStatus)
+		end
 	elseif message.content.id == "currentTaskStepResponse" then
 		-- someone sent back their current Task Step from echoCurrentTaskStep
 		message:reply(0, {})
-		-- Add their current step to our GUI display
-
+		-- Add their current step to our GUI display		
 		if
 			BL.IsNil(message.content.taskName)
 			or BL.IsNil(message.content.taskStep)
@@ -228,8 +215,10 @@ local function askForQuestStepEcho()
 	local myclass = mq.TLO.Me.Class()
 	if myclass == "Shadow Knight" or myclass == "Warrior" or myclass == "Paladin" then
 		actor:send({ id = "echoCurrentTaskStep" })
-		mq.cmd("/fs QUESTSTEPECHO.")
-		--BL.info("I just asked for quest step echo")
+		if SETTINGS.useFellowship then
+			mq.cmd("/fs QUESTSTEPECHO.")
+			--BL.info("I just asked for quest step echo")
+		end
 	end
 end
 
@@ -261,8 +250,14 @@ mq.event(
 	end
 )
 
+BL.info("QuestHUD loaded.")
+
 while not shouldTerminate do
 	askForQuestStepEcho()
-	mq.doevents()
+	-- events are only used for Fellowship chat mode
+
+	if SETTINGS.useFellowship then
+		mq.doevents()
+	end
 	mq.delay(1021)
 end

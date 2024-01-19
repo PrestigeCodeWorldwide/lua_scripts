@@ -104,6 +104,7 @@ function State.FindNextCircleOfPowerUser()
 end
 
 function State.Init()
+	State.useZActors = true
 	State.terminate = false
 	State.pause = false
 	State.driver = false

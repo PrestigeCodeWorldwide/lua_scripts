@@ -11,7 +11,7 @@ local function main()
 	mq.bind("/burn", Burn.args_cmd_handler)
 	settings.init()
 	BL.cmd.sendRaidChannelMessage("Burninator loaded")
-
+	
 	Burn.Init()
 
 	ui.init(Burn.uiEventHandlers)

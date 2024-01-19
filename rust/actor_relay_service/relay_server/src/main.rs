@@ -2,9 +2,9 @@
 
 use derive_more::Display;
 use futures::future::err;
-use log::debug;
-use paris::{error, info, warn, Logger};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
+use simplelog::*;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::process::id;
@@ -114,7 +114,17 @@ pub const ADDR: &str = "0.0.0.0:8080";
 
 #[tokio::main]
 async fn main() -> AnyResult {
-    let mut log = Logger::new();
+    let log_config = ConfigBuilder::new()
+        .set_location_level(LevelFilter::Error)
+        .set_time_level(LevelFilter::Debug)
+        .build();
+
+    TermLogger::init(
+        LevelFilter::Info,
+        log_config,
+        TerminalMode::Mixed,
+        ColorChoice::Always,
+    )?;
     let listener = TcpListener::bind(&ADDR).await?;
     let server = Arc::new(Mutex::new(Server {
         clients: HashMap::new(),
@@ -193,7 +203,10 @@ async fn main() -> AnyResult {
                 buf.clear();
                 let _ = reader.read_until(b'\n', &mut buf).await;
 
-                info!("Deserializing from string");
+                info!(
+                    "Deserializing from string: {}",
+                    String::from_utf8_lossy(&buf)
+                );
                 let json_message = String::from_utf8_lossy(&buf)
                     .trim()
                     .trim_end_matches('\n')
@@ -212,7 +225,7 @@ async fn main() -> AnyResult {
                             // Clone the message here
                             info!(
                                 "Received client message: {} to room: {} and channel: {} from id: {}",
-                                &message, &room, &channel, &client_message.clientId.unwrap().0
+                                &message, &room, &channel, &client_message.clientId.unwrap_or(ClientId(Uuid::nil())).0
                             );
                             // We need to send this client message out to every single stream in all the tokio spawns
                             let mut server_guard = server.lock().await;
@@ -304,7 +317,7 @@ async fn main() -> AnyResult {
                         }
                     },
                     Err(err) => {
-                        error!("Failed to parse the message: {}", err);
+                        warn!("Failed to parse the message: {}", err);
                         break;
                     }
                 }

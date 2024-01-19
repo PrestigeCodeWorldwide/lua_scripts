@@ -261,7 +261,7 @@ local function drawAssistTab()
 		camp.setCamp(true)
 	end
 
-	--ImGui.PushItemWidth(item_width)
+	ImGui.PushItemWidth(item_width)
 	--mid_x = 50
 	config.MODE.value = ui.drawComboBox("Mode", config.get("MODE"), mode.mode_names, false, config.MODE.tip)
 	mode.currentMode = mode.fromString(config.get("MODE"))
@@ -531,7 +531,7 @@ local function drawHeader()
 
 
 	mid_x = 140
-	--ImGui.PopItemWidth()
+	ImGui.PopItemWidth()
 
 
 	if current_mode ~= config.get("MODE") and not state.paused then

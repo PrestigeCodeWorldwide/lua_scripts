@@ -2,8 +2,10 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 local State = require("state")
+local PackageMan = require('mq/PackageMan')
+local cjson = PackageMan.Require('lua-cjson', 'cjson')
 
-local settings = { boolSettings = {} }
+local settings = { room = "boti", channel = "burninator", ClientId = cjson.null, boolSettings = {} }
 
 local toon = mq.TLO.Me.Name() or ""
 local settingsPath = "BurninateConfig_" .. toon .. ".lua"
@@ -72,7 +74,7 @@ end
 function settings.init()
 	local configData, error = loadfile(mq.configDir .. "/" .. settingsPath) -- read config file
 	--utils.dump(configData, "Config Data from file")
-	if error then -- failed to read the config file, create it using pickle
+	if error then                                                        -- failed to read the config file, create it using pickle
 		print("\at[Burninate] \ay Creating config file...")
 		settings.setDefaults("all")
 		settings.listCommands()

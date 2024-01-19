@@ -1,8 +1,11 @@
 ---@type Mq
 local mq = require("mq")
 local BL = require("biggerlib")
+local PackageMan = require('mq/PackageMan')
+local socket = PackageMan.Require('luasocket', 'socket')
+local cjson = PackageMan.Require('lua-cjson', 'cjson')
 local State = require("state")
-local settings = require("settings")
+local Settings = require("settings")
 
 local Burn = {}
 
@@ -187,7 +190,11 @@ Burn.emitSpellEvent = function(className, spellName)
 
 	-- Matcher Text follows pattern: "Burninate" (trigger phrase) - "Funeral Dirge" (spell name to cast) - "Robothaus" (toon to cast) "." (Period required at end)
 	-- Meant for "/rs Burninate - Funeral Dirge - Robothaus." or "/rs Burninate - Perseverance - Caelinaex."
-	mq.cmdf("/rs Burninate - %s - %s.", spellName, chosenCharacter)
+	if State.useZActors then
+		BL.todo()
+	else -- spam raid chat
+		mq.cmdf("/rs Burninate - %s - %s.", spellName, chosenCharacter)
+	end
 end
 
 function Burn.TurnOffPluginUses()
@@ -292,17 +299,50 @@ function Burn.DoCircleOfPowerEventHandler(line, personName)
 	end
 end
 
+local function sendClientConnectRequest()
+	local ClientConnectRequest = {
+		clientOperation = "ConnectAttempt",
+	}
+	local json_message = cjson.encode(ClientConnectRequest) .. "\n"
+	tcp:send(json_message)
+	BL.dump(json_message, "Sent connect request:")
+end
+
+
+local function sendRoomJoinRequest(room)
+	local RoomJoinRequest = {
+		clientId = Settings.ClientId,
+		clientOperation = {
+			RoomJoin = room
+		}
+	}
+
+	-- Use the cjson.encode function to convert the table into a JSON string, uses \n as stream ending delimiter	
+	local json_message = cjson.encode(RoomJoinRequest) .. "\n"
+	tcp:send(json_message)
+	BL.info("Sent room join request:")
+	BL.dump(json_message)
+end
+
 function Burn.Init()
 	-- Matcher Text follows pattern: "Burninate" (trigger phrase) - "Funeral Dirge" (spell name to cast) - "Robothaus" (toon to cast) "." (Period required at end)
 	-- Meant for "/rs Burninate - Funeral Dirge - Robothaus." or "/rs Burninate - Perseverance - Caelinaex."
-	mq.event("burninate", "#*#Burninate - #1# - #2#.#*#", Burn.burninateEventHandler)
-	mq.event("handleCircleOfPowerListRequest", "#*#WHOCANPOWER#*#", Burn.handleCircleOfPowerListRequest)
-	mq.event(
-		"handleCircleOfPowerListResponse",
-		"#*#raid, '#1# has the power!'#*#",
-		Burn.handleCircleOfPowerListResponse
-	)
-	mq.event("doCircleOfPower", "#*#DOCIRCLEOFPOWER #1#.#*#", Burn.DoCircleOfPowerEventHandler)
+
+	if State.useZActors then
+		BL.info("Using ZActors")
+		sendClientConnectRequest()
+		-- once request approved, join room
+	else
+		mq.event("burninate", "#*#Burninate - #1# - #2#.#*#", Burn.burninateEventHandler)
+		mq.event("handleCircleOfPowerListRequest", "#*#WHOCANPOWER#*#", Burn.handleCircleOfPowerListRequest)
+		mq.event(
+			"handleCircleOfPowerListResponse",
+			"#*#raid, '#1# has the power!'#*#",
+			Burn.handleCircleOfPowerListResponse
+		)
+		mq.event("doCircleOfPower", "#*#DOCIRCLEOFPOWER #1#.#*#", Burn.DoCircleOfPowerEventHandler)
+	end
+
 	State.refreshClassList()
 end
 
