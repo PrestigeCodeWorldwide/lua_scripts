@@ -24,16 +24,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          release_name: bigger_launcher_latest
           draft: false
           prerelease: false
-
+      
       - name: Download release asset
         uses: dsaltares/fetch-gh-release-asset@master
         with:
           repo: "${{ github.repository }}"
           version: "tags/v${{ github.run_number }}"
-          file: "YourAssetFileName"
+          file: "bigger_launcher_latest.zip"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Add release to remote repository
         run: |
-          mv YourAssetFileName remote-repo/
+          mv bigger_launcher_latest.zip remote-repo/
           cd remote-repo
           git add .
           git commit -m "Add release asset"
