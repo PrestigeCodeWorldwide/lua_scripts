@@ -51,11 +51,10 @@ jobs:
           git add .
           git commit -m "Add release asset"
       
-      - name: Push release to remote repository
-        run: |
-          cd remote-repo
-          git config user.name "GitHub Actions Bot"
-          git config user.email "<>"
-          git fetch origin
-          git push origin --tags
-		  
+    #  - name: Push release to remote repository
+    #    run: |
+    #      cd remote-repo
+    #      git config user.name "GitHub Actions Bot"
+    #      git config user.email "<>"
+    #      git fetch origin
+    #      git push origin --tags
