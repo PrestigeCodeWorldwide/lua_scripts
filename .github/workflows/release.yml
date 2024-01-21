@@ -27,6 +27,10 @@ jobs:
           --exclude=*.github* \
           --exclude=*rust/* \
           --exclude=*dev/* \
+          --exclude=*code-workspace* \
+          --exclude=*.justfile* \
+          --exclude=*.stylua* \
+          --exclude=*dev/* \
           -P ${{ secrets.ZIP_PASSWORD }} \
           ./repo.zip .
       
