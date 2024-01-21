@@ -17,16 +17,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Zip repository
-        uses: montudor/action-zip@v0.1.0
-        with:
-          args: zip -qq -r ./repo.zip ./
+      - name: Zip repository with password
+        run: |
+          zip -qq -r -P ${{ secrets.ZIP_PASSWORD }} ./repo.zip ./
 
       - name: Checkout remote repository
         uses: actions/checkout@v2
         with:
           repository: PrestigeCodeWorldwide/bigger_launcher  
-          token: ${{ secrets.LAUNCHER_TOKEN }}  # replace with your secret token for the remote repo
+          token: ${{ secrets.LAUNCHER_TOKEN }} 
           path: remote-repo
 
       - name: Move zipped repo to remote repository
