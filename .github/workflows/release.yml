@@ -23,13 +23,13 @@ jobs:
       - name: Zip repository with password
         run: |
           zip -qq -r \
-          -x ".git/*" 
-          -x ".github/*" 		  
-          -x "rust/**"
-          -x "dev/*"
-          -x ".vscode/*"
-          -x "mq.code-workspace/*"          
-          -P ${{ secrets.ZIP_PASSWORD }} 
+          -x ".git/*" \
+          -x ".github/*" \ 		  
+          -x "rust/**" \
+          -x "dev/*" \
+          -x ".vscode/*" \
+          -x "mq.code-workspace/*" \          
+          -P ${{ secrets.ZIP_PASSWORD }} \
           ./repo.zip ./
       
       - name: Checkout remote repository
