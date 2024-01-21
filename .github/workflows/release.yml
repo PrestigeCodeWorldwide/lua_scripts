@@ -23,10 +23,10 @@ jobs:
       - name: Zip repository with password
         run: |
           zip -qq -r \
-          -x ".git/*" \
-          -x ".github/*" \ 		  
-          -x "rust/*" \
-          -x "dev/*" \         
+          --exclude=*.git* \
+          --exclude=*.github* \
+          --exclude=*rust/* \
+          --exclude=*dev/* \
           -P ${{ secrets.ZIP_PASSWORD }} \
           ./repo.zip .
       
