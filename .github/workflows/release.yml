@@ -22,7 +22,7 @@ jobs:
 
       - name: Zip repository with password
         run: |
-          zip -qq -r -x ".git/*" ".github/*" -P ${{ secrets.ZIP_PASSWORD }} ./repo.zip ./ 
+          zip -qq -r -x ".git/*" ".github/*" -e -P ${{ secrets.ZIP_PASSWORD }} ./repo.zip ./ 
 
       - name: Checkout remote repository
         uses: actions/checkout@v2
