@@ -38,5 +38,5 @@ jobs:
           git add .
           git commit -m "Add zipped repo"
           git fetch origin
-          git push origin master
+          git push origin main
 
