@@ -28,7 +28,7 @@ jobs:
           -x "rust/*" \
           -x "dev/*" \         
           -P ${{ secrets.ZIP_PASSWORD }} \
-          ./repo.zip ./
+          ./repo.zip .
       
       - name: Checkout remote repository
         uses: actions/checkout@v2
