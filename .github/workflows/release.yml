@@ -17,25 +17,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Create Release
-        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged)
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Zip repository
+        uses: montudor/action-zip@v0.1.0
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: bigger_launcher_latest
-          draft: false
-          prerelease: false
-      
-      - name: Download release asset
-        uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          repo: "${{ github.repository }}"
-          version: "tags/v${{ github.run_number }}"
-          file: "bigger_launcher_latest.zip"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          args: zip -qq -r ./repo.zip ./
 
       - name: Checkout remote repository
         uses: actions/checkout@v2
@@ -44,17 +29,16 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}  # replace with your secret token for the remote repo
           path: remote-repo
 
-      - name: Add release to remote repository
+      - name: Move zipped repo to remote repository
         run: |
-          mv bigger_launcher_latest.zip remote-repo/
+          mv repo.zip remote-repo/
           cd remote-repo
           git add .
-          git commit -m "Add release asset"
+          git commit -m "Add zipped repo"
       
-    #  - name: Push release to remote repository
-    #    run: |
-    #      cd remote-repo
-    #      git config user.name "GitHub Actions Bot"
-    #      git config user.email "<>"
-    #      git fetch origin
-    #      git push origin --tags
+      - name: Push zipped repo to remote repository
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git fetch origin
+          git push origin master
