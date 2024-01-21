@@ -26,7 +26,7 @@ pub const ADDR: &str = "0.0.0.0:8080";
 async fn main() -> AnyResult {
     let log_config = ConfigBuilder::new()
         .set_location_level(LevelFilter::Error)
-        .set_time_level(LevelFilter::Debug)
+        .set_time_level(LevelFilter::Error)
         .build();
 
     TermLogger::init(
@@ -67,7 +67,7 @@ async fn main() -> AnyResult {
 
                 // write client ID back
                 info!("Writing client ID {}", clientId.0.to_string());
-                
+
                 // Create a ClientConnectApproved instance
                 let client_connect_approved =
                     ServerOperation::ClientConnectApproved(clientId.clone());
@@ -77,7 +77,7 @@ async fn main() -> AnyResult {
 
                 // Add a newline character at the end
                 let message_with_newline = format!("{}\n", message);
-                
+
                 // Write the serialized message to the client
                 writer
                     .write_all(message_with_newline.as_bytes())
@@ -88,7 +88,7 @@ async fn main() -> AnyResult {
                 // stash the writer to use later
                 server.writers.insert(clientId.clone(), writer);
             }
-            
+
             // Spawn a task to listen for messages to send to the client
             let server_locked = Arc::clone(&server);
             let client_id_clone = clientId.clone();

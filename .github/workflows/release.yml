@@ -17,8 +17,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      # Additional steps like build or test
-
       - name: Create Release
         if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged)
         uses: actions/create-release@v1
@@ -29,3 +27,35 @@ jobs:
           release_name: Release v${{ github.run_number }}
           draft: false
           prerelease: false
+
+      - name: Download release asset
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: "${{ github.repository }}"
+          version: "tags/v${{ github.run_number }}"
+          file: "YourAssetFileName"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Checkout remote repository
+        uses: actions/checkout@v2
+        with:
+          repository: PrestigeCodeWorldwide/bigger_launcher  
+          token: ${{ secrets.GITHUB_TOKEN }}  # replace with your secret token for the remote repo
+          path: remote-repo
+
+      - name: Add release to remote repository
+        run: |
+          mv YourAssetFileName remote-repo/
+          cd remote-repo
+          git add .
+          git commit -m "Add release asset"
+
+      - name: Push release to remote repository
+        run: |
+          cd remote-repo
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git fetch origin
+          git push origin --tags
+		  

@@ -1409,7 +1409,8 @@ function class.doneSinging()
 	end
 	if not mq.TLO.Me.Casting() then
 		if
-			not class.spells.selos
+			not state.paused
+			and class.spells.selos
 			and class.selos
 			and selosTimer:timerExpired()
 			and class.OPTS.USESELOS.value

@@ -1,6 +1,62 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 
+local State = {
+    MezMe = 0,
+	Returning = 1,
+}
+
+local MyClass = mq.TLO.Me.Class.ShortName()
+
+if MyClass ~= "BRD" and MyClass ~= "CLR" then
+    BL.warn("Class cannot mez, why are you running pom mez script? Ending")
+	exit
+end
+
+local rabbits_to_mez = {
+	["a_white_rabbit01"] = { state = State.MezMe, distance = 999999 },
+	["a_white_rabbit02"] = { state = State.MezMe, distance = 999999 },
+	["a_white_rabbit03"] = { state = State.MezMe, distance = 999999 },
+	["a_white_rabbit04"] = { state = State.MezMe, distance = 999999 }
+}
+
+local lastMezzed = nil
+local lastMezzedDistance = 999999
+
+-- mez rabbit that comes within 100 and watch it until it leaves past 100 before mezzing it again
+
+-- flow
+-- check each rabbit spawn on your list and their distance
+-- if within 100 then mez
+-- after mez put the corresponding rabbit04 etc into State.Returning
+-- continue checking each rabbit spawn and once any in State.Returning get 125 away or despawn, put them back in State.MezMe
+
+
+local function updateRabbitDistances()
+    local function updateRabbitDistance(rabbit)
+		rabbits_to_mez[rabbit].distance = rabbit.Distance()
+    end
+	
+	for rabbit, state in pairs(rabbits_to_mez) do
+		local result = mq.TLO.Spawn(rabbit)
+		if not BL.IsNil(result) then
+			updateRabbitDistance(result)
+        else
+			-- rabbit is missing, so we want to reset it for next spawn
+            rabbits_to_mez[rabbit].state = State.MezMe
+			rabbits_to_mez[rabbit].distance = 999999
+		end
+	end
+end
+
+local function findNextRabbit()
+
+end
+
+local function mezzedRabbitUpdateStatus(rabbit)
+
+end
+
 local function memMezSpell()
 	mq.cmd("/enc byos on")
 	mq.delay(50)
@@ -25,19 +81,21 @@ local function doMezRabbit()
 		rabbit.DoTarget()
 	end
 
-	if rabbit.Distance() < 100 then
+	if BL.NotNil(rabbit) and rabbit.Distance() < 100 then
 		BL.cmd.pauseAutomation()
 		mq.cmd("/cast flummox")
 		mq.delay(50)
-		mq.cmd("/cast flummox")
+        mq.cmd("/cast flummox")
+		mezzedRabbitUpdateStatus(rabbit)
 		-- Give rabbit time to leave and come back
-		mq.delay(7000)
+		--mq.delay(7000)
 		BL.cmd.resumeAutomation()
 	end
 end
 
 memMezSpell()
 while true do
+	updateRabbitDistances()
 	doMezRabbit()
 	mq.delay(1000)
 end
