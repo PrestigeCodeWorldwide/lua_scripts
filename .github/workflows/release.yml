@@ -39,6 +39,8 @@ jobs:
           git commit -m "Add zipped repo"
       
       - name: Push zipped repo to remote repository
-        run: |          
+        run: |       
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"   
           git fetch origin
           git push origin master
