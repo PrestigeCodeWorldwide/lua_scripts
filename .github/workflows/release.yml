@@ -50,7 +50,7 @@ jobs:
           cd remote-repo
           git add .
           git commit -m "Add release asset"
-
+      
       - name: Push release to remote repository
         run: |
           cd remote-repo
