@@ -33,11 +33,19 @@ ffi.cdef [[
 	int zen_actor_client_step_runtime(ZenActorClientPtr client);
 	
 ]]
---int zen_actor_client_run(ZenActorClientPtr client);
 
 local function GetRustLogs()
-	local logs = rust_lib.zen_actor_client_get_rust_logs(client)
-	local stringLogs = ffi.string(logs)
+	--BL.info("In rust logs")
+	local status, logs = pcall(rust_lib.zen_actor_client_get_rust_logs, client)
+	if not status then
+		BL.warn("GET RUST LOGS FFI CALL FAILED: %s", tostring(logs))
+	end
+	--BL.info("After FFI call")
+	local stringStatus, stringLogs = pcall(ffi.string, logs)
+	if not stringStatus then
+		BL.warn("GET RUST LOGS FFI CALL FAILED: %s", tostring(stringLogs))
+	end
+	--BL.info("After string conversion")
 	--BL.dump(stringLogs, "STRINGLOGS")
 	--BL.info("Length of string is %d", string.len(stringLogs))
 
@@ -69,28 +77,33 @@ local function InitFFI()
 	--local result = rust_lib.add_in_rust(1, 2)
 	--BL.info("Result from rust: %d", result)
 	BL.info("Beginning init with new client")
-	local client_status, client_res = pcall(rust_lib.zen_actor_client_new("ActorTestRoom", "ActorTestChannel"))
+	local client_status, client_res = pcall(rust_lib.zen_actor_client_new, "ActorTestRoom", "ActorTestChannel")
 	BL.info("Client created: %s %s", tostring(client_status), tostring(client_res))
+	--BL.dump(client_res, "Client_Res")
 	client = client_res
-	BL.dump(client, "Got new client")
+	--BL.dump(client, "Got new client")
+	BL.info("Before GetRustLogs")
 	GetRustLogs()
+	BL.info("After GetRustLogs")
 
-	mq.delay(3000)
+	--mq.delay(3000)
 	BL.info("Stepping client...")
-	local status, res = pcall(rust_lib.zen_actor_client_step_runtime(client))
+	local status, res = pcall(rust_lib.zen_actor_client_step_runtime, client)
 	BL.info("Client Stepped: %s %s", tostring(status), tostring(res))
 	GetRustLogs()
 	BL.info("Got client from rust new")
-	local init_status, init_res = pcall(rust_lib.zen_actor_client_init(client))
+	local init_status, init_res = pcall(rust_lib.zen_actor_client_init, client)
 	BL.info("Client inited: %s %s", tostring(init_status), tostring(init_res))
-	--mq.delay(1000)
-	--BL.info("Initialized client")
-	--GetRustLogs()
+
+	mq.delay(1000)
+	BL.info("Initialized client")
+	GetRustLogs()
 	----mq.delay(5000)
-	--local res = rust_lib.zen_actor_client_step_runtime(client)
-	--GetRustLogs()
+	local res = rust_lib.zen_actor_client_step_runtime(client)
+	GetRustLogs()
 
 	--BL.info("Client inited: %s", tostring(res))
+	BL.info("At end of InitFFI")
 end
 
 

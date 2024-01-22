@@ -14,7 +14,6 @@ use log::{debug, error, info, warn};
 use protocol::ClientId;
 use serde::{Deserialize, Serialize};
 use simplelog::*;
-use std::collections::VecDeque;
 use std::env;
 use std::io;
 use std::net::SocketAddr;
@@ -22,6 +21,7 @@ use std::ops::Deref;
 use std::os::raw::c_void;
 use std::process::id;
 use std::sync::Arc;
+use std::{borrow::BorrowMut, collections::VecDeque};
 use std::{clone, collections::HashSet};
 use std::{collections::HashMap, ffi::CStr};
 use tokio::{
@@ -56,25 +56,28 @@ pub type DWORD = u32;
 pub type FFIStringPtr = *const c_char;
 pub type AnyResult = anyhow::Result<()>;
 
-// example extern
-#[no_mangle]
-pub extern "C" fn add_in_rust(left: u32, right: u32) -> u32 {
-    left + right
-}
-
 #[no_mangle]
 pub extern "C" fn zen_actor_client_new(room: *const c_char, channel: *const c_char) -> *mut c_void {
     let room_str = unsafe {
-        assert!(!room.is_null());
-        CStr::from_ptr(room).to_string_lossy().into_owned()
+        if room.is_null() {
+            CString::new("NULL ROOM").unwrap()
+        } else {
+            CStr::from_ptr(room).to_owned()
+        }
     };
 
     let channel_str = unsafe {
-        assert!(!channel.is_null());
-        CStr::from_ptr(channel).to_string_lossy().into_owned()
+        if channel.is_null() {
+            CString::new("NULL CHANNEL").unwrap()
+        } else {
+            CStr::from_ptr(channel).to_owned()
+        }
     };
 
-    let client = Box::new(ZenActorClient::new(room_str, channel_str));
+    let client = Box::new(ZenActorClient::new(
+        room_str.to_string_lossy().into_owned(),
+        channel_str.to_string_lossy().into_owned(),
+    ));
     Box::into_raw(client) as *mut c_void
 }
 
@@ -86,76 +89,109 @@ pub extern "C" fn zen_actor_client_step_runtime(client_ptr: *mut c_void) -> i32 
 
     let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
 
-    // which runtime should i be using here? client.runtime?
+    // Create a new runtime to block on the async step_runtime call
+    let rt = tokio::runtime::Runtime::new().unwrap();
 
-    //let mut runtime = client.runtime.take().unwrap();
-    //let result = runtime.block_on(client.step_runtime());
-    //client.runtime = Some(runtime);
-    client.step_runtime();
-    0
+    match rt.block_on(client.step_runtime()) {
+        Ok(_) => 0,
+        Err(_) => -2, // You can use different error codes for different errors
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn zen_actor_client_init(client_ptr: *mut c_void) -> *const c_char {
     if client_ptr.is_null() {
-        let messages_string = format!("-1");
-        let c_string = CString::new(messages_string).unwrap();
-        return c_string.into_raw();
+        let messages_string = CString::new("-1").unwrap();
+        return messages_string.into_raw();
     }
     let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
 
-    //instead of this, lets not block in here at all and just do it in client ///////////create the runtime we want here and pass it into client.init() if we can?
-    //let local_set = tokio::task::LocalSet::new();
-    //let rt = tokio::runtime::Builder::new_current_thread()
-    //    .enable_all()
-    //    .build()
-    //    .unwrap();
+    let handle = {
+        let mut client = client.clone(); // Assuming ZenActorClient is `Clone`.
+        let (tx, rx) = std::sync::mpsc::channel();
 
-    //let rt_clone = rt.
-
-    //let result = rt.block_on(local_set.run_until(client.init()));
-
-    //match result {
-    //    Ok(res) => CString::new(res.to_owned()).unwrap().into_raw(), // return null pointer if there's no error
-    //    Err(e) => {
-    //        let c_string = CString::new(e.to_string()).unwrap();
-    //        c_string.into_raw() // convert the CString into a raw pointer
-    //    }
-    //}
-    let mut runtime = client.runtime.as_mut().unwrap().handle().clone();
-
-    let res: String = match runtime.block_on(client.init()) {
-        Ok(_) => "SuccessfulClientInit".to_string(),
-        Err(e) => e.to_string(),
+        std::thread::spawn(move || {
+            // Create a new runtime for the new thread.
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async move {
+                let init_result = client.init().await;
+                // Send the result back to the calling thread.
+                let _ = tx.send(init_result);
+            });
+        });
+        
+        rx
     };
 
-    //let res = 0;
-
-    let messages_string = format!("{}", &res);
-    let c_string = CString::new(messages_string).unwrap();
-    c_string.into_raw()
+    // Non-blocking receive, with the option to add timeout if needed.
+    match handle.recv_timeout(Duration::from_secs(5)) {
+        Ok(Ok(_)) => {
+            let messages_string = CString::new("SuccessfulClientInit").unwrap();
+            messages_string.into_raw()
+        }
+        Ok(Err(e)) => {
+            let error_message = format!("Error: {}", e);
+            let messages_string = CString::new(error_message).unwrap();
+            messages_string.into_raw()
+        }
+        Err(_) => {
+            let messages_string = CString::new("InitTimeout").unwrap();
+            messages_string.into_raw()
+        }
+    }
 }
 
+//#[no_mangle]
+//pub extern "C" fn zen_actor_client_init(client_ptr: *mut c_void) -> *const c_char {
+//    if client_ptr.is_null() {
+//        let messages_string = format!("-1");
+//        let c_string = CString::new(messages_string).unwrap();
+//        return c_string.into_raw();
+//    }
+//    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
+
+//    let mut runtime = client.runtime.as_mut().unwrap().handle().clone();
+
+//	// How can I make this NON blocking?
+//    //let res: String = match runtime.block_on(client.init()) {
+//    //    Ok(_) => "SuccessfulClientInit".to_string(),
+//    //    Err(e) => e.to_string(),
+//    //};
+
+//	// Spawn the init task without blocking
+//    let handle = runtime.spawn(async move {
+//        client.init().await
+//    });
+
+//    let res = String::from("0");
+
+//    let messages_string = format!("{}", &res);
+//    let c_string = CString::new(messages_string).unwrap();
+//    c_string.into_raw()
+//}
+
 #[no_mangle]
-pub extern "C" fn zen_actor_client_interact(client_ptr: *mut c_void) -> *mut c_char  I AM TIRED BUT IM RIPPING OUT ALL THE assert(clientptrs are null) {
+pub extern "C" fn zen_actor_client_interact(client_ptr: *mut c_void) -> *mut c_char {
     if client_ptr.is_null() {
         let messages_string = format!("-1");
         let c_string = CString::new(messages_string).unwrap();
         return c_string.into_raw();
     }
-	
-	let client = unsafe {
-        &mut *(client_ptr as *mut ZenActorClient)
-    };
-    // Interact with the client here...
+
+    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
+    let messages_string = format!("SUCCESS");
+    let c_string = CString::new(messages_string).unwrap();
+    c_string.into_raw()
 }
 
 #[no_mangle]
 pub extern "C" fn zen_actor_client_get_messages_sync(client_ptr: *mut c_void) -> *mut c_char {
-    let client = unsafe {
-        assert!(!client_ptr.is_null());
-        &mut *(client_ptr as *mut ZenActorClient)
-    };
+    if client_ptr.is_null() {
+        let messages_string = format!("Client ptr is null");
+        let c_string = CString::new(messages_string).unwrap();
+        return c_string.into_raw();
+    }
+    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
 
     let messages = tokio::runtime::Runtime::new()
         .unwrap()
@@ -169,10 +205,12 @@ pub extern "C" fn zen_actor_client_get_messages_sync(client_ptr: *mut c_void) ->
 
 #[no_mangle]
 pub extern "C" fn zen_actor_client_get_rust_logs(client_ptr: *mut c_void) -> *mut c_char {
-    let client = unsafe {
-        assert!(!client_ptr.is_null());
-        &mut *(client_ptr as *mut ZenActorClient)
-    };
+    if client_ptr.is_null() {
+        let messages_string = format!("Client ptr is null");
+        let c_string = CString::new(messages_string).unwrap();
+        return c_string.into_raw();
+    }
+    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
 
     let messages = tokio::runtime::Runtime::new()
         .unwrap()
@@ -259,15 +297,15 @@ async fn write_rust_log(message_queue: &mut Arc<Mutex<VecDeque<String>>>, messag
     message_queue.push_back(message.to_owned());
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct ZenActorClient {
     pub id: Option<ClientId>,
     pub server_message_queue: Arc<Mutex<VecDeque<String>>>,
     pub client_message_queue: Arc<Mutex<VecDeque<String>>>,
     pub rust_log_messages: Arc<Mutex<VecDeque<String>>>,
-    runtime: Option<Runtime>,
-    local_set: tokio::task::LocalSet,
+    runtime: Arc<Mutex<Option<Runtime>>>,
+    //local_set: tokio::task::LocalSet,
     pub room: String,
     pub channel: String,
     //writer_handle: Option<JoinHandle<()>>,
@@ -275,6 +313,16 @@ pub struct ZenActorClient {
 }
 
 impl ZenActorClient {
+    pub async fn step_runtime(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let runtime = self.runtime.lock().await;
+        if let Some(rt) = &*runtime {
+            rt.spawn(async {
+                tokio::task::yield_now().await;
+            });
+        }
+        Ok(())
+    }
+
     pub fn new(room_to_connect: String, channel_to_connect: String) -> Self {
         let starter_messages = vec!["hello".to_string(), "world".to_string()];
         let starter_messages: VecDeque<String> = starter_messages.into_iter().collect();
@@ -291,37 +339,12 @@ impl ZenActorClient {
             //reader_handle: None,
             client_message_queue: Arc::new(Mutex::new(VecDeque::new())),
             rust_log_messages: Arc::new(Mutex::new(VecDeque::new())),
-            runtime: Some(myRuntime),
-            local_set: tokio::task::LocalSet::new(),
+            runtime: Arc::new(Mutex::new(Some(myRuntime))),
+            //local_set: tokio::task::LocalSet::new(),
             room: room_to_connect,
             channel: channel_to_connect,
         }
     }
-
-    pub fn step_runtime(&mut self) {
-        self.runtime.as_mut().unwrap().spawn_blocking(|| {
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(async {
-                    tokio::task::yield_now().await;
-                });
-        });
-        //let mut runtime = self.runtime.clone().unwrap();
-        //runtime.block_on(async {
-        //    tokio::task::yield_now().await;
-        //});
-    }
-
-    //pub async fn run(&mut self) -> AnyResult {
-    //    let handles = try_join!(
-    //        self.reader_handle.take().unwrap(),
-    //        self.writer_handle.take().unwrap()
-    //    )?;
-
-    //    Ok(())
-    //}
 
     pub async fn get_rust_logs(&mut self) -> VecDeque<String> {
         let mut messages: VecDeque<String> = VecDeque::new();
@@ -381,7 +404,7 @@ impl ZenActorClient {
         )
         .await;
 
-        let runtime = self.runtime.as_mut().unwrap().handle().clone();
+        let runtime = self.runtime.lock().await.as_mut().unwrap().handle().clone();
 
         runtime.spawn(async move {
             //let mut loop_writer = log_writer.clone();
