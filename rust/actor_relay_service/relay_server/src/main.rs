@@ -76,13 +76,10 @@ async fn main() -> AnyResult {
                 let message = serde_json::to_string(&client_connect_approved).unwrap();
 
                 // Add a newline character at the end
-                let message_with_newline = format!("{}\n", message);
+                //let message_with_newline = format!("{}", message);
 
                 // Write the serialized message to the client
-                writer
-                    .write_all(message_with_newline.as_bytes())
-                    .await
-                    .unwrap();
+                writer.write_all(message.as_bytes()).await.unwrap();
                 writer.flush().await.unwrap(); // Add this line
 
                 // stash the writer to use later

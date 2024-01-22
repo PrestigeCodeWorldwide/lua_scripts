@@ -54,24 +54,7 @@ local function GetRustLogs()
 	end
 end
 
-local function TestFFIDllCall()
-	BL.info("Sending test message from lua")
-	rust_lib.zen_actor_client_step_runtime(client)
-	GetRustLogs()
-	local message_send_res = rust_lib.zen_actor_client_send_message(client, "Test Message from Lua")
-	BL.info("Sent message result: %s", ffi.string(message_send_res))
-	BL.info("Sent message, now receiving messages from server")
-	GetRustLogs()
-	rust_lib.zen_actor_client_step_runtime(client)
 
-
-	local messages = rust_lib.zen_actor_client_get_messages_sync(client)
-
-	BL.info("Received Messages from rust: %s", ffi.string(messages))
-	GetRustLogs()
-	rust_lib.zen_actor_client_step_runtime(client)
-	GetRustLogs()
-end
 
 local function InitFFI()
 	--local result = rust_lib.add_in_rust(1, 2)
@@ -106,14 +89,32 @@ local function InitFFI()
 	BL.info("At end of InitFFI")
 end
 
+local function TestFFIDllCall()
+	rust_lib.zen_actor_client_step_runtime(client)
+    GetRustLogs()
+	BL.info("Sending test message from lua")
+	local message_send_res = rust_lib.zen_actor_client_send_message(client, "Test Message from Lua")
+	BL.info("Sent message result: %s", ffi.string(message_send_res))
+	BL.info("Sent message, now receiving messages from server")
+	GetRustLogs()
+	rust_lib.zen_actor_client_step_runtime(client)
+
+
+	local messages = rust_lib.zen_actor_client_get_messages_sync(client)
+	
+	BL.info("Received Messages from rust: %s", ffi.string(messages))
+	GetRustLogs()
+	rust_lib.zen_actor_client_step_runtime(client)
+	GetRustLogs()
+end
 
 ------------------ Execution
 InitFFI()
 GetRustLogs()
 while shouldContinue do
-	--BL.info("Tick")
-	--rust_lib.zen_actor_client_step_runtime(client)
-	--TestFFIDllCall()
+	BL.info("Tick")
+	rust_lib.zen_actor_client_step_runtime(client)
+	TestFFIDllCall()
 
 	mq.delay(delay)
 end

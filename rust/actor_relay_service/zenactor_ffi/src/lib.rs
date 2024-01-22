@@ -7,16 +7,19 @@
 )]
 
 use bincode::enc::write;
+use crossbeam::queue::SegQueue;
 use derive_more::Display;
 use futures::future::err;
 use futures::SinkExt;
 use log::{debug, error, info, warn};
-use protocol::ClientId;
+use protocol::{ClientId, ServerOperation};
 use serde::{Deserialize, Serialize};
 use simplelog::*;
-use std::env;
+use std::fs::File;
 use std::io;
+use std::io::prelude::*;
 use std::net::SocketAddr;
+use std::net::TcpStream;
 use std::ops::Deref;
 use std::os::raw::c_void;
 use std::process::id;
@@ -24,21 +27,8 @@ use std::sync::Arc;
 use std::{borrow::BorrowMut, collections::VecDeque};
 use std::{clone, collections::HashSet};
 use std::{collections::HashMap, ffi::CStr};
-use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader, WriteHalf},
-    task::JoinHandle,
-};
-use tokio::{
-    net::{TcpListener, TcpStream},
-    try_join,
-};
-use tokio::{runtime::Handle, time::timeout};
-use tokio::{
-    runtime::Runtime,
-    sync::{mpsc, Mutex, MutexGuard},
-};
-use tokio_stream::StreamExt;
-use tokio_util::codec::{Framed, LinesCodec};
+use std::{env, sync::Mutex, thread};
+
 use uuid::Uuid;
 
 use std::ffi::c_char;
@@ -81,22 +71,23 @@ pub extern "C" fn zen_actor_client_new(room: *const c_char, channel: *const c_ch
     Box::into_raw(client) as *mut c_void
 }
 
-#[no_mangle]
-pub extern "C" fn zen_actor_client_step_runtime(client_ptr: *mut c_void) -> i32 {
-    if client_ptr.is_null() {
-        return -1;
-    }
+// maybe unneeded with swap to threads
+//#[no_mangle]
+//pub extern "C" fn zen_actor_client_step_runtime(client_ptr: *mut c_void) -> i32 {
+//    if client_ptr.is_null() {
+//        warn!("client ptr is null!");
+//        return -1;
+//    }
+//    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
+//    let result = client
+//        .runtime
+//        .block_on(async { client.step_runtime().await });
 
-    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
-
-    // Create a new runtime to block on the async step_runtime call
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    match rt.block_on(client.step_runtime()) {
-        Ok(_) => 0,
-        Err(_) => -2, // You can use different error codes for different errors
-    }
-}
+//    match result {
+//        Ok(_) => 0,
+//        Err(_) => -2,
+//    }
+//}
 
 #[no_mangle]
 pub extern "C" fn zen_actor_client_init(client_ptr: *mut c_void) -> *const c_char {
@@ -106,70 +97,12 @@ pub extern "C" fn zen_actor_client_init(client_ptr: *mut c_void) -> *const c_cha
     }
     let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
 
-    let handle = {
-        let mut client = client.clone(); // Assuming ZenActorClient is `Clone`.
-        let (tx, rx) = std::sync::mpsc::channel();
-
-        std::thread::spawn(move || {
-            // Create a new runtime for the new thread.
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            rt.block_on(async move {
-                let init_result = client.init().await;
-                // Send the result back to the calling thread.
-                let _ = tx.send(init_result);
-            });
-        });
-        
-        rx
-    };
-
-    // Non-blocking receive, with the option to add timeout if needed.
-    match handle.recv_timeout(Duration::from_secs(5)) {
-        Ok(Ok(_)) => {
-            let messages_string = CString::new("SuccessfulClientInit").unwrap();
-            messages_string.into_raw()
-        }
-        Ok(Err(e)) => {
-            let error_message = format!("Error: {}", e);
-            let messages_string = CString::new(error_message).unwrap();
-            messages_string.into_raw()
-        }
-        Err(_) => {
-            let messages_string = CString::new("InitTimeout").unwrap();
-            messages_string.into_raw()
-        }
-    }
+    let messages_string = format!("SUCCESS");
+    let c_string = CString::new(messages_string).unwrap();
+    c_string.into_raw()
 }
 
-//#[no_mangle]
-//pub extern "C" fn zen_actor_client_init(client_ptr: *mut c_void) -> *const c_char {
-//    if client_ptr.is_null() {
-//        let messages_string = format!("-1");
-//        let c_string = CString::new(messages_string).unwrap();
-//        return c_string.into_raw();
-//    }
-//    let client = unsafe { &mut *(client_ptr as *mut ZenActorClient) };
-
-//    let mut runtime = client.runtime.as_mut().unwrap().handle().clone();
-
-//	// How can I make this NON blocking?
-//    //let res: String = match runtime.block_on(client.init()) {
-//    //    Ok(_) => "SuccessfulClientInit".to_string(),
-//    //    Err(e) => e.to_string(),
-//    //};
-
-//	// Spawn the init task without blocking
-//    let handle = runtime.spawn(async move {
-//        client.init().await
-//    });
-
-//    let res = String::from("0");
-
-//    let messages_string = format!("{}", &res);
-//    let c_string = CString::new(messages_string).unwrap();
-//    c_string.into_raw()
-//}
-
+/*
 #[no_mangle]
 pub extern "C" fn zen_actor_client_interact(client_ptr: *mut c_void) -> *mut c_char {
     if client_ptr.is_null() {
@@ -228,9 +161,10 @@ pub extern "C" fn zen_actor_client_send_message(
     client_ptr: *mut c_void,
     message: FFIStringPtr,
 ) -> *mut c_char {
-    info!("zen_actor_client_send_message");
+    info!("in FFI zen_actor_client_send_message");
     // Ensure the client pointer is not null
     if client_ptr.is_null() {
+        error!("Client pointer was null in FFI send_message");
         let res_string = format!("CLIENT_IS_NULL");
         let c_string = CString::new(res_string).unwrap();
         return c_string.into_raw();
@@ -238,6 +172,7 @@ pub extern "C" fn zen_actor_client_send_message(
 
     // Convert the message to a Rust string
     let c_str = unsafe { CStr::from_ptr(message) };
+    info!("Got CStr from Lua: {} ", c_str.to_string_lossy());
     let message_str = match c_str.to_str() {
         Ok(s) => {
             let res_string = format!("{}", s);
@@ -273,7 +208,7 @@ pub extern "C" fn zen_actor_client_send_message(
     //    Err(e) => -3,
     //}
 }
-
+*/
 #[no_mangle]
 pub extern "C" fn zen_actor_client_free(client_ptr: *mut c_void) {
     if client_ptr.is_null() {
@@ -287,24 +222,25 @@ pub extern "C" fn zen_actor_client_free(client_ptr: *mut c_void) {
 }
 
 /// Shorthand for the transmit half of the message channel.
-pub type Tx = mpsc::UnboundedSender<String>;
+//pub type Tx = crossbeam::mpsc::UnboundedSender<String>;
 
 /// Shorthand for the receive half of the message channel.
-pub type Rx = mpsc::UnboundedReceiver<String>;
+//pub type Rx = mpsc::UnboundedReceiver<String>;
 
-async fn write_rust_log(message_queue: &mut Arc<Mutex<VecDeque<String>>>, message: String) {
-    let mut message_queue = message_queue.lock().await;
-    message_queue.push_back(message.to_owned());
-}
+//async fn write_rust_log(message_queue: &mut Arc<Mutex<VecDeque<String>>>, message: String) {
+//    let mut message_queue = message_queue.lock().await;
+//    message_queue.push_back(message.to_owned());
+//}
 
 #[derive(Debug, Default, Clone)]
 #[repr(C)]
 pub struct ZenActorClient {
     pub id: Option<ClientId>,
-    pub server_message_queue: Arc<Mutex<VecDeque<String>>>,
-    pub client_message_queue: Arc<Mutex<VecDeque<String>>>,
-    pub rust_log_messages: Arc<Mutex<VecDeque<String>>>,
-    runtime: Arc<Mutex<Option<Runtime>>>,
+    //pub server_message_queue: Arc<Mutex<VecDeque<String>>>,
+    pub server_message_queue: Arc<SegQueue<String>>,
+    pub client_message_queue: Arc<SegQueue<String>>,
+    //pub rust_log_messages: Arc<Mutex<VecDeque<String>>>,
+    //runtime: Arc<Mutex<Option<Runtime>>>,
     //local_set: tokio::task::LocalSet,
     pub room: String,
     pub channel: String,
@@ -313,197 +249,213 @@ pub struct ZenActorClient {
 }
 
 impl ZenActorClient {
-    pub async fn step_runtime(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let runtime = self.runtime.lock().await;
-        if let Some(rt) = &*runtime {
-            rt.spawn(async {
-                tokio::task::yield_now().await;
-            });
-        }
-        Ok(())
-    }
+    // maybe not even needed anymore when swapping to threads instead of tokio
+    //pub async fn step_runtime(&self) -> Result<(), Box<dyn std::error::Error>> {
+    //    let runtime = self.runtime.lock().await;
+    //    if let Some(rt) = &*runtime {
+    //        rt.spawn(async {
+    //            tokio::task::yield_now().await;
+    //        });
+    //    }
+    //    Ok(())
+    //}
 
-    pub fn new(room_to_connect: String, channel_to_connect: String) -> Self {
+    pub fn new<T: AsRef<str>>(room_to_connect: T, channel_to_connect: T) -> Self {
+        // init logging
+        let log_config = ConfigBuilder::new()
+            .set_location_level(LevelFilter::Error)
+            .set_time_level(LevelFilter::Error)
+            .build();
+
+        //WriteLogger::init(
+        //    LevelFilter::Info,
+        //    log_config,
+        //    File::create("c:\\temp\\ZenActorClient.log").unwrap(),
+        //)
+        //.unwrap();
+
+        let _ = CombinedLogger::init(vec![
+            TermLogger::new(
+                LevelFilter::Info,
+                log_config.clone(),
+                TerminalMode::Mixed,
+                ColorChoice::Auto,
+            ),
+            WriteLogger::new(
+                LevelFilter::Info,
+                log_config.clone(),
+                File::create("c:\\temp\\ZenActorClient.log").unwrap(),
+            ),
+        ]);
+
         let starter_messages = vec!["hello".to_string(), "world".to_string()];
-        let starter_messages: VecDeque<String> = starter_messages.into_iter().collect();
+        let starter_messages_queue: SegQueue<String> = SegQueue::new();
+        starter_messages_queue.push("Hello".to_owned());
+        starter_messages_queue.push("World".to_owned());
+        //let starter_messages: SegQueue<String> = starter_messages.into_iter().collect();
 
-        let myRuntime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        //let myRuntime = tokio::runtime::Builder::new_current_thread()
+        //    .enable_all()
+        //    .build()
+        //    .unwrap();
 
         Self {
             id: None,
-            server_message_queue: Arc::new(Mutex::new(starter_messages)),
-            //writer_handle: None,
-            //reader_handle: None,
-            client_message_queue: Arc::new(Mutex::new(VecDeque::new())),
-            rust_log_messages: Arc::new(Mutex::new(VecDeque::new())),
-            runtime: Arc::new(Mutex::new(Some(myRuntime))),
-            //local_set: tokio::task::LocalSet::new(),
-            room: room_to_connect,
-            channel: channel_to_connect,
+            server_message_queue: Arc::new(starter_messages_queue),
+            client_message_queue: Arc::new(SegQueue::new()),
+            //rust_log_messages: Arc::new(Mutex::new(VecDeque::new())),
+            //runtime: Arc::new(Mutex::new(Some(myRuntime))),
+            room: room_to_connect.as_ref().to_owned(),
+            channel: channel_to_connect.as_ref().to_owned(),
         }
     }
 
-    pub async fn get_rust_logs(&mut self) -> VecDeque<String> {
-        let mut messages: VecDeque<String> = VecDeque::new();
-
-        let mut shared_state = self.rust_log_messages.lock().await;
-        //messages.append(&mut shared_state.drain(..).collect::<VecDeque<String>>());
-        messages.append(&mut shared_state.drain(..).collect());
-        //messages.push_back("Test message".to_owned());
-
-        messages
-    }
-
-    //async fn write_rust_log(&mut self, message: String) {
-    //    let mut message_queue = self.rust_log_messages.lock().await;
-    //    message_queue.push_back(message.to_owned());
-    //}
-
-    pub async fn get_messages(&mut self) -> VecDeque<String> {
-        let mut messages: VecDeque<String> = VecDeque::new();
-
-        let mut shared_state = self.server_message_queue.lock().await;
-        //messages.append(&mut shared_state.drain(..).collect::<VecDeque<String>>());
-        messages.append(&mut shared_state.drain(..).collect());
-        //messages.push_back("Test message".to_owned());
-
-        messages
-    }
-
-    pub async fn send_message(&mut self, message: String) -> AnyResult {
-        let mut message_queue = self.client_message_queue.lock().await;
-        write_rust_log(
-            &mut self.rust_log_messages,
-            f!("Sending message: {message}"),
-        )
-        .await;
-        message_queue.push_back(message);
-        Ok(())
-    }
-
-    pub async fn init(&mut self) -> anyhow::Result<String> {
+    pub fn init(&mut self) -> anyhow::Result<String> {
+        info!("In init function");
         let addr: SocketAddr = "127.0.0.1:8080".parse()?;
 
-        let mut stream = TcpStream::connect(addr).await?;
-        let (reader_stream, mut writer_stream) = stream.into_split();
-        let mut reader = BufReader::new(reader_stream);
+        let mut stream = TcpStream::connect(addr).expect("Couldn't connect to server!");
+        stream
+            .set_read_timeout(Some(Duration::new(3, 0)))
+            .expect("Couldn't set read timeout");
+        stream
+            .set_write_timeout(Some(Duration::new(3, 0)))
+            .expect("Couldn't set write timeout");
 
-        write_rust_log(
-            &mut self.rust_log_messages,
-            "Connected to server.".to_owned(),
-        )
-        .await;
-        let shared_state = Arc::clone(&self.server_message_queue);
-        let mut log_writer = Arc::clone(&self.rust_log_messages); // assuming write_rust_log is clonable
-        write_rust_log(
-            &mut self.rust_log_messages,
-            "Starting reader thread.".to_owned(),
-        )
-        .await;
-
-        let runtime = self.runtime.lock().await.as_mut().unwrap().handle().clone();
-
-        runtime.spawn(async move {
-            //let mut loop_writer = log_writer.clone();
-            write_rust_log(&mut log_writer, "In Reader Thread".to_owned()).await;
-
-            loop {
-                let mut response = String::new();
-                match tokio::time::timeout(
-                    Duration::from_secs(5), // Set a timeout of 5 seconds
-                    reader.read_line(&mut response),
-                )
-                .await
-                {
-                    Ok(Ok(0)) => {
-                        write_rust_log(&mut log_writer, "Response was 0".to_owned()).await;
-                        //break;
-                    }
-                    Ok(Ok(_)) => {
-                        let res = format!("Response: {}.", response);
-
-                        write_rust_log(&mut log_writer, res).await;
-
-                        // put into message queue that lua can retrieve inside of Receive()
-                        let mut shared_state = shared_state.lock().await;
-                        shared_state.push_back(response);
-                        //break;
-                    }
-                    Ok(Err(e)) => {
-                        let res = format!("Error while reading response. Error {}", e);
-
-                        write_rust_log(&mut log_writer, res).await;
-                        //break;
-                    }
-                    Err(_) => {
-                        let res = format!("Timeout while reading response.");
-
-                        write_rust_log(&mut log_writer, res).await;
-                        //break;
-                    }
-                }
-                // Yield control back to the Tokio scheduler
-                tokio::task::yield_now().await;
-            }
-
-            //loop {
-            //    let mut response = String::new();
-            //    match reader.read_line(&mut response).await {
-            //        Ok(0) => {
-            //            write_rust_log(loop_writer, "Response was 0".to_owned()).await;
-            //            break;
-            //        }
-            //        Ok(_) => {
-            //            let res = format!("Response: {}.", response);
-
-            //            write_rust_log(loop_writer, res).await;
-
-            //            // put into message queue that lua can retrieve inside of Receive()
-            //            let mut shared_state = shared_state.lock().await;
-            //            shared_state.push_back(response);
-            //            break;
-            //        }
-            //        Err(e) => {
-            //            let res = format!("Error while reading response. Error {}", e);
-
-            //            write_rust_log(loop_writer, res).await;
-            //            break;
-            //        }
-            //    }
-            //    // Yield control back to the Tokio scheduler
-
-            //}
-            //tokio::task::yield_now().await;
-        });
-
-        //let mut client_queue = self.client_message_queue.clone();
-        //let log_writer = Arc::clone(&self.rust_log_messages);
+        info!("Connected to server");
         //write_rust_log(
-        //    self.rust_log_messages.clone(),
-        //    "Starting writer thread.".to_owned(),
+        //    &mut self.rust_log_messages,
+        //    "Connected to server.".to_owned(),
         //)
         //.await;
-        //tokio::spawn(async move {
-        //    loop {
-        //        let mut message_queue = client_queue.lock().await;
-        //        if let Some(message) = message_queue.pop_front() {
-        //            if let Err(e) = writer_stream.write_all(message.as_bytes()).await {
-        //                let res = format!("Failed to write to stream: {}", e);
-        //                write_rust_log(log_writer, res).await;
-        //                break;
-        //            }
-        //            if let Err(e) = writer_stream.flush().await {
-        //                let res = format!("Failed to flush stream: {}", e);
-        //                write_rust_log(log_writer, res).await;
-        //                break;
-        //            }
-        //        }
-        //    }
-        //});
+        let shared_state = Arc::clone(&self.server_message_queue);
+        //let mut log_writer = Arc::clone(&self.rust_log_messages); // assuming write_rust_log is clonable
+        //write_rust_log(
+        //    &mut self.rust_log_messages,
+        //    "Starting reader thread.".to_owned(),
+        //)
+        //.await;
+
+        //let runtime = self.runtime.lock().await.as_mut().unwrap().handle().clone();
+        info!("Spawning reader thread");
+        let mut input_stream = stream.try_clone().unwrap();
+
+        let reader_thread = thread::spawn(move || {
+            info!("Inside reader thread");
+
+            loop {
+                //let mut client_buffer = String::new();
+                let mut client_buffer = [0u8; 1024];
+                match input_stream.read(&mut client_buffer) {
+                    Ok(n) => {
+                        if n == 0 {
+                            info!("Read 0, connection closed by peer");
+                            break; // Exit the loop if the connection has been closed
+                        } else {
+                            info!("Read {} bytes", n);
+                            let msg_slice = &client_buffer[..n]; // Slice the buffer up to the number of bytes read
+                            let msg_string = std::str::from_utf8(msg_slice).unwrap(); // Convert only the received bytes to a string
+
+                            // Perform JSON deserialization on the correctly sliced string
+                            let result: Result<ServerOperation, _> =
+                                serde_json::from_str(msg_string);
+                            match result {
+                                Ok(server_operation) => {
+                                    // Handle the deserialized ServerOperation
+                                    info!(
+                                        "Read ServerOperation successfully! {:?}",
+                                        server_operation
+                                    );
+                                }
+                                Err(e) => {
+                                    // Handle the error
+                                    error!("Failed to deserialize ServerOperation: {}", e);
+                                }
+                            }
+                        }
+                    }
+                    Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        // Handle the case where the non-blocking read would block (timed out)
+                        info!("Read timed out, no data available");
+                    }
+                    Err(e) => {
+                        // Handle other read errors
+                        error!("Failed to read from socket: {}", e);
+                        break; // Exit the loop on error
+                    }
+                }
+                std::thread::sleep(std::time::Duration::from_millis(1000));
+            }
+
+            //let mut response = String::new();
+            //let mut count = 0;
+            //loop {
+            //    // shared_state.push_back the result from timeout(reader.read_line(&mut response))
+            //    count += 1;
+            //    info!("Inside Reader loop! Sleeping for 1s. Count: {}", &count);
+            //    std::thread::sleep(std::time::Duration::from_millis(1000));
+            //}
+        });
+        info!("Finished spawning reader thread");
+
+        let writer_thread = thread::spawn(move || {
+            //let mut loop_writer = log_writer.clone();
+            info!("Inside Writer thread");
+
+            let output_stream = &mut stream;
+            let mut user_buffer = String::new();
+
+            loop {
+                io::stdin().read_line(&mut user_buffer).unwrap();
+
+                output_stream.write(user_buffer.as_bytes()).unwrap();
+                output_stream.flush().unwrap();
+                info!("Inside Writer loop! Sleeping for 1s");
+                std::thread::sleep(std::time::Duration::from_millis(1000));
+            }
+
+            //let mut response = String::new();
+            //let mut count = 0;
+            //loop {
+            //    // shared_state.push_back the result from timeout(reader.read_line(&mut response))
+            //    count += 1;
+            //    info!("Inside Writer loop! Sleeping for 1s. Count: {}", &count);
+            //    std::thread::sleep(std::time::Duration::from_millis(900));
+            //}
+        });
 
         Ok("Init Success".to_string())
     }
+
+    //pub async fn get_rust_logs(&mut self) -> VecDeque<String> {
+    //    let mut messages: VecDeque<String> = VecDeque::new();
+
+    //    let mut shared_state = self.rust_log_messages.lock().await;
+    //    messages.append(&mut shared_state.drain(..).collect());
+
+    //    messages
+    //}
+
+    //pub fn get_messages(&mut self) -> VecDeque<String> {
+    //    let mut messages: VecDeque<String> = VecDeque::new();
+
+    //    let mut shared_state = self.server_message_queue.lock().await;
+    //    //messages.append(&mut shared_state.drain(..).collect::<VecDeque<String>>());
+    //    messages.append(&mut shared_state.drain(..).collect());
+    //    //messages.push_back("Test message".to_owned());
+
+    //    messages
+    //}
+
+    //pub fn send_message(&mut self, message: String) -> AnyResult {
+    //    info!("In client.send_message which really only adds a message to queue");
+    //    let mut message_queue = self.client_message_queue.lock().await;
+    //    write_rust_log(
+    //        &mut self.rust_log_messages,
+    //        f!("Sending message: {message}"),
+    //    )
+    //    .await;
+    //    message_queue.push_back(message);
+    //    Ok(())
+    //}
 }
