@@ -323,24 +323,12 @@ impl ZenActorClient {
             .expect("Couldn't set write timeout");
 
         info!("Connected to server");
-        //write_rust_log(
-        //    &mut self.rust_log_messages,
-        //    "Connected to server.".to_owned(),
-        //)
-        //.await;
         let shared_state = Arc::clone(&self.server_message_queue);
-        //let mut log_writer = Arc::clone(&self.rust_log_messages); // assuming write_rust_log is clonable
-        //write_rust_log(
-        //    &mut self.rust_log_messages,
-        //    "Starting reader thread.".to_owned(),
-        //)
-        //.await;
 
-        //let runtime = self.runtime.lock().await.as_mut().unwrap().handle().clone();
         info!("Spawning reader thread");
         let mut input_stream = stream.try_clone().unwrap();
 
-        let reader_thread = thread::spawn(move || {
+        let reader_thread = std::thread::spawn(move || {
             info!("Inside reader thread");
 
             loop {
@@ -350,6 +338,7 @@ impl ZenActorClient {
                     Ok(n) => {
                         if n == 0 {
                             info!("Read 0, connection closed by peer");
+                            // TODO: Fix this so that it attempts to reconnect from outside the loop
                             break; // Exit the loop if the connection has been closed
                         } else {
                             info!("Read {} bytes", n);
@@ -380,37 +369,29 @@ impl ZenActorClient {
                     }
                     Err(e) => {
                         // Handle other read errors
-                        error!("Failed to read from socket: {}", e);
-                        break; // Exit the loop on error
+                        //error!("Failed to read from socket: {}", e);
                     }
                 }
                 std::thread::sleep(std::time::Duration::from_millis(1000));
             }
-
-            //let mut response = String::new();
-            //let mut count = 0;
-            //loop {
-            //    // shared_state.push_back the result from timeout(reader.read_line(&mut response))
-            //    count += 1;
-            //    info!("Inside Reader loop! Sleeping for 1s. Count: {}", &count);
-            //    std::thread::sleep(std::time::Duration::from_millis(1000));
-            //}
         });
         info!("Finished spawning reader thread");
+
+        let mut output_stream = stream.try_clone().unwrap();
 
         let writer_thread = thread::spawn(move || {
             //let mut loop_writer = log_writer.clone();
             info!("Inside Writer thread");
 
-            let output_stream = &mut stream;
-            let mut user_buffer = String::new();
+            //let output_stream = &mut stream;
 
             loop {
-                io::stdin().read_line(&mut user_buffer).unwrap();
+                //io::stdin().read_line(&mut user_buffer).unwrap();
+                let user_buffer = String::from("{\"TestKey\":\"Test Value\"}");
 
                 output_stream.write(user_buffer.as_bytes()).unwrap();
                 output_stream.flush().unwrap();
-                info!("Inside Writer loop! Sleeping for 1s");
+                info!("Inside Writer loop! Sleeping for 1s: {} ", &user_buffer);
                 std::thread::sleep(std::time::Duration::from_millis(1000));
             }
 
