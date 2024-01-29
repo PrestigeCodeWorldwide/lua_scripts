@@ -201,7 +201,7 @@ local function gmDistanceInstance()
 		while Toon.Distance() > 20 do
 			local isMoving = mq.TLO.Group.Member(g).Moving()
 			if not isMoving then
-				mq.cmdf('/dex %s /nav locxy -521.27 -309.95', Member)
+				mq.cmdf('/dex %s /nav locyx 144.04 -1092.93', Member)
 			end
 			mq.delay(1000)
 		end

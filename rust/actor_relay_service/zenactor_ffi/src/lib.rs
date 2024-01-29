@@ -324,7 +324,7 @@ impl ZenActorClient {
 
         info!("Connected to server");
         let shared_state = Arc::clone(&self.server_message_queue);
-
+        
         info!("Spawning reader thread");
         let mut input_stream = stream.try_clone().unwrap();
 
