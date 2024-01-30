@@ -6,8 +6,9 @@ require("ImGui")
 local commands = require("interface.commands")
 local config = require("interface.configuration")
 local ui = require("interface.ui")
---local tlo = require('interface.tlo')
+local tlo = require('interface.TLO')
 local logger = require("utils.logger")
+
 local loot = require("utils.lootutils")
 local movement = require("utils.movement")
 local timer = require("utils.timer")
@@ -103,8 +104,9 @@ local function init()
 	camp.setCamp()
 	--state.paused = false
 	--BL.info("SETTING PAUSED TO " .. tostring(config.PAUSED.value))
-	--state.paused = config.PAUSED.value
-	state.paused = true
+	state.paused = config.get("PAUSED") or true
+	tlo.InitTLO()
+	--state.paused = true
 end
 
 ---Check if the current game state is not INGAME, and exit the script if it is.

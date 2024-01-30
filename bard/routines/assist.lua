@@ -395,9 +395,11 @@ function assist.engage()
 		mq.cmd("/squelch /nav stop")
 	end
 
-	if not mq.TLO.Target then
+	if not mq.TLO.Target() then
 		return
 	end
+
+	BL.info("Checking engage distance with ")
 
 	if mq.TLO.Target.Distance() > config.get("CAMPRADIUS") then
 		return
