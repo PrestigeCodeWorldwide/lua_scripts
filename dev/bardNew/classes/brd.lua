@@ -134,7 +134,7 @@ function class.initClassOptions()
 	class.addOption(
 		"STICKHOW",
 		"StickHow",
-		"!front snaproll moveback uw loose",
+		"!front uw loose",
 		nil,
 		"stick command",
 		"inputtext",
@@ -378,13 +378,13 @@ function class.initSpellLines(_zen)
 		"Aura of Begalru",
 		"Aura of the Muse",
 		"Aura of Insight",
-	}) -- spell dmg, overhaste, flurry, triple atk
+	})                                                                                                          -- spell dmg, overhaste, flurry, triple atk
 	class.addSpell("composite", { "Ecliptic Psalm", "Composite Psalm", "Dissident Psalm", "Dichotomic Psalm" }) -- DD+melee dmg bonus + small heal
 	class.addSpell("aria", { "Aria of Tenisbre", "Aria of Pli Xin Liako", "Aria of Margidor", "Aria of Begalru" }) -- spell dmg, overhaste, flurry, triple atk
 	class.addSpell(
 		"warmarch",
 		{ "War March of Nokk", "War March of Centien Xi Va Xakra", "War March of Radiwol", "War March of Dekloaz" }
-	) -- haste, atk, ds
+	)                                                                                                               -- haste, atk, ds
 	class.addSpell("arcane", { "Arcane Rhythm", "Arcane Harmony", "Arcane Symphony", "Arcane Ballad", "Arcane Aria" }) -- spell dmg proc
 	class.addSpell("suffering", {
 		"Kanghammer's Song of Suffering",
@@ -415,7 +415,7 @@ function class.initSpellLines(_zen)
 	class.addSpell(
 		"sonata",
 		{ "Dhakka's Spry Sonata", "Xetheg's Spry Sonata", "Kellek's Spry Sonata", "Kluzen's Spry Sonata" }
-	) -- spell shield, AC, dmg mitigation
+	)                                                                                                    -- spell shield, AC, dmg mitigation
 	class.addSpell("dirge", { "Dirge of the Onokiwan", "Dirge of the Restless", "Dirge of Lost Horizons" }) -- spell+melee dmg mitigation
 	class.addSpell("firenukebuff", {
 		"Flariton's Aria",
@@ -436,8 +436,8 @@ function class.initSpellLines(_zen)
 		"Zelinstein's Lively Crescendo",
 		"Zburator's Lively Crescendo",
 		"Jembel's Lively Crescendo",
-	}) -- small heal hp, mana, end
-	class.addSpell("insult", { "Eoreg's Insult", "Sogran's Insult", "Sathir's Insult" }) -- synergy DD
+	})                                                                                                        -- small heal hp, mana, end
+	class.addSpell("insult", { "Eoreg's Insult", "Sogran's Insult", "Sathir's Insult" })                      -- synergy DD
 	class.addSpell("insult2", { "Nord's Disdain", "Yelinak's Insult", "Omorden's Insult", "Travenro's Insult" }) -- synergy DD 2
 	class.addSpell("chantflame", {
 		"Kindleheart's Chant of Flame",

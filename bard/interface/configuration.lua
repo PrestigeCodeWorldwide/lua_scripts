@@ -100,7 +100,7 @@ local config = {
 		tlotype = "bool",
 	},
 	STICKHOW = {
-		value = "!front snaproll moveback 10 uw",
+		value = "!front uw loose",
 		tip = "Phrase to send to /stick, like !front loose snaproll",
 		alias = "stickhowphrase",
 		label = "Stick How",

@@ -199,7 +199,7 @@ local function allGiveItemToTargetHandler(...)
 	BL.cmd.pauseAutomation()
 	-- make our full phrase
 	local itemName = table.concat(args, " ")
-
+	
 	-- target the right npc
 	mq.cmdf("/dgge /assist %s", mq.TLO.Me.CleanName())
 	mq.delay(1000)

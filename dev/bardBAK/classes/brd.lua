@@ -154,7 +154,7 @@ function class.initClassOptions()
 	class.addOption(
 		'STICKHOW',
 		'StickHow',
-		'!front snaproll moveback uw loose',
+		'!front uw loose',
 		nil,
 		'stick command',
 		'inputtext',
