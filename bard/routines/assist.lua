@@ -203,8 +203,8 @@ function assist.shouldAssist(assist_target)
 				return false
 			end
 		end
-	else
-		BL.info("8 - Either mob type not NPC (%s) or hp > autoassistat: %s", mob_type, hp)
+		--else
+		--BL.info("8 - Either mob type not NPC (%s) or hp > autoassistat: %s", mob_type, hp)
 	end
 	return false
 end
@@ -381,7 +381,7 @@ function applyProperStickHow(config)
 	if stickhow == nil then
 		BL.info("StickHOW is empty, can't stick!")
 	else
-		BL.info("Sticking with: %s", stickhow)
+		--BL.info("Sticking with: %s", stickhow)
 		-- https://discord.com/channels/511690098136580097/840375268685119499/1168603138291400784
 		-- Need to set HoTT properly for stick front to work
 		mq.cmd("/stick set nohottfront on")
@@ -393,6 +393,10 @@ end
 function assist.engage()
 	if mq.TLO.Navigation.Active() then
 		mq.cmd("/squelch /nav stop")
+	end
+
+	if not mq.TLO.Target then
+		return
 	end
 
 	if mq.TLO.Target.Distance() > config.get("CAMPRADIUS") then
