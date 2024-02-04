@@ -49,7 +49,6 @@ BL.UI = {}
 -- #region Oneoffs
 
 
-
 --- Runs /dgga "cmd", so your whole group will each execute whatever command
 ---@param cmd string @The command to be executed on the group.
 function BL.GroupCmd(cmd)
@@ -256,11 +255,28 @@ end
 ---@param buffName string @The name of the buff to check for.
 ---@return boolean @Returns true if the character has the buff, false otherwise.
 function BL.IHaveBuff(buffName)
-	local buffID = mq.TLO.Me.Buff(buffName).ID()
-	if buffID ~= nil and buffID > 0 then
-		return true
+    local buffID = mq.TLO.Me.Buff(buffName).ID()
+    if buffID ~= nil and buffID > 0 then
+        return true
+    end
+    return false
+end
+
+-- Runs to locx,locy any time toon has debuff applied to them.
+function BL.RunToWhileDebuffed(debuffName, locX, locY)
+	if BL.IHaveBuff(debuffName) then
+		-- we have the debuff, run to safe spot
+		mq.cmd('/g I have the AOE debuff, running to safe spot')
+		BL.cmd.pauseAutomation()
+		mq.delay(500)
+		mq.cmdf('/nav locyx %s %s', locX, locY)
+
+		while BL.IHaveBuff(debuffName) do
+			mq.delay(1000)
+		end
+		mq.cmd('/g AOE debuff is gone, resuming')
+		BL.cmd.resumeAutomation()
 	end
-	return false
 end
 
 --- Waits until navigation is complete before continuing.

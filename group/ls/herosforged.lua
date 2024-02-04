@@ -90,7 +90,7 @@ local function handleAoEEvent()
 		BL.cmd.pauseAutomation()
 		mq.delay(500)
 		mq.cmdf('/nav locyxz %s', safeSpotYXZ)
-
+		
 		while BL.IHaveBuff(debuffName) do
 			mq.delay(1000)
 		end

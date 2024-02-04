@@ -2,8 +2,7 @@
 local mq = require('mq')
 local BL = require("biggerlib")
 
---local HEAL_TARGET = "Dhakka"
-local HEAL_TARGET = "Kodajii"
+local HEAL_TARGET = "Dhakka"
 local myClass = mq.TLO.Me.Class.ShortName()
 local paused = false
 
