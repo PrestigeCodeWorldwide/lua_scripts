@@ -270,7 +270,7 @@ function BL.RunToWhileDebuffed(debuffName, locX, locY)
 		BL.cmd.pauseAutomation()
 		mq.delay(500)
 		mq.cmdf('/nav locyx %s %s', locX, locY)
-
+		
 		while BL.IHaveBuff(debuffName) do
 			mq.delay(1000)
 		end
