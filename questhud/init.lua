@@ -2,8 +2,11 @@
 local mq = require("mq")
 --- @type ImGui
 require("ImGui")
+
 local actors = require("actors")
 local BL = require("biggerlib")
+
+local taskIndex = 3
 
 local SETTINGS = {
 	-- If True, will spam in-game fellowship chat for updates.  This enables cross-network updates at the price of lots of spam
@@ -29,15 +32,31 @@ local function removeGroupMember(sender)
 end
 
 local function statusIsDone(status)
-	local status = tostring(status)
-	local done = status == "DONE" or status == "Done"
-	--mq.cmdf("/g status itself is: %s ,,, statusIsDone: %s", status, tostring(done))
-	return done
+    local status = tostring(status)
+    local done = status == "DONE" or status == "Done"
+    --mq.cmdf("/g status itself is: %s ,,, statusIsDone: %s", status, tostring(done))
+    return done
 end
+
+local function questIndexHandler(...)	
+	local args = { ... }
+	
+	
+
+	-- make our full phrase
+    local sayPhrase = table.concat(args, "")
+    -- turn sayPhrase into an integer
+	taskIndex = tonumber(sayPhrase)
+	BL.info("Set taskIndex to %s", taskIndex)
+	--mq.cmd("/dga /say " .. sayPhrase)
+	--mq.delay(500)
+end
+
+mq.bind("/setquestindex param", questIndexHandler)
 
 local function getMyCurrentQuestInfo()
 	-- tostring to appease the linter
-	local taskName = tostring(mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").List(1, 3))
+	local taskName = tostring(mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").List(taskIndex, 3))
 
 	local taskStep = mq.TLO.Task(taskName).Step
 

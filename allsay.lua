@@ -7,7 +7,8 @@ local function IAmDriver()
 	if driver == mq.TLO.Me.CleanName() then
 		return true
 	else
-		return false
+        --return false
+		return true -- i don't think i like this function at all anymore
 	end
 end
 
@@ -15,29 +16,30 @@ local function boxPrep()
 	if not IAmDriver() then
 		return
 	end
-
-	mq.cmd("/dgga /assist off")
+	
+	mq.cmd("/dg /assist off")
 	local assistName = mq.TLO.Group.MainTank.CleanName()
 
-	mq.cmdf("/dgge /assist %s", assistName)
-	mq.delay(100)
-	mq.cmd("/dgga /makemevisible")
-	mq.delay(100)
+	mq.cmdf("/dge /assist %s", assistName)
+	mq.delay(1500)
+	mq.cmd("/dg /makemevisible")
+	mq.delay(1500)
 end
 
 local function sayCommandHandler(...)
-	if not IAmDriver() then
+    if not IAmDriver() then
+	
 		return
 	end
-
+	
 	local args = { ... }
-
+	
 	boxPrep()
-
+	
 	-- make our full phrase
 	local sayPhrase = table.concat(args, " ")
-
-	mq.cmd("/dgga /say " .. sayPhrase)
+	
+	mq.cmd("/dg /say " .. sayPhrase)
 	mq.delay(500)
 end
 
@@ -45,8 +47,9 @@ mq.bind("/asay param", sayCommandHandler)
 
 mq.bind("/ahail", function()
 	boxPrep()
-
-	mq.cmd("/dgga /keypress HAIL")
+    mq.cmdf("/dge /assist %s", mq.TLO.Me.CleanName())
+	mq.delay(1500)
+	mq.cmd("/dg /keypress HAIL")
 	mq.delay(100)
 end)
 
@@ -62,21 +65,21 @@ mq.event("GroundSpawnPickup", groundSpawnPickupMatcherText, function(line, charn
 	local grounditem = mq.TLO.Ground.Search(itemname)
 	if BL.IsNil(grounditem) then
 		BL.warn("Ground item not found, we shouldn't be here in this event handler right now")
-		mq.delay(1000)
+		mq.delay(1500)
 		return
 	end
 
 	grounditem.Grab()
-	mq.delay(1000)
+	mq.delay(1500)
 	if mq.TLO.Cursor() == nil then
 		BL.warn("Cursor is nil, so I couldn't grab the item!")
 		mq.cmd("/g Cursor is nil, so I couldn't grab the item!")
-		mq.delay(1000)
+		mq.delay(1500)
 	else
 		mq.cmd("/g Cursor is not nil, so I grabbed the item!")
 	end
 	mq.cmd("/autoinventory")
-	mq.delay(1000)
+	mq.delay(1500)
 	mq.cmdf("/fs Done Grab for %s", charname)
 end)
 
@@ -101,7 +104,7 @@ local function leadCharacterThroughLootProcess(characterName, spawnName)
 	end
 
 	while BL.IsNil(groundItem()) do
-		mq.delay(1000)
+		mq.delay(1500)
 		groundItem = mq.TLO.Ground.Search(spawnName)
 	end
 
@@ -152,7 +155,7 @@ local function InitializeGroupCache()
 	GroupCache[4] = mq.TLO.Group.Member(3).CleanName() or "NONE"
 	GroupCache[5] = mq.TLO.Group.Member(4).CleanName() or "NONE"
 	GroupCache[6] = mq.TLO.Group.Member(5).CleanName() or "NONE"
-
+	
 	local myName = mq.TLO.Me.CleanName()
 	if GroupCache[1] ~= myName then
 		-- its not me, so lets find me
@@ -174,7 +177,7 @@ local function groundSpawnPickupCommandHandler(...)
 	InitializeGroupCache()
 
 	BL.cmd.pauseAutomation()
-	mq.delay(1000)
+	mq.delay(1500)
 
 	-- foreach group member once spawn is spawned, send the event to them
 	for _, memberName in ipairs(GroupCache) do
@@ -199,30 +202,30 @@ local function allGiveItemToTargetHandler(...)
 	BL.cmd.pauseAutomation()
 	-- make our full phrase
 	local itemName = table.concat(args, " ")
-	
+
 	-- target the right npc
-	mq.cmdf("/dgge /assist %s", mq.TLO.Me.CleanName())
-	mq.delay(1000)
+	mq.cmdf("/dge /assist %s", mq.TLO.Me.CleanName())
+	mq.delay(1500)
 
 	-- get really close
 	BL.info("Navving to target")
-	mq.cmd("/dgga /nav target")
+	mq.cmd("/dg /nav target")
 	BL.MakeGroupVisible()
 
 	mq.delay(2000)
 	-- give him item somehow
 	BL.info("Picking up item onto cursor")
 	-- note the escaped quotation marks, these are requiree
-	mq.cmdf('/dgga /itemnotify "%s" leftmouseup', itemName)
+	mq.cmdf('/dg /itemnotify "%s" leftmouseup', itemName)
 	mq.delay(500)
-	mq.cmdf("/dgga /click left target")
+	mq.cmdf("/dg /click left target")
 	mq.delay(500)
 	-- click givewnd
-	mq.cmdf("/dgga /notify GiveWnd GVW_Give_Button leftmouseup")
-	mq.delay(1000)
-
-	BL.cmd.resumeAutomation()
-	-- /dgga
+	mq.cmdf("/dg /notify GiveWnd GVW_Give_Button leftmouseup")
+	mq.delay(1500)
+	
+	--BL.cmd.resumeAutomation()
+	-- /z
 end
 mq.bind("/agive", allGiveItemToTargetHandler)
 
