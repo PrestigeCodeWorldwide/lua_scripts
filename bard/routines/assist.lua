@@ -115,7 +115,7 @@ function assist.getAssistSpawn()
 	elseif assistValue == "manual" then
 		-- Get spawn of my person to assist
 		-- get their target
-		-- /dobserve dillana -q Target -- This will SET the observer for your manual assist
+		-- /dobserve charname -q Target -- This will SET the observer for your manual assist
 		--mq.cmdf("/dobserve %s -q Target", assistName)
 		--mq.delay(50)
 		local newTarget = mq.TLO.DanNet(assistName).Observe("Target")()

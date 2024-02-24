@@ -328,13 +328,13 @@ impl ZenActorClient {
         info!("Spawning reader thread");
         let mut input_stream = stream.try_clone().unwrap();
 
-        let reader_thread = std::thread::spawn(move || {
+        let reader_thread = std::thread::spawn(move || -> AnyResult {
             info!("Inside reader thread");
 
             loop {
                 //let mut client_buffer = String::new();
                 let mut client_buffer = [0u8; 1024];
-                match input_stream.read(&mut client_buffer) {
+                let res = match input_stream.read(&mut client_buffer) {
                     Ok(n) => {
                         if n == 0 {
                             info!("Read 0, connection closed by peer");
@@ -348,18 +348,15 @@ impl ZenActorClient {
                             // Perform JSON deserialization on the correctly sliced string
                             let result: Result<ServerOperation, _> =
                                 serde_json::from_str(msg_string);
-                            match result {
-                                Ok(server_operation) => {
-                                    // Handle the deserialized ServerOperation
-                                    info!(
-                                        "Read ServerOperation successfully! {:?}",
-                                        server_operation
-                                    );
-                                }
-                                Err(e) => {
-                                    // Handle the error
-                                    error!("Failed to deserialize ServerOperation: {}", e);
-                                }
+                            match result? {
+                                ServerOperation::ClientConnectApproved(msg) => {
+                                    self.id = Some(ClientId(msg.0));
+                                },
+                                ServerOperation::Disconnect => todo!(),
+                                ServerOperation::Message { room, channel, message } => {
+                                    info!("Received server message {}", message);
+                                    
+                                },                               
                             }
                         }
                     }
@@ -371,13 +368,16 @@ impl ZenActorClient {
                         // Handle other read errors
                         //error!("Failed to read from socket: {}", e);
                     }
-                }
+                };
                 std::thread::sleep(std::time::Duration::from_millis(1000));
             }
+            Ok(())
         });
         info!("Finished spawning reader thread");
 
         let mut output_stream = stream.try_clone().unwrap();
+        
+        
 
         let writer_thread = thread::spawn(move || {
             //let mut loop_writer = log_writer.clone();
@@ -387,12 +387,12 @@ impl ZenActorClient {
 
             loop {
                 //io::stdin().read_line(&mut user_buffer).unwrap();
-                let user_buffer = String::from("{\"TestKey\":\"Test Value\"}");
+                let user_buffer = String::from("{\"TestKey\":\"Test Value\"}\n");
 
                 output_stream.write(user_buffer.as_bytes()).unwrap();
                 output_stream.flush().unwrap();
                 info!("Inside Writer loop! Sleeping for 1s: {} ", &user_buffer);
-                std::thread::sleep(std::time::Duration::from_millis(1000));
+                std::thread::sleep(std::time::Duration::from_millis(5000));
             }
 
             //let mut response = String::new();

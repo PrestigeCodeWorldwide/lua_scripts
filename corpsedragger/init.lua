@@ -25,7 +25,11 @@ local function navToCleric()
 end
 
 local function drag(dragid, dragname)
-	if mq.TLO.Target.Distance() <= maxdistance and mq.TLO.Target.Distance() >= mindistance and mq.TLO.Target.Distance() ~= nil and not mq.TLO.Me.Combat() then
+    if mq.TLO.Target.Distance() <= maxdistance
+        and mq.TLO.Target.Distance() >= mindistance
+        and mq.TLO.Target.Distance() ~= nil
+    then
+		BL.cmd.pauseAutomation()
 		mq.cmd("/rs Dragging %s", dragname)
 		mq.delay(100)
 		mq.cmdf('/tar ID %s', dragid)
@@ -42,7 +46,8 @@ local function drag(dragid, dragname)
 		mq.delay(1)
 		mq.cmd("/corpsedrop")
 		mq.delay(500)
-		mq.cmd("/rs Done dragging %s", dragname)
+        mq.cmd("/rs Done dragging %s", dragname)
+		BL.cmd.resumeAutomation()
 	end
 end
 
@@ -55,7 +60,7 @@ local function dragcheck()
 			local corpsename = corpseCache.CleanName()
 			local corpseid = corpseCache.ID()
 			local raidcount = mq.TLO.Raid.Members()
-			
+
 			-- are we in a raid for dragging?
 			if raidcount > 0 then
 				if mq.TLO.Spawn('id ' .. corpseid).Distance() >= mindistance then

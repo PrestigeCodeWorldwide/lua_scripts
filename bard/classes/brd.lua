@@ -625,7 +625,7 @@ function class.initSpellRotations(_zen)
 	if class.OPTS.USEINSULT.value then
 		table.insert(class.spellRotations.melee, {
 			spell = class.spells.insult,
-			reuseTimeMillis = 56000,
+			reuseTimeMillis = 6000,
 			lastUsedMillis = 0,
 			isHostile = false,
 		}) -- a bit lower since we really don't want mezzes to break
@@ -750,7 +750,7 @@ function class.initSpellRotations(_zen)
 		}) -- example lastUsedMillis value
 		gemsUsed = gemsUsed + 1
 	end
-
+	
 	if gemsUsed > 13 then
 		print(
 			logger.logLine(
@@ -1034,7 +1034,7 @@ local function findNextSong()
 	then
 		return class.spells.snare
 	end
-
+	
 	local songsWithDurations = {} -- To store songs with their durations
 
 	for _, spell in ipairs(class.spellRotations['melee']) do

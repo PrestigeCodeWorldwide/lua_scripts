@@ -30,7 +30,12 @@ pub struct ClientMessage {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerOperation {
     ClientConnectApproved(ClientId),
-    RequestCurrentTaskStep,
+    Disconnect,
+    Message {
+        room: Room,
+        channel: Channel,
+        message: Message,
+    },,
 }
 
 /* intended as a grouping of clients, so things like

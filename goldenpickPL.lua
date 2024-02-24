@@ -1,40 +1,23 @@
 local mq = require('mq')
-
-local noHitZoneShortName = {'PoKnowledge', 'Bazaar', 'Nexus', 'guildlobby'}
+local BL = require('biggerlib')
 local radiusZ = 30
 local radiusXY = 75
-local function isZoneAllowed(zoneShortName)
-	for _, noHitZone in ipairs(noHitZoneShortName) do
-		if zoneShortName == noHitZone then
-			return false
-		end
-	end
-	return true
-end
 
 local successfullyHitTarget = false
 
 local OnHitEventMatcher = 'You hit #1# for 1 points #*#.'
 ----
 mq.event('HitCurrentMobSuccessfullyEvent', OnHitEventMatcher, function(line, name)
-successfullyHitTarget = true
+	successfullyHitTarget = true
 end)
 
--- Define a predicate function that checks if the spawn is an NPC
---local function isNPC(spawn)
---	return spawn.Type() == 'NPC'
---end
---
----- Call getFilteredSpawns with the predicate function
---local npcs = mq.getFilteredSpawns(isNPC)
 
 local function hitAll()
-	if not isZoneAllowed(mq.TLO.Zone.ShortName()) then return end
 	mq.cmd("/hidecorpse all")
 	mq.delay(50)
 	mq.cmd("/nav spawn kodajii")
-	mq.delay(3000)
-	
+	BL.WaitForNav()
+
 	local spawnCount = mq.TLO.SpawnCount("npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)()
 	local hitArrayID = {}
 	for i = 1, spawnCount do
@@ -43,33 +26,39 @@ local function hitAll()
 			hitArrayID[i] = spawn.ID()
 		end
 	end
-	
-	for i, npcID in ipairs(hitArrayID) do
+	BL.info("iterating spawns with count: ", #hitArrayID)
+    for i, npcID in ipairs(hitArrayID) do
+		BL.info("Iteration starting, count: ", i, " of ", #hitArrayID, " npcID: ", npcID)
 		local target = mq.TLO.Spawn(npcID)
 		target.DoTarget()
+        mq.delay(500)		
 		mq.cmdf("/dgza /echo Attacking new target : %s who is %d out of %d total", target.Name(), i, #hitArrayID)
 		successfullyHitTarget = false
 		
-		mq.cmd('/stick 8 uw !front')
-		mq.delay(20)
+		mq.cmd('/stick 12 uw !front')
+		mq.delay(500)
+		BL.info("Turning attack on")
 		mq.cmd('/attack on')
 		
 		while not successfullyHitTarget do
+			if not mq.TLO.Me.Combat() then mq.cmd('/attack on') end
 			mq.doevents()
 			mq.delay(200)
 		end
-		
-		mq.cmd('/attack off')
+		mq.doevents()
+        
+        mq.delay(500)
+		BL.info("Finished iteration: ", i)
 	end
-	
+	mq.cmd('/attack off')
 	mq.cmd("/dgza /echo DONE HITTING ALL!")
 end
 
 local function main()
 	mq.cmd("/dgza /echo Starting Golden Pick Hitall...")
-	mq.delay(100)
+    mq.delay(100)
+	mq.doevents()
 	hitAll()
 end
 
 main()
-

@@ -227,7 +227,7 @@ function ui.drawSpell(spellName)
 end
 
 function ui.mainWindowEvent()
-	Open, ShowUI = ImGui.Begin("RaidBurn", true)
+	Open, ShowUI = ImGui.Begin("Burninator", true)
 	if ShowUI then
 		ui.buildWindow()
 	end
@@ -236,7 +236,7 @@ end
 
 function ui.init(eventHandlers)
 	ui.eventHandlers = eventHandlers
-	mq.imgui.init("RaidBurn", ui.mainWindowEvent)
+	mq.imgui.init("RaidBurninator", ui.mainWindowEvent)
 end
 
 return ui

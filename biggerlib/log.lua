@@ -24,12 +24,11 @@ local function logerror(...)
 	error(...)
 end
 
-local function _dumpRecurse(data, logPrefix, depth)
-	if data == nil then
+local function _dumpRecurse(tabledata, logPrefix, depth)
+	if tabledata == nil then
 		return "NIL"
 	end
-	if type(data) == "table" then
-		local tabledata = data
+	if type(tabledata) == "table" then
 		local output = "{"
 		for key, value in pairs(tabledata) do
 			output = output
@@ -42,7 +41,7 @@ local function _dumpRecurse(data, logPrefix, depth)
 		end
 		return output .. "\n" .. string.rep(" ", (depth or 0) - 4) .. "}"
 	else
-		return tostring(data)
+		return tostring(tabledata)
 	end
 end
 
