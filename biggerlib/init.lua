@@ -141,23 +141,28 @@ end
 ---@param targetName string @The name of the target spawn.
 ---@param optionalRadius number|nil @The optional radius within which to search for the target spawn.
 function BL.TargetAndNavTo(targetName, optionalRadius)
-	while not targetSpawned do
-		local targetSpawn = mq.TLO.Spawn(targetName)
-		mq.delay(1000)
-		if BL.NotNil(targetSpawn) then
-			targetSpawned = true
-		end
-	end
+    while not targetSpawned do
+        local targetSpawn = mq.TLO.Spawn(targetName)
+        mq.delay(1000)
+        if BL.NotNil(targetSpawn) then
+            targetSpawned = true
+        end
+    end
 
-	local targetSpawn = mq.TLO.Spawn("targetable " .. targetName)
-	if targetSpawn() then
-		targetSpawn.DoTarget()
-	else
-		BL.warn("WARNING: Could not find targetable spawn: " .. targetName)
-	end
+    local targetSpawn = mq.TLO.Spawn("targetable " .. targetName)
+    if targetSpawn() then
+        targetSpawn.DoTarget()
+    else
+        BL.warn("WARNING: Could not find targetable spawn: " .. targetName)
+    end
 
-	mq.cmd("/nav target")
-	BL.WaitForNav()
+    mq.cmd("/nav target")
+    BL.WaitForNav()
+end
+
+function BL.NavTo(targetLocation)
+	mq.cmdf("/nav locyxz %d %d %d", targetLocation.x, targetLocation.y, targetLocation.z)
+	BL.WaitForNav()	
 end
 
 --- Generates a random point on a circle centered around the player's current position.

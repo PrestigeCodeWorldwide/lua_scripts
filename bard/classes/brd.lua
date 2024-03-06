@@ -417,6 +417,7 @@ function class.initClassOptions()
 		'UseAlliance',
 		'bool'
 	)
+	
 end
 
 function class.initSpellLines(_zen)

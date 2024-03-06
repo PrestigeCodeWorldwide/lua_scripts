@@ -1,0 +1,81 @@
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(02) src\np_server.rs:30: Client connected!
+ INFO ThreadId(02) src\np_server.rs:40: Creating client read thread
+ INFO ThreadId(02) src\np_server.rs:42: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:47: Received as UTF: "ping"
+ INFO ThreadId(02) src\np_server.rs:50: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(02) src\np_server.rs:30: Client connected!
+ INFO ThreadId(02) src\np_server.rs:40: Creating client read thread
+ INFO ThreadId(02) src\np_server.rs:42: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:47: Received as UTF: "�EFi"
+ INFO ThreadId(02) src\np_server.rs:50: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(05) src\np_server.rs:30: Client connected!
+ INFO ThreadId(05) src\np_server.rs:40: Creating client read thread
+ INFO ThreadId(05) src\np_server.rs:42: in client read thread reading...
+DEBUG ThreadId(05) src\np_server.rs:48: Received as UTF: "�EFirst\u{1}FSecondLSecondString"
+ INFO ThreadId(05) src\np_server.rs:51: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:53: Starting server
+ INFO ThreadId(02) src\np_server.rs:44: Client connected!
+ INFO ThreadId(02) src\np_server.rs:54: Creating client read thread
+ INFO ThreadId(02) src\np_server.rs:56: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:64: Received as Protocol: Protocol { First: 1, Second: "SecondString" }
+ INFO ThreadId(02) src\np_server.rs:67: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:53: Starting server
+ INFO ThreadId(03) src\np_server.rs:44: Client connected!
+ INFO ThreadId(03) src\np_server.rs:54: Creating client read thread
+ INFO ThreadId(03) src\np_server.rs:56: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:64: Received as Protocol: Protocol { First: 1, Second: "SecondString" }
+ INFO ThreadId(03) src\np_server.rs:79: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(02) src\np_server.rs:47: Client connected!
+ INFO ThreadId(02) src\np_server.rs:57: Creating client read thread
+ INFO ThreadId(02) src\np_server.rs:59: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:67: Received as Protocol: Protocol { First: 1, Second: "SecondString" }
+ INFO ThreadId(02) src\np_server.rs:89: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(03) src\np_server.rs:48: Client connected!
+ INFO ThreadId(03) src\np_server.rs:58: Creating client read thread
+ INFO ThreadId(03) src\np_server.rs:60: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:68: Received as Protocol: Protocol { First: 1, Second: "SecondString" }
+ INFO ThreadId(03) src\np_server.rs:91: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(02) src\np_server.rs:48: Client connected!
+ INFO ThreadId(02) src\np_server.rs:58: Creating client read thread
+ INFO ThreadId(02) src\np_server.rs:60: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:68: Received as Protocol: Protocol { First: 1, Second: "SecondString" }
+ INFO ThreadId(02) src\np_server.rs:92: Wrote PONG to pipe
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(05) src\np_server.rs:48: Client connected!
+ INFO ThreadId(05) src\np_server.rs:58: Creating client read thread
+ INFO ThreadId(05) src\np_server.rs:60: in client read thread reading...
+DEBUG ThreadId(05) src\np_server.rs:68: Received as Protocol: Protocol { First: 1, Second: "SecondString" }
+ INFO ThreadId(05) src\np_server.rs:91: Wrote PONG to pipe

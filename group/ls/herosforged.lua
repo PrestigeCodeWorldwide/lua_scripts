@@ -80,17 +80,18 @@ end
 -- This goes up by the NPC
 local safeSpotYXZ = '568 -1317 327'
 
+local safeSpot = {x = 568, y = -1317, z = 327}
+local debuffName = 'Song of Echoes'
+--local debuffName = "Grim Aura" -- for testing with SK
+
 local function handleAoEEvent()
-	local debuffName = 'Song of Echoes'
-	--local debuffName = "Grim Aura" -- for testing with SK
 
 	if BL.IHaveBuff(debuffName) then
 		-- we have the debuff, run to safe spot
 		mq.cmd('/g I have the AOE debuff, running to safe spot')
 		BL.cmd.pauseAutomation()
-		mq.delay(500)
-		mq.cmdf('/nav locyxz %s', safeSpotYXZ)
-		
+		BL.NavTo(safeSpot)
+				
 		while BL.IHaveBuff(debuffName) do
 			mq.delay(1000)
 		end
