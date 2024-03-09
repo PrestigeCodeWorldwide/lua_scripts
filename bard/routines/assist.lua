@@ -398,7 +398,7 @@ function assist.engage()
 	if not mq.TLO.Target() then
 		return
 	end
-
+	
 	if mq.TLO.Target.Distance() > config.get("CAMPRADIUS") then
 		return
 	end

@@ -92,7 +92,7 @@ pub async fn start_server() -> anyhow::Result<()> {
                     //};
                     //let serialized = to_vec(vec![], &msg).expect("Failed to serialize ZMessage");
                     
-                    let serialized = ZMessageBuilder::new_mq_command_string("/g TEST FROM WEB").build()?;
+                    let serialized = ZMessageBuilder::new_mq_command_string("/g TEST FROM WEB".into()).build()?;
                     
                     dbg!(&serialized);
                     inner.write_all(&serialized).await?;
@@ -110,4 +110,9 @@ pub async fn start_server() -> anyhow::Result<()> {
     server.await??;
     Ok(())
     /* do something else not server related here */
+}
+
+pub fn serialize_message(message: &ZMessage) -> Vec<u8> {
+    let serialized = to_vec(vec![], message).expect("Failed to serialize ZMessage");
+    serialized
 }

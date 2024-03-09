@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use bincode;
 use byteorder::{ByteOrder, LittleEndian};
 use compact_str::CompactString;
@@ -6,6 +7,7 @@ use log::warn;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::io::{Bytes, Cursor};
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 //#[repr(u16)]
@@ -106,15 +108,15 @@ impl ZMessageBuilder {
     }
 
     // Build the ZMessage, consuming the builder
-    pub fn build(self) -> Result<ZMessage, &'static str> {
+    pub fn build(self) -> Result<ZMessage> {
         if self.mode.is_none() {
-            return Err("Mode is missing");
+            return Err(anyhow!("Mode is missing"));
         }
         if self.sequence_id.is_none() {
-            return Err("Sequence ID is missing");
+            return Err(anyhow!("Sequence ID is missing"));
         }
         if self.message_type.is_none() {
-            return Err("Message type is missing");
+            return Err(anyhow!("Message type is missing"));
         }
         Ok(ZMessage {
             mode: self.mode.unwrap(),
