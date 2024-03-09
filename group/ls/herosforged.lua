@@ -2,9 +2,11 @@
 local mq = require('mq')
 --- @type ImGui
 require('ImGui')
-
+--- @type BL
 local BL = require('biggerlib')
+
 local Paused = false
+
 
 mq.bind('/zm pause on', function()
 	Paused = true
@@ -47,7 +49,8 @@ local function init()
 
 	mq.cmd('/g Levitating the group')
 	mq.cmd('/aa act perfected levitation')
-	mq.delay(3500)
+    mq.delay(3500)
+	
 end
 
 -- grow clicky
@@ -90,8 +93,8 @@ local function handleAoEEvent()
 		-- we have the debuff, run to safe spot
 		mq.cmd('/g I have the AOE debuff, running to safe spot')
 		BL.cmd.pauseAutomation()
-		BL.NavTo(safeSpot)
-				
+        BL.NavTo(safeSpot)
+		
 		while BL.IHaveBuff(debuffName) do
 			mq.delay(1000)
 		end

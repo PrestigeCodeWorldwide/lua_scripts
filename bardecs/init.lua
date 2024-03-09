@@ -2,19 +2,27 @@
 local mq = require('mq')
 --- @type ImGui
 require('ImGui')
-
+local BL = require("biggerlib")
 require('utils.log')
 local ECS = require('ECS')
 local World, System, Query = ECS.World, ECS.System, ECS.Query
 
 ----------------------------------------------------------------------------------------------
 
-local Health = ECS.Component(100)
-local Position = ECS.Component({ x = 0, y = 0 })
+--local Health = ECS.Component(100)
+local QuestGiver = ECS.Component({ name = 'a worrisome shade', id = 5033 })
+
 
 local isInAcid = Query.Filter(function()
 	return true -- it's wet season
 end)
+
+-- I believe task makes it run earlier each frame than process
+local UpdateStateSystem = System('task', Query.All(QuestGiver))
+
+function UpdateStateSystem:Update()
+	local state = self.world:Res('state')	
+end
 
 local InAcidSystem = System('process', Query.All(Health, Position, isInAcid()))
 
@@ -27,27 +35,22 @@ function InAcidSystem:Update()
 end
 
 function InAcidSystem:Initialize(config)
-	--print("Initializing InAcidSystem with config: " .. tostring(config or "NONE"))
-	info('Initializing InAcidSystem with config: %s', tostring(config or 'NONE'))
-	warn('This is a warning')
-	error('This is an ERROR')
-	debug('This is debug')
-	trace('This is trace')
-
-	info('Using Dump')
-	dump(Position)
+	BL.info('Initializing InAcidSystem with config: %s', tostring(config or 'NONE'))
 end
 
-local world = World()
--- REMINDER ITS world: NOT world.
-world:AddSystem(InAcidSystem)
---local world = World()
 
-local ent = world:Entity(Position.New({ x = 5 }), Health.New())
---local entity = world:Entity(
---	Position({ x = 5 }),
---	Health.New()
---)
+
+
+
+local function initSettings(world)
+    local state = {
+        paused = false,
+        myClass = mq.TLO.Me.Class.ShortName(),
+		currentZoneId = mq.TLO.Zone.ID(),
+	}
+    world:AddResource(state, 'state')
+	-- world:Res('state') -- getter reminder
+end
 
 -- Create a new system InitWorldSystem that converts oldbard/init.lua's init function to an ECS system like InAcidSystem
 
@@ -60,9 +63,19 @@ local function ECSUpdate(world, step, now)
 	world:Update(step, now)
 end
 
-local function initSettings() end
+--local ent = world:Entity(Position.New({ x = 5 }), Health.New())
+--local entity = world:Entity(
+--	Position({ x = 5 }),
+--	Health.New()
+--)
+
+
 
 local function runMainLoop()
+	local world = World()
+	-- REMINDER ITS world: NOT world.
+	-- world:AddSystem(InAcidSystem)
+	initSettings(world)
 	while true do
 		mq.delay(1000)
 		local now = mq.gettime()

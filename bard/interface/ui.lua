@@ -220,7 +220,7 @@ end
 	local yOffset = y
 	local maxY = yOffset
 	local _, yAvail = ImGui.GetContentRegionAvail()
-
+	
 	for _, cfgKey in ipairs(configs) do
 		local cfg = config[cfgKey]
 
