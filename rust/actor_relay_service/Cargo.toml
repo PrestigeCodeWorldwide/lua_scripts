@@ -1,3 +1,0 @@
-[workspace]
-members = [ "protocol","relay_server", "zenactor_ffi", "zenactor_ffi_test"]
-resolver = "2"

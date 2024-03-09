@@ -12,6 +12,12 @@ mq.bind("/zaquit", function()
     BL.info("Received quit message")
     keepRunning = false
 end)
+mq.bind("/zareset", function()
+    BL.info("Received reset request")
+    keepRunning = false
+    mq.cmd("/multiline ; /timed 20 /lua stop zen/zenactors; /timed 30 /lua run zen/zenactors")
+    
+end)
 
 local function decode_message(message_string)
     local decoded = cbor.decode(message_string)
@@ -41,15 +47,23 @@ local function test_pipe(pipefile, cbor_message)
         BL.info("Received from server: %s", data_string)
         local decoded = decode_message(data_string)
         BL.dump(decoded, "Decoded final cbor message from server:")
+        if decoded.message_type == "MsgMQCommandString" then
+            BL.info("Received Command")
+            local command = decoded.payload.message
+            BL.dump(command, "Command:")
+            mq.cmd(command)
+            
+            
+        end
     end
 end
 
 local function init()
+    -- required permissions for the underlying named pipe
     local opt = 'r+'
     local name = [[\\.\pipe\zenactorpipe]]
     local pipefile = fs.open(name, opt)
-
-    BL.dump(pipefile)
+    
     if not pipefile then
         BL.error("Error opening pipe: %s", name)
         return 0

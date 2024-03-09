@@ -227,3 +227,199 @@ DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg {
  INFO ThreadId(02) src\np_server.rs:97: Wrote ZMessage to pipe
  INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
  WARN ThreadId(02) src\np_server.rs:75: Connection dropped! Error decoding KeepAliveMsg: Core(Eof { name: "map", expect: Small(1) })
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(02) src\np_server.rs:49: Client connected!
+ INFO ThreadId(02) src\np_server.rs:59: Creating client read thread
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(02) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(02) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(02) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(02) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(02) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(02) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(02) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(02) src\np_server.rs:62: in client read thread reading...
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(03) src\np_server.rs:49: Client connected!
+ INFO ThreadId(03) src\np_server.rs:59: Creating client read thread
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+ WARN ThreadId(03) src\np_server.rs:75: Connection dropped! Error decoding KeepAliveMsg: Core(Eof { name: "map", expect: Small(1) })
+ INFO ThreadId(03) src\np_server.rs:49: Client connected!
+ INFO ThreadId(03) src\np_server.rs:59: Creating client read thread
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+ WARN ThreadId(03) src\np_server.rs:75: Connection dropped! Error decoding KeepAliveMsg: Core(Eof { name: "map", expect: Small(1) })
+ INFO ThreadId(03) src\np_server.rs:49: Client connected!
+ INFO ThreadId(03) src\np_server.rs:59: Creating client read thread
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+ WARN ThreadId(03) src\np_server.rs:75: Connection dropped! Error decoding KeepAliveMsg: Core(Eof { name: "map", expect: Small(1) })
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:52: Starting server
+ INFO ThreadId(03) src\np_server.rs:49: Client connected!
+ INFO ThreadId(03) src\np_server.rs:59: Creating client read thread
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(03) src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(03) src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(03) src\np_server.rs:62: in client read thread reading...
+ WARN ThreadId(03) src\np_server.rs:75: Connection dropped! Error decoding KeepAliveMsg: Core(Eof { name: "map", expect: Small(1) })
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:47: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:47: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:47: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:47: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:47: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:47: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) src\main.rs:44: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:44: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:41: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:41: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:41: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:41: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:41: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:41: Starting server
+ INFO ThreadId(06) server\src\np_server.rs:49: Client connected!
+ INFO ThreadId(06) server\src\np_server.rs:59: Creating client read thread
+ INFO ThreadId(06) server\src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(06) server\src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(06) server\src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(06) server\src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(06) server\src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(06) server\src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(06) server\src\np_server.rs:62: in client read thread reading...
+DEBUG ThreadId(06) server\src\np_server.rs:80: Received as KeepAliveMsg: KeepAliveMsg { KeepAlive: None }
+ INFO ThreadId(06) server\src\np_server.rs:100: Wrote ZMessage to pipe
+ INFO ThreadId(06) server\src\np_server.rs:62: in client read thread reading...
+ WARN ThreadId(06) server\src\np_server.rs:75: Connection dropped! Error decoding KeepAliveMsg: Core(Eof { name: "map", expect: Small(1) })

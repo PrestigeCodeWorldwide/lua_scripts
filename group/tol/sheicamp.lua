@@ -280,7 +280,7 @@ local function getTask()
 	if myZone == 843 and mq.TLO.Target.Distance() <= 30 then
 		if mq.TLO.Task('Shei Vinitras').ID() == nil then
 			print('\apLooks Like We Dont Have Our Task, Lets Fix That!')
-			mq.delay(1000)
+			mq.delay(60000) -- long delay to let slow zoning boxes be punted from task
 			mq.cmdf('/%s mode 0', myClass)
 			mq.delay(1000)
 			mq.cmd('/dgga /boxr pause')
@@ -377,10 +377,16 @@ local function MoveToCamp()
 	print("\apWe Are Going Into Tank Mode to Ensure We Don't Have A Suprise Guest")
 	mq.cmdf('/%s mode tank', myClass)
 	mq.cmdf('/%s pause off', myClass)
-	MakeMeVis()
+    MakeMeVis()
+	
 	print('\apAllowing Time to Buff')
 	-- Change this delay to increase buff time or to help with Medding to full
-	mq.delay(30000)
+    mq.delay(90000)
+    -- sit so everyone else does
+	if not mq.TLO.Me.Sitting() then
+		mq.cmd('/sit')
+	end
+	
 	SetPull()
 	SetCamp = false
 end

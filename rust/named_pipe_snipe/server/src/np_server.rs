@@ -11,7 +11,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     time,
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, info, warn, error};
 
 use crate::protocol::{Room, ZMessage, ZMessageBuilder, ZMessageType};
 const PIPE_NAME: &str = r"\\.\pipe\zenactorpipe";
@@ -92,8 +92,8 @@ pub async fn start_server() -> anyhow::Result<()> {
                     //};
                     //let serialized = to_vec(vec![], &msg).expect("Failed to serialize ZMessage");
                     
-                    let serialized = ZMessageBuilder::new_mq_command_string("/g TEST FROM WEB".into()).build()?;
-                    
+                    let message = ZMessageBuilder::new_mq_command_string("/say TEST FROM WEB".into()).build()?;
+                    let serialized = serialize_message(&message);
                     dbg!(&serialized);
                     inner.write_all(&serialized).await?;
                     inner.flush().await?;
@@ -104,7 +104,7 @@ pub async fn start_server() -> anyhow::Result<()> {
                 Ok(())
             });
         }
-
+        
         Ok::<_, io::Error>(())
     });
     server.await??;
