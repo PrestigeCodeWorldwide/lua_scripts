@@ -59,7 +59,7 @@ function class.init(_zen)
 	class.sonic = common.getAA('Sonic Disturbance')
 	class.fluxstaff = common.getItem('Staff of Viral Flux')
 
-	class.selos = common.getAA('Selo\'s Sonata')
+	class.selos = common.getAA("Selo's Sonata")
 end
 
 function class.sitCheck()
@@ -78,7 +78,7 @@ function class.sitCheck()
 	-- see if he's sitting
 	local isSitting = myAssist.Sitting()
 	local meSitting = mq.TLO.Me.Sitting()
-
+	
 	if isSitting and not meSitting then
 		mq.cmd('/stopsong')
 		mq.delay(10)
@@ -1245,7 +1245,7 @@ function class.cast()
 		mq.TLO.Me.StopCast()
 		return false
 	end
-
+	
 	if class.doneSinging() then
 		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then
@@ -1411,13 +1411,11 @@ function class.doneSinging()
 	if not mq.TLO.Me.Casting() then
 		if
 			not state.paused
-			and class.spells.selos
 			and class.selos
-			and selosTimer:timerExpired()
+			and mq.TLO.Me.AltAbilityReady(class.selos.CastName)
 			and class.OPTS.USESELOS.value
-		then
+        then
 			class.selos:use()
-			selosTimer:reset()
 		end
 		return true
 	end

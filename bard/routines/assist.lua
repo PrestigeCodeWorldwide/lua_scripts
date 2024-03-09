@@ -399,8 +399,6 @@ function assist.engage()
 		return
 	end
 
-	BL.info("Checking engage distance with ")
-
 	if mq.TLO.Target.Distance() > config.get("CAMPRADIUS") then
 		return
 	end
