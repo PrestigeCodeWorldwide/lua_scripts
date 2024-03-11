@@ -27,11 +27,11 @@ local function main()
 			if PeriodicCoPCacheTimer <= 0 then
 				PeriodicCoPCacheTimer = 10
 				if State.driver and State.runCircleRotation then
-					--mq.cmd("/rs WHOCANPOWER.")
+					mq.cmd("/rs WHOCANPOWER.")
 				end
 			end
-
-			--Burn.HandleCircleOfPower()
+			
+			Burn.HandleCircleOfPower()
 			mq.doevents()
 			mq.delay(100)
 		end

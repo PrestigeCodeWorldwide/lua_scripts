@@ -30,10 +30,7 @@ end
 
 local function init()
 	print('Starting Darklight Lua')
-	if mq.TLO.Plugin('mq2boxr')() then
-		print('\apMQ2Boxr Already Loaded\ap') -- plugin is loaded.. we are good to go
-	else
-		print('\apLoading MQ2BOXR!\ap')
+	if not mq.TLO.Plugin('mq2boxr')() then
 		mq.cmd('/plugin mq2boxr')
 	end
 end
@@ -53,7 +50,6 @@ local function At_Grakaw()
 		mq.cmd('/multiline ; /boxr pause; /mqp on; /backoff on')
 		luaCHECK()
 		mq.delay('5ms')
-		mq.cmd('/rs running')
 		mq.cmd('/nav loc 900.77 -760.70 190.37')
 	end
 end
@@ -64,7 +60,6 @@ local function At_Spirits()
 		mq.cmd('/multiline ; /boxr pause; /mqp on; /backoff on')
 		luaCHECK()
 		mq.delay('5ms')
-		mq.cmd('/rs running')
 		mq.cmd('/nav loc 688 -849 205')
 	end
 end
@@ -75,7 +70,6 @@ local function At_Grakaw_And_Spirits()
 		mq.cmd('/multiline ; /boxr pause; /mqp on; /backoff on')
 		luaCHECK()
 		mq.delay('5ms')
-		mq.cmd('/rs running')
 		mq.cmd('/nav loc 775 -595 190')
 	end
 end
@@ -86,7 +80,6 @@ local function At_Center()
 		mq.cmd('/multiline ; /boxr pause; /mqp on; /backoff on')
 		luaCHECK()
 		mq.delay('5ms')
-		mq.cmd('/rs running')
 		mq.cmd('/nav loc 688 -849 205')
 	end
 end

@@ -13,7 +13,7 @@ use tokio::{
 };
 use tracing::{debug, info, warn, error};
 
-use crate::protocol::{Room, ZMessage, ZMessageBuilder, ZMessageType};
+use crate::protocol::{Room, TLOData, ZMessage, ZMessageBuilder, ZMessageType};
 const PIPE_NAME: &str = r"\\.\pipe\zenactorpipe";
 const MAX_CLIENTS: usize = 72;
 
@@ -64,8 +64,6 @@ pub async fn start_server() -> anyhow::Result<()> {
                     //inner.read_exact(&mut buf).await?;
                     let buf_size = inner.read(&mut buf).await?;
                     buf.truncate(buf_size);
-                    //debug!("Received: {:?}", buf);
-                    //debug!("Received as UTF: {:?}", String::from_utf8_lossy(&buf));
                     let keep_alive: Result<KeepAliveMsg, cbor4ii::serde::DecodeError<_>> = from_slice(&buf);
                     // If keep_alive is an error, break from this loop because the connection died
                     // we'll automatically reconnect in a separate thread we started earlier that's listening already
@@ -82,19 +80,9 @@ pub async fn start_server() -> anyhow::Result<()> {
                     let new_keepalive = KeepAliveMsg {
                         KeepAlive: Some(()),
                     };
-                    //let serialized = to_vec(vec![], &new_keepalive).expect("Failed to serialize KeepAlive");
+                   
                     
-                    //let msg = ZMessage {
-                    //    mode: crate::protocol::MQRequestMode::SimpleMessage,
-                    //    sequence_id: 0,
-                    //    message_type: ZMessageType::MsgRoomConnectionRequest(Room("biggerlib".to_string())),
-                    //    payload: None,
-                    //};
-                    //let serialized = to_vec(vec![], &msg).expect("Failed to serialize ZMessage");
-                    
-                    let message = ZMessageBuilder::new_mq_command_string("/say TEST FROM WEB".into()).build()?;
-                    let serialized = serialize_message(&message);
-                    dbg!(&serialized);
+                    let serialized = ZMessageBuilder::new_tlo_data(TLOData::Integer(95)).build_serialized()?;
                     inner.write_all(&serialized).await?;
                     inner.flush().await?;
                     info!("Wrote ZMessage to pipe");

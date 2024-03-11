@@ -8,6 +8,7 @@
 )]
 
 use anyhow::anyhow;
+use clap::Parser;
 use std::time::Duration;
 use std::{
     fs::OpenOptions,
@@ -35,12 +36,27 @@ pub type Result = anyhow::Result<()>;
 
 const PIPE_NAME: &str = r"\\.\\pipe\\zenactorpipe";
 
+
+
 #[tokio::main]
 async fn main() -> Result {
     init_logging(tracing::Level::DEBUG)?;
     info!("Starting server");
     np_server::start_server().await?;
     Ok(())
+}
+
+// Setup the command line interface with clap.
+#[derive(Parser, Debug)]
+#[clap(name = "server", about = "A server for our wasm project!")]
+struct Opt {
+    /// set the listen addr
+    #[clap(short = 'a', long = "addr", default_value = "::1")]
+    addr: String,
+
+    /// set the listen port
+    #[clap(short = 'p', long = "port", default_value = "8080")]
+    port: u16,
 }
 
 fn init_logging(log_level: tracing::Level) -> anyhow::Result<()> {

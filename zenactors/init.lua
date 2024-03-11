@@ -85,6 +85,20 @@ local MQMessage = {
     payload = {}
 }
 
+local MQMessageShapeTLOReminder = {
+    message_type = {
+        ["MsgTLOData"] = "",
+    },
+    sequence_id = 0,
+    mode = "SimpleMessage",
+    payload = {
+        TLO = {
+            Integer = 95,
+        }
+    }
+}
+
+local cbored = cbor.encode(MQMessageShapeTLOReminder)
 
 local pipefile = init()
 while keepRunning do

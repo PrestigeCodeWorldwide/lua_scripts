@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use byteorder::{ByteOrder, LittleEndian};
+use cbor4ii::serde::to_vec;
 use compact_str::CompactString;
 
 use serde::de::DeserializeOwned;
@@ -23,6 +24,7 @@ pub enum ZMessageType {
     // Ask to connect to specific room
     MsgRoomConnectionRequest(Room),
     MsgMQCommandString,
+    MsgTLOData,
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
@@ -35,8 +37,16 @@ pub enum MQRequestMode {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ZMessagePayload {
-    pub message: CompactString,
+pub enum TLOData {
+    String(CompactString),
+    Integer(i64),
+    Boolean(bool)
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ZMessagePayload {
+    String(CompactString),
+    TLO(TLOData),
 }
 
 pub struct ZMessageBuilder {
@@ -56,7 +66,7 @@ impl ZMessageBuilder {
             payload: None,
         }
     }
-    
+
     pub fn new_heartbeat() -> ZMessageBuilder {
         ZMessageBuilder {
             mode: Some(MQRequestMode::SimpleMessage),
@@ -66,17 +76,21 @@ impl ZMessageBuilder {
         }
     }
     
-    
-    
-    pub fn new_mq_command_string(command: CompactString) -> ZMessageBuilder
-    {
+    pub fn new_mq_command_string(command: CompactString) -> ZMessageBuilder {
         ZMessageBuilder {
             mode: Some(MQRequestMode::SimpleMessage),
             sequence_id: Some(0),
             message_type: Some(ZMessageType::MsgMQCommandString),
-            payload: Some(ZMessagePayload {
-                message: command,
-            }),
+            payload: Some(ZMessagePayload::String(command)),
+        }
+    }
+    
+    pub fn new_tlo_data(data: TLOData) -> ZMessageBuilder {
+        ZMessageBuilder {
+            mode: Some(MQRequestMode::SimpleMessage),
+            sequence_id: Some(0),
+            message_type: Some(ZMessageType::MsgTLOData),
+            payload: Some(ZMessagePayload::TLO(data)),
         }
     }
     
@@ -122,6 +136,28 @@ impl ZMessageBuilder {
             payload: self.payload,
         })
     }
+    
+      // Build the ZMessage, consuming the builder, then cbor serializing the result
+    pub fn build_serialized(self) -> Result<Vec<u8>> {
+        if self.mode.is_none() {
+            return Err(anyhow!("Mode is missing"));
+        }
+        if self.sequence_id.is_none() {
+            return Err(anyhow!("Sequence ID is missing"));
+        }
+        if self.message_type.is_none() {
+            return Err(anyhow!("Message type is missing"));
+        }
+        let msg = ZMessage {
+            mode: self.mode.unwrap(),
+            sequence_id: self.sequence_id.unwrap(),
+            message_type: self.message_type.unwrap(),
+            payload: self.payload,
+        };
+        
+        let serialized = to_vec(vec![], &msg)?;
+        Ok(serialized)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -132,7 +168,6 @@ pub struct ZMessage {
     pub message_type: ZMessageType,
     pub payload: Option<ZMessagePayload>,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Channel(pub CompactString);
@@ -147,7 +182,7 @@ pub struct Character(pub CompactString);
 /// Rooms are semantically for all characters who will be controlled via scripts, and can be private or considered somewhat of a password
 /// in the sense that you can join room "3I82h42oafj" and only those who know the room name can join.
 /// Channels exist within rooms and are intended to allow multiple scripts to operate within the same room but without stepping on one another
-/// thus each lua script should specify a different channel than other lua scripts 
+/// thus each lua script should specify a different channel than other lua scripts
 /// An example of a room and channel might be "biggerlib" and "offtank" respectively.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Destination {
@@ -160,10 +195,8 @@ pub enum Recipient {
     Broadcast,
     Server,
     // String is the character name of the recipient
-    Character(Character)
+    Character(Character),
 }
-
-
 
 impl TryFrom<u8> for MQRequestMode {
     type Error = &'static str;

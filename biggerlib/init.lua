@@ -49,10 +49,23 @@ BL.UI = {}
 -- #region Oneoffs
 
 
+
 --- Runs /dgga "cmd", so your whole group will each execute whatever command
 ---@param cmd string @The command to be executed on the group.
 function BL.GroupCmd(cmd)
 	mq.cmd("/dgga " .. cmd)
+end
+
+function BL.cmd.ChangeAutomationModeToChase()
+	mq.cmd("/boxr chase")
+end
+
+function BL.cmd.ChangeAutomationModeToManual()
+	mq.cmd("/boxr manual")
+end
+
+function BL.cmd.ChangeAutomationModeToCamp()
+	mq.cmd("/boxr camp")
 end
 
 --- Checks if the given value is neither nil nor a string representation of nil.
@@ -141,28 +154,23 @@ end
 ---@param targetName string @The name of the target spawn.
 ---@param optionalRadius number|nil @The optional radius within which to search for the target spawn.
 function BL.TargetAndNavTo(targetName, optionalRadius)
-    while not targetSpawned do
-        local targetSpawn = mq.TLO.Spawn(targetName)
-        mq.delay(1000)
-        if BL.NotNil(targetSpawn) then
-            targetSpawned = true
-        end
-    end
+	while not targetSpawned do
+		local targetSpawn = mq.TLO.Spawn(targetName)
+		mq.delay(1000)
+		if BL.NotNil(targetSpawn) then
+			targetSpawned = true
+		end
+	end
 
-    local targetSpawn = mq.TLO.Spawn("targetable " .. targetName)
-    if targetSpawn() then
-        targetSpawn.DoTarget()
-    else
-        BL.warn("WARNING: Could not find targetable spawn: " .. targetName)
-    end
+	local targetSpawn = mq.TLO.Spawn("targetable " .. targetName)
+	if targetSpawn() then
+		targetSpawn.DoTarget()
+	else
+		BL.warn("WARNING: Could not find targetable spawn: " .. targetName)
+	end
 
-    mq.cmd("/nav target")
-    BL.WaitForNav()
-end
-
-function BL.NavTo(targetLocation)
-	mq.cmdf("/nav locyxz %d %d %d", targetLocation.x, targetLocation.y, targetLocation.z)
-	BL.WaitForNav()	
+	mq.cmd("/nav target")
+	BL.WaitForNav()
 end
 
 --- Generates a random point on a circle centered around the player's current position.
@@ -260,28 +268,11 @@ end
 ---@param buffName string @The name of the buff to check for.
 ---@return boolean @Returns true if the character has the buff, false otherwise.
 function BL.IHaveBuff(buffName)
-    local buffID = mq.TLO.Me.Buff(buffName).ID()
-    if buffID ~= nil and buffID > 0 then
-        return true
-    end
-    return false
-end
-
--- Runs to locx,locy any time toon has debuff applied to them.
-function BL.RunToWhileDebuffed(debuffName, locX, locY)
-	if BL.IHaveBuff(debuffName) then
-		-- we have the debuff, run to safe spot
-		mq.cmd('/g I have the AOE debuff, running to safe spot')
-		BL.cmd.pauseAutomation()
-		mq.delay(500)
-		mq.cmdf('/nav locyx %s %s', locX, locY)
-		
-		while BL.IHaveBuff(debuffName) do
-			mq.delay(1000)
-		end
-		mq.cmd('/g AOE debuff is gone, resuming')
-		BL.cmd.resumeAutomation()
+	local buffID = mq.TLO.Me.Buff(buffName).ID()
+	if buffID ~= nil and buffID > 0 then
+		return true
 	end
+	return false
 end
 
 --- Waits until navigation is complete before continuing.

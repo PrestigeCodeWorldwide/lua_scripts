@@ -6,3 +6,7 @@
 --- New Log Session ---
 
  INFO ThreadId(01) server\src\main.rs:41: Starting server
+
+--- New Log Session ---
+
+ INFO ThreadId(01) server\src\main.rs:44: Starting server
