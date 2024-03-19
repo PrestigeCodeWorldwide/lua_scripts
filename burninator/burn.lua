@@ -328,7 +328,7 @@ function Burn.Init()
 	-- Matcher Text follows pattern: "Burninate" (trigger phrase) - "Funeral Dirge" (spell name to cast) - "Robothaus" (toon to cast) "." (Period required at end)
 	-- Meant for "/rs Burninate - Funeral Dirge - Robothaus." or "/rs Burninate - Perseverance - Caelinaex."
 
-	if State.useZActors or false then
+	if State.useZActors and false then
 		BL.info("Using ZActors")
 		--sendClientConnectRequest()
 		-- once request approved, join room
