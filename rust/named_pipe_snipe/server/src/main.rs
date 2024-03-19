@@ -42,7 +42,14 @@ const PIPE_NAME: &str = r"\\.\\pipe\\zenactorpipe";
 async fn main() -> Result {
     init_logging(tracing::Level::DEBUG)?;
     info!("Starting server");
-    np_server::start_server().await?;
+    //np_server::start_server().await?;
+    
+    let named_pipe_server = np_server::start_server();
+    let axum_server = axum::Server::bind(&"0.0.0.0:3000".parse()?).serve(app.into_make_service());
+
+    let (_named_pipe_result, _axum_result) = tokio::try_join!(named_pipe_server, axum_server)?;
+    
+    
     Ok(())
 }
 

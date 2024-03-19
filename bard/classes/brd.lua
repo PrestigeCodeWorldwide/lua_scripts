@@ -1408,7 +1408,7 @@ function class.doneSinging()
 		mq.cmd('/stopsong')
 		mq.delay(1)
 	end
-	if not mq.TLO.Me.Casting() then
+	if not mq.TLO.Me.Casting() and not mq.TLO.Me.Sitting() and not mq.TLO.Me.Invis() then
 		if
 			not state.paused
 			and class.selos

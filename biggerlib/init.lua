@@ -2,7 +2,7 @@
 local mq = require("mq")
 local Log = require("biggerlib.log")
 local Enum = require("biggerlib.enum")
-
+local Gui = require("biggerlib.ui")
 ---@class BL
 ---BiggerLib (BL) is a utility library providing a collection of functions and submodules to enhance Lua scripting capabilities within MacroQuest.
 ---
@@ -45,7 +45,8 @@ BL.cmd = {}
 BL.log = {}
 BL.Enum = Enum
 BL.UI = {}
-
+---@type Gui
+BL.Gui = Gui
 -- #region Oneoffs
 
 
@@ -287,15 +288,7 @@ function BL.WaitForNav()
 	end)
 end
 
---- Utility function for on/off text coloring
-function BL.UI.GetOnOffColor(val)
-	if val == "on" then
-		return "\agon"
-	elseif val == "off" then
-		return "\aroff"
-	end
-	return val
-end
+
 
 --- Utility function for making your whole group visible
 function BL.MakeGroupVisible()

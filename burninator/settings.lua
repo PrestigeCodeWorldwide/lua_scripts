@@ -33,7 +33,7 @@ end
 
 function settings.updateSettings(cmd, val)
 	settings[cmd] = val
-	print("\at[Burninate] \aoTurning \ay", cmd, " \ag ", BL.UI.GetOnOffColor(val))
+	print("\at[Burninate] \aoTurning \ay", cmd, " \ag ", BL.Gui.Util.GetOnOffColor(val))
 	settings.saveSettings()
 end
 
@@ -45,7 +45,7 @@ function settings.setDefaults(s)
 		State.driver = "off"
 	end
 	for k, v in pairs(settings) do
-		print("\at[Burninate]\ao ", k, ": \ay", BL.UI.GetOnOffColor(v))
+		print("\at[Burninate]\ao ", k, ": \ay", BL.Gui.Util . GetOnOffColor(v))
 	end
 	settings.saveSettings()
 end
