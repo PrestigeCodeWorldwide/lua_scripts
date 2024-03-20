@@ -61,7 +61,8 @@ local function handleEggs()
 		-- see if egg is up
 		local egg = mq.TLO.Spawn('npc egg').ID()
 		if egg ~= nil and egg > 0 then
-			-- send pets on eggs
+            -- send pets on eggs
+			mq.cmd("/boxr pause")
 			mq.cmd('/g Sending my pet on egg')
 			mq.delay(1000)
 			mq.cmd('/target npc egg')
@@ -71,7 +72,7 @@ local function handleEggs()
 			-- wait for egg to die
 			while mq.TLO.Spawn('npc egg').ID() ~= nil and mq.TLO.Spawn('npc egg').ID() > 0 do
 				mq.cmd('/target npc egg')
-				mq.delay(1000)
+				mq.delay(500)
 				mq.cmd('/pet attack')
 			end
 			mq.cmd('/g Egg is dead, resuming')
