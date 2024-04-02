@@ -7,7 +7,11 @@ local ImGui = require('ImGui')
 
 local rezToken = "Token of Resurrection"
 
-
+---@type ScriptState
+local State = {
+    Paused = false,
+    HealerName = "Caellia",
+}
 
 local function checkHealerIsDead()
     local healerSpawn = mq.TLO.Spawn("Caellia")
@@ -55,27 +59,21 @@ local function DrawUI()
     if not State.Paused then counter = counter + 1 end
     --print out counter's value, shows whether script is paused or not for demo purposes
     BL.Gui.Text(counter)
-   
+    
     -- Make a button that runs the function when pressed
     BL.Gui.Button("Button", function()
         print('Button was pressed')
     end)
     
     ImGui.SameLine()
-    checkBox1 = ImGui.Checkbox("Box 1", checkBox1) -- toggling this updates the checkBox1 variable. Use in other 'if' statements
+    checkBox1, pressed = BL.Gui.Checkbox("Box 1", checkBox1) -- toggling this updates the checkBox1 variable. Use in other 'if' statements
+    if pressed then BL.info("box 1 pressed") end
     ImGui.SameLine(300)                            -- You can specify distance. Number is how many pixels from left side of window
-    checkBox2 = ImGui.Checkbox("Box 2", checkBox2)
+    checkBox2 = BL.Gui.Checkbox("Box 2", checkBox2)
     ImGui.Separator()
 end
 
 ----------------------------------- Execution --------------------------------
-
----@type ScriptState
-local State = {
-    Paused = false,
-    HealerName = "Caellia",
-
-}
 
 BL.Gui:Init({
     WindowName = "Tank Rez Healer",

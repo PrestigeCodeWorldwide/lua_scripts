@@ -27,9 +27,17 @@ local function hitAll()
 		end
 	end
 	BL.info("iterating spawns with count: ", #hitArrayID)
-    for i, npcID in ipairs(hitArrayID) do
-		BL.info("Iteration starting, count: ", i, " of ", #hitArrayID, " npcID: ", npcID)
-		local target = mq.TLO.Spawn(npcID)
+	local target
+	--for i, npcID in mobs do
+	for i= 1, #hitArrayID do
+		local npcID = hitArrayID[i]
+		if npcID == nil then
+			--BL.dump(hitArrayID, "hitArrayID index: " .. i )
+			BL.info("Mob %d is nil, skipping", i)
+			goto continue
+		end
+		BL.info("Iteration starting, count: " .. i .. " of " ..  #hitArrayID .. " npcID: " .. npcID)
+		target = mq.TLO.Spawn(npcID)
 		target.DoTarget()
         mq.delay(500)		
 		mq.cmdf("/dgza /echo Attacking new target : %s who is %d out of %d total", target.Name(), i, #hitArrayID)
@@ -46,7 +54,7 @@ local function hitAll()
 			mq.delay(200)
 		end
 		mq.doevents()
-        
+        ::continue::
         mq.delay(500)
 		BL.info("Finished iteration: ", i)
 	end

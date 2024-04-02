@@ -82,8 +82,6 @@ local function handleEggs()
 end
 
 -- This goes up by the NPC
-local safeSpotYXZ = '568 -1317 327'
-
 local safeSpot = {x = 568, y = -1317, z = 327}
 local debuffName = 'Song of Echoes'
 --local debuffName = "Grim Aura" -- for testing with SK

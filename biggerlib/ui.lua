@@ -39,7 +39,8 @@ local ImGui = require('ImGui')
 ---@field public Destroy fun(self: Gui)|nil
 ---@field public Button fun(ButtonText: string|number, IfPressedCallback: function)|nil
 ---@field public Text fun(Text: string|number)|nil
----@field public Checkbox (fun(Text: string|number, Value: boolean): boolean, boolean)|nil #returns newValue, changed
+---returns newValue, changed
+---@field public Checkbox (fun(Text: string|number, Value: boolean): boolean, boolean)|nil
 ---@field Save fun(self: Gui)|nil
 ---@field Load fun(self: Gui)|nil
 
@@ -160,7 +161,7 @@ Gui.Tick = function(self)
         -- lock window button
         ImGui.SameLine()
         --local lockedIcon = self.Config.Locked and Icons.FA_LOCK .. '##lock' .. self.Name or
-        local lockedIcon = nil
+        local lockedIcon
         if self.Config.Locked then
             lockedIcon = Icons.FA_LOCK
         else
@@ -217,6 +218,7 @@ Gui.Init = function(self, uiConfig)
     self.ScriptName = uiConfig.ScriptName
     self.UpdateCallbackFn = uiConfig.DrawFunction
     self.ScriptState = uiConfig.ScriptState
+    self:Load()
     mq.imgui.init(self.Name, function() return self:Tick() end)
 end
 

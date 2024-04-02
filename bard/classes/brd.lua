@@ -350,6 +350,17 @@ function class.initClassOptions()
 		'bool'
 	)
 	class.addOption(
+		'USEINSULTTWO',
+		'Use Second Insult Synergy Nuke',
+		true,
+		nil,
+		'Toggle use of SECOND Insult (Lots of mana)',
+		'checkbox',
+		nil,
+		'UseInsultTwo',
+		'bool'
+	)
+	class.addOption(
 		'USEFIREDOTS',
 		'Use Fire DoT',
 		false,

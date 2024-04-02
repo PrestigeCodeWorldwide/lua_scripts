@@ -1,4 +1,0 @@
-
---- New Log Session ---
-
-[32m INFO[0m ThreadId(01) [2msrc\main.rs[0m[2m:[0m[2m44[0m[2m:[0m Starting server

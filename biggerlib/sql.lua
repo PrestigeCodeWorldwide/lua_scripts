@@ -16,7 +16,14 @@ local Sql = {
         for tableName, tableData in pairs(dbConfigSchema) do
             local columnDefs = {}
             for columnName, columnValue in pairs(tableData) do
-                local columnType = type(columnValue) == "number" and "INTEGER" or "TEXT"
+                --local columnType = type(columnValue) == "number" and "INTEGER" or "TEXT"
+                local colType = type(columnValue)
+                if colType == "number" then columnType = "REAL" -- lua only has one numeric type, so we'll use Real to be as compatible as possible
+                elseif colType == "string" then columnType = "TEXT"
+                elseif colType == "boolean" then columnType = "INTEGER" -- We use integer bc sqlite doesn't have a boolean type and lua doesn't have an integer
+                else Log.error("Unsupported column type")
+                end
+                
                 table.insert(columnDefs, string.format("%s %s", columnName, columnType))
             end
             local createTableSql = string.format("CREATE TABLE %s (%s);", tableName, table.concat(columnDefs, ", "))
@@ -40,11 +47,8 @@ local Sql = {
             Log.dump(tableName, "SQLIte table")
             for idx, val in ipairs(tableName) do 
                 --Log.dump(val, "val")
-                Log.dump(type(val), "type(val)")
-                if type(val) == "table" then
-                    Log.dump(idx, "idx")
-                    Log.dump(val, "val")
-                end
+                Log.dump(type(val), "type(val):")
+                Log.dump(val, "val:")
             end
         end
 

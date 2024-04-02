@@ -21,7 +21,6 @@ mq.cmd("/timed 23 /cwtna usemangling off")
 mq.cmd("/cwtna usealliance on")
 mq.cmd("/cwtna forcealliance on")
 mq.cmd("/cwtna useaoe off")
-mq.cmd("/cwtn useglyph on") -- DPS uses glyph automatically on burns, but NOT driver/tank, note the /cwtn not /cwtnA
 mq.cmd("/cwtna usedeflection off") -- SK
 mq.cmd("/cwtna usebeza off")
 mq.cmd("/cwtna usedotsnare off")
