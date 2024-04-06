@@ -35,7 +35,8 @@ local function showHelp()
 		output = output .. prefix .. command.command .. " -- " .. command.tip
 	end
 	output = output
-		.. "\n- /nowcast [name] alias <targetID> -- Tells the named character or yourself to cast a spell on the specified target ID."
+		..
+		"\n- /nowcast [name] alias <targetID> -- Tells the named character or yourself to cast a spell on the specified target ID."
 	for _, category in ipairs(config.categories()) do
 		output = output .. "\n\ay" .. category .. " configuration:\aw"
 		for _, key in ipairs(config.getByCategory(category)) do
@@ -104,20 +105,21 @@ function commands.commandHandler(...)
 			zen.class.preburn()
 		end
 	elseif opt == "PAUSE" then
-        if not new_value then
+		if not new_value then
 			BL.warn("Changing PAUSED state")
 			state.paused = not state.paused
 			if state.paused then
 				state.resetCombatState()
+				mq.TLO.Me.StopCast()
 				mq.cmd("/stopcast")
 				mq.cmd("/stopsong")
 			end
 		else
-            if constants.booleans[new_value] == nil then
-                return
-            end
-			
-			BL.warn("Changing PAUSED state")			
+			if constants.booleans[new_value] == nil then
+				return
+			end
+
+			BL.warn("Changing PAUSED state")
 			state.paused = constants.booleans[new_value]
 			if state.paused then
 				state.resetCombatState()

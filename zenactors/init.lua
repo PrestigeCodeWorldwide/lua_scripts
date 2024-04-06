@@ -7,6 +7,7 @@ local cbor        = require("cbor")
 local writeCount  = 0
 local readCount   = 0
 local keepRunning = true
+local WriteFlag = false
 
 mq.bind("/zaquit", function()
     BL.info("Received quit message")
@@ -15,8 +16,11 @@ end)
 mq.bind("/zareset", function()
     BL.info("Received reset request")
     keepRunning = false
-    mq.cmd("/multiline ; /timed 20 /lua stop zen/zenactors; /timed 30 /lua run zen/zenactors")
-    
+    mq.cmd("/multiline ; /lua stop zen/zenactors; /timed 10 /lua run zen/zenactors")
+end)
+mq.bind("/zawrite", function()
+    BL.info("Received write request")
+    WriteFlag = true
 end)
 
 local function decode_message(message_string)
@@ -26,6 +30,7 @@ end
 
 local function test_pipe(pipefile, cbor_message)
     -- WRITE
+    if WriteFlag then 
     local buffer = cbor_message
     BL.info("WRITE to pipe...")
     pipefile:write(buffer, #buffer)

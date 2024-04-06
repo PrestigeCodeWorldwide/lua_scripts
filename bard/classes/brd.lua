@@ -161,6 +161,17 @@ function class.initClassOptions()
 		nil,
 		'StickHowTLO',
 		'string'
+    )
+	class.addOption(
+		'AUTOSTANDONDUCK',
+		'AutoStandOnDuck',
+		true,
+		nil,
+		'Stand up if found ducking',
+		'checkbox',
+		nil,
+		'AutoStandOnDuckTLO',
+		'bool'
 	)
 
 	class.addOption(

@@ -53,7 +53,7 @@ function mez.doAE(mez_spell, ae_count)
 		--print("No AE mez bc it's disabled")
 		return
 	end
-
+	
 	if state.mobCount >= ae_count and mez_spell then
 		-- loop thru mobs and count how many are mezzed with single target
 		local mezzedCount = 0

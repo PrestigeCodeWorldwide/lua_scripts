@@ -3,11 +3,11 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
+-- ONLY enchanters run this!  It uses group level 69 rune
+
 local ScriptState = {
 	Paused = false,
-	RuneSpell = "",
-	Enchanter = "Gloaming Rune",
-	Cleric = "Shining Steel",
+	RuneSpell = "Rune of Rikkukin",
 	RuneWaitingRoom = {}
 }
 
@@ -55,12 +55,19 @@ end
 
 local function init()
 	-- set rune spell based on which class
-	if mq.TLO.Me.Class.ShortName() == "CLR" then
-		BL.info("I'm a cleric")
-		ScriptState.RuneSpell = ScriptState.Cleric
-	elseif mq.TLO.Me.Class.ShortName() == "ENC" then
-		BL.info("I'm an enchanter")
-		ScriptState.RuneSpell = ScriptState.Enchanter
+	if mq.TLO.Me.Class.ShortName() ~= "ENC" then
+		BL.info("I'm NOT an enchanter")
+		mq.cmd("/rs I AM NOT AN ENCHANTER but i'm running the unkempt Rune script, SOMETHING IS WRONG")
+		
+	end
+	-- mem rune
+	local currentSpell = mq.TLO.Me.Gem(13)
+	local spellName = currentSpell.Name()
+	if spellName ~= ScriptState.RuneSpell then
+		mq.cmd("/enc byos on")
+		mq.delay(2000)
+		mq.cmdf('/memspell 13 "%s"', ScriptState.RuneSpell)
+		mq.delay(2000)
 	end
 end
 
@@ -70,9 +77,6 @@ init()
 
 while true do
 	mq.doevents()
-	
-		
-		DoNextRune()
-	
+	DoNextRune()
 	mq.delay(511)
 end

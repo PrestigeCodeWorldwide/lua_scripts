@@ -197,11 +197,11 @@ end
 function common.inControl()
 	return not (
 		mq.TLO.Me.Dead()
-		or mq.TLO.Me.Ducking()
+		--or mq.TLO.Me.Ducking()
 		or mq.TLO.Me.Charmed()
 		or mq.TLO.Me.Stunned()
 		or mq.TLO.Me.Silenced()
-		or mq.TLO.Me.Feigning()
+		--or mq.TLO.Me.Feigning()
 		or mq.TLO.Me.Mezzed()
 		or mq.TLO.Me.Invulnerable()
 		or mq.TLO.Me.Hovering()

@@ -166,10 +166,11 @@ function ui.drawInputText(labelText, idText, resultVar, helpText, xOffset, yOffs
 	local _, y = ImGui.GetCursorPos()
 	ImGui.SetCursorPosY(y - 3)
 	ImGui.SetCursorPosX(mid_x + xOffset)
-	resultVar = ImGui.InputText(idText, resultVar)
+	local textChanged = false
+	resultVar, textChanged = ImGui.InputText(idText, resultVar)
 	--[[resultVar = ImGui.InputText(labelText, resultVar)
 	helpMarker(helpText)]]
-	return resultVar
+	return resultVar, textChanged
 end
 
 function ui.getNextXY(startY, yAvail, xOffset, yOffset, maxY)
@@ -195,17 +196,52 @@ local function drawConfigurationForCategory(configs)
 		local cfg = config[cfgKey]
 
 		if cfg.type == "checkbox" then
+			config.set(cfgKey, ui.drawCheckBox(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip))
+		elseif cfg.type == "combobox" then
+			config.set(cfgKey, ui.drawComboBox(cfg.label, cfg.value, cfg.options, true, cfg.tip))
+		elseif cfg.type == "inputint" then
+			config.set(cfgKey, ui.drawInputInt(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip))
+		elseif cfg.type == "inputtext" then
+			-- mq.cmdf("/dobserve %s -q Target", assistName) -- do this if dirty
+			local newText, textChanged = ui.drawInputText(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip)
+			-- Set observer for out-of-group target access
+			if textChanged and cfgKey == "ASSISTNAMES" then
+				mq.cmdf("/dobserve %s -q Target", newText)
+			end
+			config.set(cfgKey, newText)
+		end
+		xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
+	end
+end
+
+--[[local function drawConfigurationForCategory(configs)
+	local x, y = ImGui.GetCursorPos()
+	local xOffset = x
+	local yOffset = y
+	local maxY = yOffset
+	local _, yAvail = ImGui.GetContentRegionAvail()
+	
+	for _, cfgKey in ipairs(configs) do
+		local cfg = config[cfgKey]
+
+		if cfg.type == "checkbox" then
 			config.set(cfgKey, ui.drawCheckBox(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
 		elseif cfg.type == "combobox" then
 			config.set(cfgKey, ui.drawComboBox(cfg.label, cfg.value, cfg.options, true, cfg.tip, xOffset, yOffset))
 		elseif cfg.type == "inputint" then
 			config.set(cfgKey, ui.drawInputInt(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
 		elseif cfg.type == "inputtext" then
-			config.set(cfgKey, ui.drawInputText(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset))
+			-- mq.cmdf("/dobserve %s -q Target", assistName) -- do this if dirty
+			local newText, textChanged = ui.drawInputText(cfg.label, "##" .. cfgKey, cfg.value, cfg.tip, xOffset, yOffset)
+			-- Set observer for out-of-group target access
+			if textChanged and cfgKey == "ASSISTNAMES" then
+				mq.cmdf("/dobserve %s -q Target", newText)
+			end
+			config.set(cfgKey, newText)
 		end
 		xOffset, yOffset, maxY = ui.getNextXY(y, yAvail, xOffset, yOffset, maxY)
 	end
-end
+end]]
 
 -- Combine Assist and Camp categories
 local assistTabConfigs = {
@@ -224,6 +260,13 @@ local function drawAssistTab()
 	if ImGui.Button("Reset Camp", x, BUTTON_HEIGHT) then
 		camp.setCamp(true)
 	end
+
+	--ImGui.PushItemWidth(item_width)
+	--mid_x = 50
+	config.MODE.value = ui.drawComboBox("Mode", config.get("MODE"), mode.mode_names, false, config.MODE.tip)
+	mode.currentMode = mode.fromString(config.get("MODE"))
+
+
 	local current_camp_radius = config.get("CAMPRADIUS")
 
 	drawConfigurationForCategory(assistTabConfigs)
@@ -245,7 +288,7 @@ local function drawSkillsTab()
 			local option = zen.class.OPTS[key]
 			local oldValue = option.value
 			if option.type == "checkbox" then
-				option.value = ui.drawCheckBox(option.label, "##" .. key, option.value, option.tip, xOffset, yOffset)
+				option.value = ui.drawCheckBox(option.label, "##" .. key, option.value, option.tip)
 				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
@@ -255,19 +298,19 @@ local function drawSkillsTab()
 				end
 			elseif option.type == "combobox" then
 				option.value =
-					ui.drawComboBox(option.label, option.value, option.options, true, option.tip, xOffset, yOffset)
+					ui.drawComboBox(option.label, option.value, option.options, true, option.tip)
 				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
 				end
 			elseif option.type == "inputint" then
-				option.value = ui.drawInputInt(option.label, "##" .. key, option.value, option.tip, xOffset, yOffset)
+				option.value = ui.drawInputInt(option.label, "##" .. key, option.value, option.tip)
 				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
 				end
 			elseif option.type == "inputtext" then
-				option.value = ui.drawInputText(option.label, "##" .. key, option.value, option.tip, xOffset, yOffset)
+				option.value = ui.drawInputText(option.label, "##" .. key, option.value, option.tip)
 				if option.value ~= oldValue and option.onChanged ~= nil then
 					logger.info("Calling onChanged for %s", key)
 					option.onChanged()
@@ -408,13 +451,13 @@ end
 
 local uiTabs = {
 	--{label='HUD', draw=drawHUD},
-	{ label = "General", draw = drawAssistTab },
-	{ label = "Skills", draw = drawSkillsTab },
+	{ label = "General",                          draw = drawAssistTab },
+	{ label = "Skills",                           draw = drawSkillsTab },
 	--{label=constants.icons.FA_HEART..' Heal', draw=drawHealTab, color=LIGHT_BLUE},
-	{ label = constants.icons.FA_FIRE .. " Burn", draw = drawBurnTab, color = ORANGE },
-	{ label = "Pull", draw = drawPullTab },
-	{ label = "Rest", draw = drawRestTab },
-	{ label = "Debug", draw = drawDebugTab },
+	{ label = constants.icons.FA_FIRE .. " Burn", draw = drawBurnTab,  color = ORANGE },
+	{ label = "Pull",                             draw = drawPullTab },
+	{ label = "Rest",                             draw = drawRestTab },
+	{ label = "Debug",                            draw = drawDebugTab },
 }
 local function drawBody()
 	if ImGui.BeginTabBar("##tabbar") then
@@ -426,7 +469,7 @@ local function drawBody()
 				if tab.color then
 					ImGui.PopStyleColor()
 				end
-				if ImGui.BeginChild(tab.label, -1, -1, false, ImGuiWindowFlags.HorizontalScrollbar) then
+				if ImGui.BeginChild(tab.label, -1, -1, ImGuiChildFlags.Border, ImGuiWindowFlags.None) then
 					ImGui.PushItemWidth(item_width)
 					tab.draw()
 					ImGui.PopItemWidth()
@@ -445,53 +488,52 @@ local function drawHeader()
 	local x, _ = ImGui.GetContentRegionAvail()
 	local buttonWidth = (x / 2) - 22
 	if state.paused then
-		if ImGui.Button(constants.icons.FA_PLAY, buttonWidth, BUTTON_HEIGHT) then
+		if ImGui.Button(constants.icons.FA_PLAY, buttonWidth / 2, BUTTON_HEIGHT) then
 			camp.setCamp()
 			BL.warn("Changing PAUSED state to false")
 
 			state.paused = false
 		end
 	else
-		if ImGui.Button(constants.icons.FA_PAUSE, buttonWidth, BUTTON_HEIGHT) then
+		if ImGui.Button(constants.icons.FA_PAUSE, buttonWidth / 2, BUTTON_HEIGHT) then
 			BL.warn("Changing PAUSED state to TRUE")
 
 			state.paused = true
 			state.resetCombatState()
+			mq.TLO.Me.StopCast()
 			mq.cmd("/stopcast")
 		end
 	end
 	helpMarker("Pause/Resume")
 	ImGui.SameLine()
-	if ImGui.Button(constants.icons.FA_SAVE, buttonWidth, BUTTON_HEIGHT) then
+	-- Sing button
+	local musicLabel = (state.shouldSing and constants.icons.FA_MUSIC_PLAY or constants.icons.FA_MUSIC_STOP)
+
+	if ImGui.Button(musicLabel, buttonWidth / 2, BUTTON_HEIGHT) then
+		state.shouldSing = not state.shouldSing
+	end
+	ImGui.SameLine()
+	-- Save button
+	if ImGui.Button(constants.icons.FA_SAVE, buttonWidth / 2, BUTTON_HEIGHT) then
 		zen.class.saveSettings()
 	end
 	helpMarker("Save Settings")
 	ImGui.SameLine()
-	if ImGui.Button(constants.icons.MD_HELP, -1, BUTTON_HEIGHT) then
-		helpGUIOpen = true
-	end
-	helpMarker("Help")
-	ImGui.Text("Bot Status: ")
-	ImGui.SameLine()
-	ImGui.SetCursorPosX(buttonWidth + 16)
-	if state.paused then
-		ImGui.TextColored(RED, "PAUSED")
-	else
-		ImGui.TextColored(GREEN, "RUNNING")
-	end
-	local current_mode = config.get("MODE")
-	ImGui.PushItemWidth(item_width)
-	mid_x = buttonWidth + 8
-	config.MODE.value = ui.drawComboBox("Mode", config.get("MODE"), mode.mode_names, false, config.MODE.tip)
-	mode.currentMode = mode.fromString(config.get("MODE"))
-	mid_x = 140
-	ImGui.PopItemWidth()
-	if ImGui.Button("Mem Songs", 100, BUTTON_HEIGHT) then
+	if ImGui.Button("Mem (" .. (zen.class.gemsInUse or "0") .. ")", buttonWidth / 2, BUTTON_HEIGHT) then
 		zen.class.signalSpellsChanged()
 	end
-	ImGui.SameLine()
-	local memCount = "Memmed now: " .. (zen.class.gemsInUse or "0")
-	ImGui.LabelText("", memCount)
+
+	local current_mode = config.get("MODE")
+	--ImGui.PushItemWidth(item_width)
+	--mid_x = 50
+	--config.MODE.value = ui.drawComboBox("Mode", config.get("MODE"), mode.mode_names, false, config.MODE.tip)
+	--mode.currentMode = mode.fromString(config.get("MODE"))
+
+
+	mid_x = 140
+	--ImGui.PopItemWidth()
+
+
 	if current_mode ~= config.get("MODE") and not state.paused then
 		camp.setCamp()
 	end

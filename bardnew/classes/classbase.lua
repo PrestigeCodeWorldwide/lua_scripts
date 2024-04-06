@@ -18,7 +18,7 @@ local common = require('common')
 local constants = require('constants')
 local mode = require('mode')
 local state = require('state')
-
+local BL = require("biggerlib")
 local zen
 ---@class base
 ---@field classOrder table #All possible class routine methods
@@ -358,7 +358,7 @@ function base.tank()
 	if
 		mode.currentMode:getName() == 'pullertank'
 		and helpers.distance(mq.TLO.Me.X(), mq.TLO.Me.Y(), camp.X, camp.Y)
-			> (config.get('CAMPRADIUS') - 5) ^ 2
+		> (config.get('CAMPRADIUS') - 5) ^ 2
 	then
 		state.pullStatus = constants.pullStates.RETURNING
 		state.actionTaken = true
@@ -897,41 +897,33 @@ end
 
 function base.hold() end
 
+--- Reminder on this one, you have to be REAL careful with mq.delays in here
+--- because it can *very* easily trigger a stuck spell gem situation
 function base.nowCast(args)
-	if #args == 3 then
-		local sendTo = args[1]:lower()
-		local alias = args[2]:lower()
-		local target = args[3]:lower()
-		if sendTo == 'me' or sendTo == mq.TLO.Me.CleanName():lower() then
-			local spellToCast = base.spells[alias] or base[alias]
-			table.insert(base.requests, {
-				requester = target,
-				requested = spellToCast,
-				expiration = timer:new(15000),
-				tranquil = false,
-				mgb = false,
-			})
-		else
-			local sendToSpawn = mq.TLO.Spawn('pc =' .. sendTo)
-			if sendToSpawn() then
-				-- sendToSpawn.Class.ShortName(),  why did i have this here
-				mq.cmdf('/squelch /dex %s /nowcast "%s" %s', sendTo, alias, target)
-			end
-		end
-	elseif #args == 2 then
-		local alias = args[1]:lower()
-		local target = args[2]:lower()
-		local spellToCast = base.spells[alias] or base[alias]
-		if spellToCast then
-			table.insert(base.requests, {
-				requester = target,
-				requested = spellToCast,
-				expiration = timer:new(15000),
-				tranquil = false,
-				mgb = false,
-			})
-		end
-	end
+	local song = table.concat(args, " ", 1)
+
+	--state.shouldSing = false
+	state.isForceCasting = true
+	--local waspaused = state.paused
+	--state.paused = true
+
+
+	mq.TLO.Me.StopCast()
+	--BL.info("Delaying after stopcast before casting nowCast for 5s")
+	--mq.delay(500)
+	BL.info("Force Casting " .. song)
+	--mq.cmdf("/casting \"%s\"", song)
+	mq.cmd("/cast " .. song)
+	--BL.info("Delaying after /casting for 4.5s")
+	mq.delay(4500)
+	--BL.info("Done delaying after /casting, doing StopCast()")
+	mq.TLO.Me.StopCast()
+	--BL.info("Delaying after StopCast for 0.5s")
+	--mq.delay(500)
+	--BL.info("Turning off force cast flag")
+
+	state.isForceCasting = false
+	--state.paused = waspaused
 end
 
 local function lifesupport()
@@ -951,7 +943,7 @@ local function lifesupport()
 				and (
 					spell.Duration.TotalSeconds() == 0
 					or (not mq.TLO.Me.Song(spell.Name())())
-						and mq.TLO.Spell(spell.Name()).Stacks()
+					and mq.TLO.Spell(spell.Name()).Stacks()
 				)
 			then
 				print(logger.logLine('Use Item: \ag%s\ax', healclicky))

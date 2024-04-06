@@ -1,13 +1,14 @@
 local constants = {}
 
 constants.commandHelp = {
-	{ command = 'help', tip = 'Output the help text' },
+	{ command = 'help',               tip = 'Output the help text' },
 	{ command = 'pause [on|1|off|0]', tip = 'Pause or resume the script' },
-	{ command = 'show', tip = 'Display the UI window' },
-	{ command = 'hide', tip = 'Hide the UI window' },
+	{ command = 'show',               tip = 'Display the UI window' },
+	{ command = 'hide',               tip = 'Hide the UI window' },
 	{
 		command = 'mode [mode]',
-		tip = 'Set the current mode of the script. Valid Modes:\n\t\t0|manual|1|assist|2|chase|3|vorpal|4|tank|5|pullertank|6|puller|7|huntertank',
+		tip =
+		'Set the current mode of the script. Valid Modes:\n\t\t0|manual|1|assist|2|chase|3|vorpal|4|tank|5|pullertank|6|puller|7|huntertank',
 	},
 	{
 		command = 'resetcamp',
@@ -21,27 +22,27 @@ constants.commandHelp = {
 	},
 	{ command = 'removeclicky', tip = 'Removes the currently held item from clickies' },
 	{ command = 'listclickies', tip = 'Displays the list of added clickies' },
-	{ command = 'ignore', tip = 'Adds the targeted mob to the ignore list for the current zone' },
+	{ command = 'ignore',       tip = 'Adds the targeted mob to the ignore list for the current zone' },
 	{
 		command = 'unignore',
 		tip = 'Removes the targeted mob from the ignore list for the current zone',
 	},
-	{ command = 'door', tip = 'Click the nearest door' },
-	{ command = 'bark', tip = 'Make all group members repeat the following phrase' },
-	{ command = 'invis', tip = 'Use class invis ability' },
+	{ command = 'door',    tip = 'Click the nearest door' },
+	{ command = 'bark',    tip = 'Make all group members repeat the following phrase' },
+	{ command = 'invis',   tip = 'Use class invis ability' },
 	{ command = 'tribute', tip = 'Toggle personal tribute on or off' },
 	{
 		command = 'sell',
 		tip = 'Sells items marked to be sold to the targeted or already opened vendor',
 	},
 	{ command = 'manastone', tip = 'Spam manastone to get some mana back' },
-	{ command = 'armpets', tip = 'Summon pet gear for configured pets' },
-	{ command = 'debug', tip = 'Toggle the specified debug option on or off' },
-	{ command = 'restart', tip = 'Restart the script' },
-	{ command = 'update', tip = 'Downloads the latest source zip' },
-	{ command = 'docs', tip = 'Launches the documentation site in a browser window' },
-	{ command = 'wiki', tip = 'Launches the Lazarus wiki in a browser window' },
-	{ command = 'baz', tip = 'Launches the Lazarus Bazaar in a browser window' },
+	{ command = 'armpets',   tip = 'Summon pet gear for configured pets' },
+	{ command = 'debug',     tip = 'Toggle the specified debug option on or off' },
+	{ command = 'restart',   tip = 'Restart the script' },
+	{ command = 'update',    tip = 'Downloads the latest source zip' },
+	{ command = 'docs',      tip = 'Launches the documentation site in a browser window' },
+	{ command = 'wiki',      tip = 'Launches the Lazarus wiki in a browser window' },
+	{ command = 'baz',       tip = 'Launches the Lazarus Bazaar in a browser window' },
 }
 
 constants.instantHealClickies = {
@@ -77,9 +78,9 @@ constants.pullStates = {
 }
 
 constants.manaClasses =
-	{ clr = true, dru = true, shm = true, enc = true, mag = true, nec = true, wiz = true }
+{ clr = true, dru = true, shm = true, enc = true, mag = true, nec = true, wiz = true }
 constants.petClasses =
-	{ bst = true, mag = true, nec = true, dru = true, enc = true, shd = true, shm = true }
+{ bst = true, mag = true, nec = true, dru = true, enc = true, shd = true, shm = true }
 constants.buffClasses = {
 	clr = true,
 	dru = true,
@@ -127,7 +128,7 @@ constants.ignoreBuff = {
 }
 
 constants.slotList =
-	'earrings, rings, leftear, rightear, leftfinger, rightfinger, face, head, neck, shoulder, chest, feet, arms, leftwrist, rightwrist, wrists, charm, powersource, mainhand, offhand, ranged, ammo, legs, waist, hands'
+'earrings, rings, leftear, rightear, leftfinger, rightfinger, face, head, neck, shoulder, chest, feet, arms, leftwrist, rightwrist, wrists, charm, powersource, mainhand, offhand, ranged, ammo, legs, waist, hands'
 
 constants.routines = {
 	heal = 1,
@@ -213,6 +214,8 @@ constants.icons = {
 	FA_BUS = '\xef\x88\x87',
 	MD_EXPLORE = '\xee\xa1\xba',
 	MD_HELP = '\xee\xa2\x87',
+	FA_MUSIC_PLAY = '\xef\x80\x81',
+	FA_MUSIC_STOP = '\xef\x84\xb1',
 }
 
 return constants
