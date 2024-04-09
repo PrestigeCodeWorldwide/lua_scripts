@@ -1,11 +1,7 @@
 ---@type Mq
 local mq = require("mq")
 local BL = require("biggerlib")
-local PackageMan = require('mq/PackageMan')
-local socket = PackageMan.Require('luasocket', 'socket')
-local cjson = PackageMan.Require('lua-cjson', 'cjson')
 local State = require("state")
-local Settings = require("settings")
 
 local Burn = {}
 
@@ -68,7 +64,7 @@ Burn.args_cmd_handler = function(...)
 		if opt == nil then
 			local currentDriver = State.driver
 			print("Current driver is " .. currentDriver)
-			State.driver = true
+			State.driver = false
 		elseif opt == "off" then
 			State.driver = false
 		elseif opt == "on" then
@@ -80,16 +76,17 @@ end
 ------------- Implementation ----------------------------------------------------
 
 Burn.meCastSpell = function(spellname)
-	mq.cmdf("/rs I am Casting %s", spellname)
-
-	-- use ONLY MGB AA not Tranquil Blessing bc TB can't be used in combat
-	MGBAAManager.MassGroupBuff:Activate()
-
+    mq.cmdf("/rs I am Casting %s", spellname)
+	
 	-- Pause so automation doesn't interrupt us
 	--BL.info("Boxr Pausing so automation doesn't interrupt us")
 	mq.cmd("/boxr pause")
 	mq.delay(100)
 
+	-- use ONLY MGB AA not Tranquil Blessing bc TB can't be used in combat
+    MGBAAManager.MassGroupBuff:Activate()
+	mq.delay(500)
+		
 	-- Cast spell (should have MGB/TB active already and be targeting the correct)
 	--BL.dump(spellname)
 	--BL.info("Casting spell: %s ", spellname)
@@ -117,13 +114,9 @@ Burn.meCastSpell = function(spellname)
 				else
 					BL.warn("Unknown ability type for %s", spellname)
 				end
-				--mq.cmdf("/cast %d", aaId)
-				--mq.delay(5000)
 			end
 		end
 	end
-	--mq.cmdf("/cast %s", spellname)
-	--mq.delay(5000)
 
 	BL.info("Completed casting spell: %s ", spellname)
 	mq.cmd("/boxr unpause")
@@ -179,7 +172,7 @@ Burn.emitSpellEvent = function(className, spellName)
 	end
 
 	local chosenCharacter = _findNextCharacterToCast(className, spellName)
-
+	
 	State.UpdateSpellStateOnUse(className, chosenCharacter, spellName)
 
 	if chosenCharacter == nil then
@@ -190,11 +183,12 @@ Burn.emitSpellEvent = function(className, spellName)
 
 	-- Matcher Text follows pattern: "Burninate" (trigger phrase) - "Funeral Dirge" (spell name to cast) - "Robothaus" (toon to cast) "." (Period required at end)
 	-- Meant for "/rs Burninate - Funeral Dirge - Robothaus." or "/rs Burninate - Perseverance - Caelinaex."
-	if State.useZActors then
-		BL.todo()
-	else -- spam raid chat
+	--if State.useZActors then
+	--	BL.todo()
+    --else
+		-- spam raid chat
 		mq.cmdf("/rs Burninate - %s - %s.", spellName, chosenCharacter)
-	end
+	--end
 end
 
 function Burn.TurnOffPluginUses()
@@ -228,17 +222,17 @@ Burn.triggerFullBurn = function()
 	BL.info("Starting full burn!")
 	mq.cmd("/rs Starting full burn!")
 	-- go thru each spell and cast it
-	for className, spellList in pairs(SPELLS_BY_CLASS) do
-		-- Skip SK and Paragon in FULL BURN
-		if className == "Shadow Knight" or className == "Beastlord" then
-			mq.cmd("/rs Skipping " .. className .. " in full burn")
-		else
-			for spell, _ in pairs(spellList) do
-				BL.info("Casting spell %s for class %s", spell, className)
-				Burn.emitSpellEvent(className, spell)
-			end
-		end
-	end
+    for className, spellList in pairs(SPELLS_BY_CLASS) do
+        -- Skip SK and Paragon in FULL BURN
+        if className == "Shadow Knight" or className == "Beastlord" then
+            mq.cmd("/rs Skipping " .. className .. " in full burn")
+        else
+            for spell, _ in pairs(spellList) do
+                BL.info("Casting spell %s for class %s", spell, className)
+                Burn.emitSpellEvent(className, spell)
+            end
+        end
+    end
 end
 
 Burn.uiEventHandlers = {
@@ -299,30 +293,30 @@ function Burn.DoCircleOfPowerEventHandler(line, personName)
 	end
 end
 
-local function sendClientConnectRequest()
-	local ClientConnectRequest = {
-		clientOperation = "ConnectAttempt",
-	}
-	local json_message = cjson.encode(ClientConnectRequest) .. "\n"
-	tcp:send(json_message)
-	BL.dump(json_message, "Sent connect request:")
-end
+--local function sendClientConnectRequest()
+--	local ClientConnectRequest = {
+--		clientOperation = "ConnectAttempt",
+--	}
+--	local json_message = cjson.encode(ClientConnectRequest) .. "\n"
+--	tcp:send(json_message)
+--	BL.dump(json_message, "Sent connect request:")
+--end
 
 
-local function sendRoomJoinRequest(room)
-	local RoomJoinRequest = {
-		clientId = Settings.ClientId,
-		clientOperation = {
-			RoomJoin = room
-		}
-	}
-
-	-- Use the cjson.encode function to convert the table into a JSON string, uses \n as stream ending delimiter	
-	local json_message = cjson.encode(RoomJoinRequest) .. "\n"
-	tcp:send(json_message)
-	BL.info("Sent room join request:")
-	BL.dump(json_message)
-end
+--local function sendRoomJoinRequest(room)
+--	local RoomJoinRequest = {
+--		clientId = Settings.ClientId,
+--		clientOperation = {
+--			RoomJoin = room
+--		}
+--	}
+	
+--	-- Use the cjson.encode function to convert the table into a JSON string, uses \n as stream ending delimiter	
+--	local json_message = cjson.encode(RoomJoinRequest) .. "\n"
+--	tcp:send(json_message)
+--	BL.info("Sent room join request:")
+--	BL.dump(json_message)
+--end
 
 function Burn.Init()
 	-- Matcher Text follows pattern: "Burninate" (trigger phrase) - "Funeral Dirge" (spell name to cast) - "Robothaus" (toon to cast) "." (Period required at end)

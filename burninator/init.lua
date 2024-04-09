@@ -1,5 +1,7 @@
 ---@type Mq
 local mq = require("mq")
+---@type ImGui
+local imgui = require('ImGui')
 local BL = require("biggerlib")
 local State = require("state")
 local settings = require("settings")
@@ -13,12 +15,12 @@ local function main()
 	BL.cmd.sendRaidChannelMessage("Burninator loaded")
 	
 	Burn.Init()
-
+	
 	ui.init(Burn.uiEventHandlers)
 	State.refreshClassList()
 
-	Burn.TurnOffPluginUses()
-
+    Burn.TurnOffPluginUses()
+	
 	local PeriodicCoPCacheTimer = -1
 
 	while not State.terminate do
@@ -31,7 +33,8 @@ local function main()
 				end
 			end
 			
-			Burn.HandleCircleOfPower()
+            Burn.HandleCircleOfPower()
+			
 			mq.doevents()
 			mq.delay(100)
 		end

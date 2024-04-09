@@ -2,11 +2,11 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 local State = require("state")
-local PackageMan = require('mq/PackageMan')
-local cjson = PackageMan.Require('lua-cjson', 'cjson')
+--local PackageMan = require('mq/PackageMan')
+--local cjson = PackageMan.Require('lua-cjson', 'cjson')
 
-local settings = { room = "boti", channel = "burninator", ClientId = cjson.null, boolSettings = {} }
-
+--local settings = { room = "boti", channel = "burninator", ClientId = cjson.null, boolSettings = {} }
+local settings = { room = "boti", channel = "burninator", boolSettings = {} }
 local toon = mq.TLO.Me.Name() or ""
 local settingsPath = "BurninateConfig_" .. toon .. ".lua"
 
@@ -24,6 +24,8 @@ function settings.listCommands()
 end
 
 function settings.saveSettings()
+    BL.info("Saving settings:")
+	BL.dump(settings)
 	mq.pickle(settingsPath, { settings = settings })
 end
 

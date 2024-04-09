@@ -33,7 +33,7 @@ local function HandleStickyTickTocker(line, runeTarget)
 	ScriptState.RuneWaitingRoom[runeTarget]= true
 end
 
-local function DoNextRune()
+local function DoNextRune()-----------------------------------------------------------------------------------
 	local peopleList = {}
 	-- key is toon name, value is boolean true/false for whether they need runed
 	for key, value in pairs(ScriptState.RuneWaitingRoom) do

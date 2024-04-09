@@ -38,7 +38,7 @@ function ui.buildWindow()
 	end
 	----ImGui.SameLine()
 	----if ImGui.Button('Pause hide 60', buttonHalfWidth, 0) then pauseHide(60) end
-
+	
 	ImGui.Separator()
 	--ui.drawSpell()
 	--ImGui.Separator()
