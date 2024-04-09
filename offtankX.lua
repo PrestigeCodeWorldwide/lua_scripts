@@ -152,7 +152,7 @@ local function UpdateAggroState()
 		or State.selected_xtar_to_tank == "NONE"
 	then
 		if State.IAmTanking then
-			cwtnCHOSEN()
+			cwtnTANK()
 			State.IAmTanking = false
 		end
 		return

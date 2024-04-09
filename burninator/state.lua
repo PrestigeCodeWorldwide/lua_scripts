@@ -16,12 +16,15 @@ MGBAbilityTypes = BL.Enum([[
 --- @type table<string, table<string, number> >
 SPELLS_BY_CLASS = {
     ["Cleric"] = {
-		["Celestial Regeneration"] = 38,
+        ["Celestial Regeneration"] = 38,
+		["Exquisite Benediction"] = 255,
 	},
 	["Shaman"] = {
         ["Ancestral Aid"] = 447,
 	},
-	--["Druid"] = {},
+    ["Druid"] = {
+		["Spirit of the Wood"] = 185,
+	},
 	--["Wizard"] = {},
 	--["Magician"] = {},
     ["Enchanter"] = {
