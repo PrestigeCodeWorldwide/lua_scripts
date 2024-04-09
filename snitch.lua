@@ -43,18 +43,22 @@ local function AmIGroupLeader()
 end
 
 local function IsCWTNTankModeOn()
+	if BL.IsNil(mq.TLO.CWTN) then return end
+	
 	if mq.TLO.CWTN.Mode() == "Tank" then
 		mq.cmd("/rs My CWTN Plugin is set to TANK MODE!")
 	end
 end
 
 local function IsUseAOEOn()
+	if BL.IsNil(mq.TLO.CWTN) then return end
 	if mq.TLO.CWTN.UseAOE() then
 		mq.cmd("/rs My CWTN Plugin is set to USE AOE!")
 	end
 end
 
 local function IsAoeCountTooLow()
+	if BL.IsNil(mq.TLO.CWTN) then return end
 	if mq.TLO.CWTN.AoECount() < 99 then
 		mq.cmd("/rs My CWTN Plugin is set AOE COUNT BELOW 99!")
 	end

@@ -7,7 +7,8 @@ local BL = require("biggerlib")
 
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
----@type ScriptState
+
+---@class ScriptState
 local State = {
 	MIN_DIST = 50,
 	MAX_DIST = 9999,
@@ -17,7 +18,7 @@ local State = {
 	cwtnModeList = {
 		"Manual",
 		"Assist",
-		"Chase",
+		"ChaseAssist",
 		"SicTank",
 		"Vorpal",
 	},
@@ -81,6 +82,7 @@ end
 
 
 local function cwtnCHOSEN()
+
 	if mq.TLO.CWTN.Mode() ~= State.chosenMode then
 		BL.info("Returning to chosen non-tank mode")
 		BL.cmd.pauseAutomation()
@@ -114,19 +116,23 @@ local function removeMainTankRole(mtName)
 	print("Removed main tank role")
 end
 
-local function getGroupMainTank()
-	return mq.TLO.Group.MainTank()
-end
 
 local function checkGroupTankRoleIsEmpty()
-	local groupRole = getGroupMainTank()
+    local groupHasMainTank = mq.TLO.Group.MainTank()
 	
-	if groupRole == nil then
+	if BL.IsNil(groupHasMainTank) then
+		return true
+	end
+	
+	local mainTank = mq.TLO.Group.MainTank.CleanName()
+	
+    if mainTank ~= mq.TLO.Me.CleanName()
+	then
 		return true
 	else
-		print("WARNING: GROUP MAIN TANK ROLE IS SET!")
-		mq.cmd("/rs WARNING: MY GROUP MAIN TANK ROLE IS ENABLED")
-		removeMainTankRole(groupRole)
+		--print("WARNING: GROUP MAIN TANK ROLE IS SET!")
+		--mq.cmd("/rs WARNING: MY GROUP MAIN TANK ROLE IS ENABLED")
+		removeMainTankRole(mainTank)
 		return false
 	end
 end
@@ -147,10 +153,11 @@ local function UpdateAggroState()
 		cwtnCHOSEN()
 		State.UserChangedModeFlag = false
 	end
-	
+	--BL.dump(State.selected_xtar_to_tank)
 	if BL.IsNil(State.selected_xtar_to_tank)
 		or State.selected_xtar_to_tank == "NONE"
-	then
+    then
+		BL.info("NO SELECTED XTAR")
 		if State.IAmTanking then
 			cwtnTANK()
 			State.IAmTanking = false
@@ -248,11 +255,13 @@ local function draw_combo_box(label, resultvar, options, showClearTarget)
 	local changed = false
 	if ImGui.BeginCombo(label, resultvar) then
 		if showClearTarget and ImGui.Selectable("Clear target", resultvar == "") then
-			resultvar = ""
+            resultvar = ""
+			changed = true
 		end
 		for _, j in ipairs(options) do
 			if ImGui.Selectable(j, j == resultvar) then
-				resultvar = j
+                resultvar = j
+				changed = true
 			end
 		end
 		ImGui.EndCombo()
@@ -293,10 +302,12 @@ local DrawUI = function()
 	if changedXtarSelection then
 		State.UserChangedSelectionFlag = true
 		local selectionNum = tonumber(selected)
-		if BL.IsNil(selectionNum) then
+        if BL.IsNil(selectionNum) then
+			BL.info("Sel num is nil, setting to NONE")
 			State.current_mob_being_tanked = nil
 			State.selected_xtar_to_tank = "NONE"
-		else
+        else
+			BL.info("Sel xtar num is " .. tostring(selectionNum))
 			State.selected_xtar_to_tank = selectionNum
 		end
 	end
@@ -323,12 +334,8 @@ end
 print("\arStarting OFFTANK XTAR script\ax")
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function init()
-	initMQBindings()
-	local groupMT = getGroupMainTank()
-	if groupMT ~= nil then
-		removeMainTankRole(groupMT)
-	end
-	
+	initMQBindings()	
+	State.chosenMode = mq.TLO.CWTN.Mode()
 	--UI Init
 	BL.Gui:Init({
 		            WindowName = "Offtank XTar",
@@ -355,6 +362,7 @@ end
 init()
 
 while true do
-	main()
+    main()
+	mq.doevents()
 	mq.delay(500)
 end
