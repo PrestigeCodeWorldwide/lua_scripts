@@ -97,11 +97,6 @@ function class.IsInvis()
 	return mq.TLO.Me.Invis() or (state.loop and state.loop.Invis)
 end
 
-local function info(...)
-	local args = { ... }
-	--printf(logger.logLine(strtoprint))
-	printf(logger.logLine(args))
-end
 
 function class.initClassOptions()
 	-- base.addOption(key, label, value, options, tip, type, exclusive, tlo, tlotype)
@@ -362,7 +357,7 @@ function class.initClassOptions()
 	)
 	class.addOption(
 		'USEINSULTTWO',
-		'Use Second Insult Synergy Nuke',
+		'Use 2nd Insult',
 		true,
 		nil,
 		'Toggle use of SECOND Insult (Lots of mana)',
@@ -650,7 +645,16 @@ function class.initSpellRotations(_zen)
 			spell = class.spells.insult,
 			reuseTimeMillis = 6000,
 			lastUsedMillis = 0,
-			isHostile = false,
+			isHostile = true,
+		}) -- a bit lower since we really don't want mezzes to break
+		gemsUsed = gemsUsed + 1
+	end
+	if class.OPTS.USEINSULTTWO.value then
+		table.insert(class.spellRotations.melee, {
+			spell = class.spells.insult2,
+			reuseTimeMillis = 6000,
+			lastUsedMillis = 0,
+			isHostile = true,
 		}) -- a bit lower since we really don't want mezzes to break
 		gemsUsed = gemsUsed + 1
 	end

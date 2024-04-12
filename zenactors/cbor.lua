@@ -143,7 +143,7 @@ local function integer(num, m)
             b_rshift(high, 8) % 0x100,
 
             high % 0x100,
-
+            
             b_rshift(num, 24) % 0x100,
 
             b_rshift(num, 16) % 0x100,

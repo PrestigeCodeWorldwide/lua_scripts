@@ -1,13 +1,17 @@
+---@type Mq
 local mq          = require("mq")
 local fs          = require('fs.fs')
 local BL          = require("biggerlib")
+local Option      = require("biggerlib.option")
 local ffi         = require("ffi")
-local cbor        = require("cbor")
+--local cbor        = require("cbor")
+local json        = require("json")
 
 local writeCount  = 0
 local readCount   = 0
 local keepRunning = true
-local WriteFlag = false
+local WriteFlag   = true
+local ReadFlag    = false
 
 mq.bind("/zaquit", function()
     BL.info("Received quit message")
@@ -23,91 +27,220 @@ mq.bind("/zawrite", function()
     WriteFlag = true
 end)
 
-local function decode_message(message_string)
-    local decoded = cbor.decode(message_string)
+local ConnectionStates = BL.Enum([[
+    Disconnected,
+    Connected
+]])
+
+---@class Pipe
+---@field close function(self)
+
+---@class Connection
+---@field pipe Pipe|nil
+local Connection = {
+    pipe = nil,
+    ConnectionState = ConnectionStates.Disconnected
+}
+
+---@class Utils
+local Utils = {}
+
+Utils.decode_message = function(message_string)
+    --local decoded = cbor.decode(message_string)
+    local decoded = json.decode(message_string)
     return decoded
 end
 
-local function test_pipe(pipefile, cbor_message)
-    -- WRITE
-    if WriteFlag then 
-    local buffer = cbor_message
-    BL.info("WRITE to pipe...")
-    pipefile:write(buffer, #buffer)
-    pipefile:flush()
-    writeCount = writeCount + 1
-    mq.delay(2000)
+Utils.WriteToPipe = function(pipe, buffer)
+    if BL.IsNil(pipe) then return end
 
-    -- READ
-    BL.info("READ from pipe...")
-    --local readlen = pipefile:read(data, 4)
-    local data, read_len = pipefile:readall()
-    --local data
-    --local read_len = pipefile:read(data, 512)
-    BL.dump(read_len, "Read data from pipe with length:")
-    BL.dump(data)
+    BL.dump(buffer, "WRITE")
+    pipe:write(buffer, #buffer)
+    pipe:flush()
+    writeCount = writeCount + 1
+end
+
+--- Reads from a named pipe and decodes the received message.
+Utils.ReadFromPipe = function(pipe)
+    if BL.IsNil(pipe) then return Option.None end
+    local data, read_len = pipe:readall()
 
     if read_len > 0 then
         local data_string = ffi.string(data, read_len)
-        BL.info("Received from server: %s", data_string)
-        local decoded = decode_message(data_string)
-        BL.dump(decoded, "Decoded final cbor message from server:")
-        if decoded.message_type == "MsgMQCommandString" then
-            BL.info("Received Command")
-            local command = decoded.payload.message
-            BL.dump(command, "Command:")
-            mq.cmd(command)
-            
-            
-        end
+        --BL.info("Received from server: %s", data_string)
+        local decoded = Utils.decode_message(data_string)
+        readCount = readCount + 1
+        return Option.Some(decoded)
     end
+    return Option.None
 end
 
-local function init()
+Utils._tryConnectToPipe = function()
     -- required permissions for the underlying named pipe
     local opt = 'r+'
     local name = [[\\.\pipe\zenactorpipe]]
-    local pipefile = fs.open(name, opt)
-    
-    if not pipefile then
-        BL.error("Error opening pipe: %s", name)
-        return 0
+    BL.info("Opening %s pipe", name)
+    local pipefile, err = fs.open(name, opt)
+    if BL.IsNil(pipefile) then
+        BL.warn("Error opening pipe: %s", err)
     end
-    return pipefile
+
+    return Option.Wrap(pipefile)
 end
 
-local KeepAliveMsg = {
-    KeepAlive = nil,
+Utils.ConnectToPipe = function()
+    local pipe = Utils._tryConnectToPipe()
+    while pipe:IsNone() do
+        mq.delay(1000)
+        pipe = Utils._tryConnectToPipe()
+    end
+    local conn = {
+        pipe = pipe:Unwrap(),
+        ConnectionState = ConnectionStates.Connected
+    }
+    return conn
+end
+
+--- Currently only connects to named pipe and returns it
+local function init()
+    return Utils.ConnectToPipe()
+end
+
+---@class MQMessageType
+local MQMessageType = {
+    ConnectMsg = "ConnectMsg",
+    TLODataMsg = "TLODataMsg",
+    KeepAliveMsg = "KeepAliveMsg",
+    MQCommandMsg = "MQCommandMsg"
 }
-local cbored = cbor.encode(KeepAliveMsg)
+
+---@class MQMessage
+---@field ConnectMsg ConnectMsg
+---@field TLODataMsg TLODataMsg
+
+---@class ConnectMsg
+---@field message_type table
+---@field sequence_id number
+---@field mode string
+---@field payload table
+
+---@class TLODataMsg
+---@field message_type table
+---@field sequence_id number
+---@field mode string
+---@field payload TLODataMsgPayload
+
+---@class TLODataMsgPayload
+---@field TLO table
+
+
 
 local MQMessage = {
-    message_type = {
-        ["MsgRoomConnectionRequest"] = "",        
-    },
-    sequence_id = 0,
-    mode = "",
-    payload = {}
-}
-
-local MQMessageShapeTLOReminder = {
-    message_type = {
-        ["MsgTLOData"] = "",
-    },
-    sequence_id = 0,
-    mode = "SimpleMessage",
-    payload = {
-        TLO = {
-            Integer = 95,
+    ConnectMsg = {
+        message_type = MQMessageType.ConnectMsg,
+        sequence_id = 1,
+        payload = {
+            room = "testroom",
+            channel = "testchannel",
+            character = "testcharacter"
         }
+    },
+    TLODataMsg = {
+        message_type = MQMessageType.TLODataMsg,
+        sequence_id = 1,
+        payload = {
+            data = "ChaseAssist",
+            type = "String",
+            name = "CWTN.Mode",
+        }
+    },
+    KeepAliveMsg = {
+        message_type = MQMessageType.KeepAliveMsg,
+        sequence_id = 1,
+        payload = {
+            KeepAlive = 1
+        }
+    },
+    MQCommandMsg = {
+        message_type = MQMessageType.MQCommandMsg,
+        sequence_id = 1,
+        payload = {}
     }
 }
-
-local cbored = cbor.encode(MQMessageShapeTLOReminder)
-
-local pipefile = init()
-while keepRunning do
-    test_pipe(pipefile, cbored)
-    mq.delay(2000)
+local function shallowcopy(orig)
+    local copy = {}
+    for key, value in pairs(orig) do
+        copy[key] = value
+    end
+    return copy
 end
-pipefile:close()
+MQMessage.NewTLOMsg = function(in_name, in_data)
+  
+    local newMsg = shallowcopy(MQMessage.TLODataMsg)
+    newMsg.payload = {
+        name = in_name,
+        data = in_data
+    }
+    return json.encode(newMsg)
+end
+
+MQMessage.NewConnectMsg = function(inRoom, inChannel, inCharacter) 
+    local newMsg = shallowcopy(MQMessage.ConnectMsg)
+    newMsg.payload = {
+        room = inRoom,
+        channel = inChannel,
+        character = inCharacter
+            
+    }
+    return json.encode(newMsg)
+end
+
+MQMessage.NewKeepAliveMsg = function()
+    BL.dump(MQMessage.KeepAliveMsg)
+    return json.encode(MQMessage.KeepAliveMsg)
+end
+
+local msgTloData = MQMessage.NewTLOMsg("CWTN.Mode", "ChaseAssist")
+local msgKeepAlive = MQMessage.NewKeepAliveMsg()
+BL.dump(msgKeepAlive)
+local function test_pipe(pipefile, msgTloData, msgKeepAlive)
+    -- WRITE
+    if WriteFlag then
+        Utils.WriteToPipe(pipefile, MQMessage.NewConnectMsg("testroom", "inChannel", "inCharacter"))
+        Utils.WriteToPipe(pipefile, msgKeepAlive)
+        Utils.WriteToPipe(pipefile, msgTloData)
+        local tloTest = MQMessage.NewTLOMsg("Integer Data", 3)
+        Utils.WriteToPipe(pipefile, tloTest)
+        local tloTest = MQMessage.NewTLOMsg("Boolean Data", true)
+        Utils.WriteToPipe(pipefile, tloTest)
+        
+        
+        
+    end
+    -- READ
+    if ReadFlag then
+        local data = Utils.ReadFromPipe(pipefile)
+
+        if data:IsSome() then
+            data = data:Unwrap()
+            if data.message_type == MQMessageType.MQCommandMsg then
+                local command = data.payload.message
+                BL.dump(command, "Command:")
+                mq.cmd(command)
+            else
+                BL.dump(data, "Generic message received:")
+            end
+        end
+    end
+end
+---@type Connection
+local conn = init()
+while keepRunning do
+    if conn.ConnectionState == ConnectionStates.Disconnected then
+        conn = Utils.ConnectToPipe()
+    elseif conn.ConnectionState == ConnectionStates.Connected then
+        test_pipe(conn.pipe, msgTloData, msgKeepAlive)
+    end
+    mq.delay(5000)
+end
+conn.pipe:close()
