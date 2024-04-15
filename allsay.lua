@@ -53,6 +53,21 @@ mq.bind("/ahail", function()
 	mq.delay(100)
 end)
 
+
+mq.bind("/allmount", function()
+    
+    if mq.TLO.Me.Mount() and  mq.TLO.Me.Mount.ID() > 1 then
+        BL.info("Already mounted")
+        return
+    end
+    
+    local mountItem = mq.TLO.Mount(1)
+    mq.cmdf("/dg")
+    
+    mq.cmd("/dg /keypress HAIL")
+    mq.delay(100)
+end)
+
 local groundSpawnPickupMatcherText = "#*#GROUNDPICKUP #1# #2#.#*#"
 -- GROUNDPICKUP CHARACTERNAME ITEMNAME. (note the period)
 mq.event("GroundSpawnPickup", groundSpawnPickupMatcherText, function(line, charname, itemname)

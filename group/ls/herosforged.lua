@@ -4,7 +4,6 @@ local mq = require('mq')
 require('ImGui')
 --- @type BL
 local BL = require('biggerlib')
-
 local Paused = false
 
 
@@ -50,11 +49,8 @@ local function init()
 	mq.cmd('/g Levitating the group')
 	mq.cmd('/aa act perfected levitation')
     mq.delay(3500)
-	
 end
 
--- grow clicky
---
 
 local function handleEggs()
 	if IAmPetClass then
@@ -84,7 +80,6 @@ end
 -- This goes up by the NPC
 local safeSpot = {x = 568, y = -1317, z = 327}
 local debuffName = 'Song of Echoes'
---local debuffName = "Grim Aura" -- for testing with SK
 
 local function handleAoEEvent()
 
@@ -92,7 +87,7 @@ local function handleAoEEvent()
 		-- we have the debuff, run to safe spot
 		mq.cmd('/g I have the AOE debuff, running to safe spot')
 		BL.cmd.pauseAutomation()
-        BL.NavTo(safeSpot)
+        BL.NavToPos(safeSpot.x, safeSpot.y, safeSpot.z)
 		
 		while BL.IHaveBuff(debuffName) do
 			mq.delay(1000)
@@ -103,20 +98,19 @@ local function handleAoEEvent()
 end
 
 local function mainLoop()
-	if Paused then
-		mq.delay(1000)
-		return
-	end
 	-- We need to do 2 things - make pet classes send their pets on eggs during spider and run from aoe when called
 	handleEggs()
 	handleAoEEvent()
-	mq.delay(50)
-	--doAoeEvent() -- this is the event bind
 end
 
 ------------------------------- Execution -------------------------------
 
 init()
 while true do
-	mainLoop()
+    if not Paused then
+        mainLoop()
+    end
+    mq.doevents()
+    mq.delay(512)
+    
 end

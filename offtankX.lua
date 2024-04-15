@@ -96,7 +96,7 @@ end
 
 local function cwtnTANK()
 	if mq.TLO.CWTN.Mode() ~= "Tank" then
-		mq.cmdf("/%s mode 4", State.my_class)
+		mq.cmdf("/%s mode 7", State.my_class)
 	end
 end
 
@@ -300,7 +300,8 @@ local DrawUI = function()
 	local changedXtarSelection = false
 	selected, changedXtarSelection = draw_combo_box("XTar to Tank", selected, State.xtar_options)
 	if changedXtarSelection then
-		State.UserChangedSelectionFlag = true
+        State.UserChangedSelectionFlag = true
+        State.DirtyFlag = true
 		local selectionNum = tonumber(selected)
         if BL.IsNil(selectionNum) then
 			BL.info("Sel num is nil, setting to NONE")
@@ -308,7 +309,7 @@ local DrawUI = function()
 			State.selected_xtar_to_tank = "NONE"
         else
 			BL.info("Sel xtar num is " .. tostring(selectionNum))
-			State.selected_xtar_to_tank = selectionNum
+			State.selected_xtar_to_tank = tostring(selectionNum)
 		end
 	end
 	
@@ -316,9 +317,9 @@ local DrawUI = function()
 	local selectedMode = State.chosenMode
 	selectedMode, changedMode = draw_combo_box("Non-Tanking Mode", selectedMode, State.cwtnModeList)
 	if changedMode then
-		State.chosenMode = selectedMode
-		State.UserChangedModeFlag = true
-	
+        State.chosenMode = selectedMode
+        BL.info("Setting dirty flag")
+		State.DirtyFlag = true	
 	end
 	
 	-- Accept user input for list of names and put them into string array State.ignored_mobs

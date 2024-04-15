@@ -1,0 +1,20 @@
+-- Persistent Data
+local multiRefObjects = {
+
+} -- multiRefObjects
+local obj1 = {
+	["events"] = {
+		["aowstand"] = true;
+		["aowduck"] = true;
+	};
+	["conditions"] = {
+		["SheiBanish-2"] = true;
+		["sheicureall2"] = true;
+		["SheiBanish-3"] = true;
+		["shei-CleansingRod"] = true;
+		["SheiBanish-4"] = true;
+		["sheicureall"] = true;
+		["SheiBanish-1"] = true;
+	};
+}
+return obj1

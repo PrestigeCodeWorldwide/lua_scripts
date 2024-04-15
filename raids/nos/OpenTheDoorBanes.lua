@@ -72,9 +72,7 @@ local function ResumeDPS()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function on_load()
-    if mq.TLO.Zone.ShortName() ~= required_zone then
-        return
-    end
+   
     local bane = banes[mq.TLO.Me.Class.ShortName()]
     local spellname = mq.TLO.Spell(bane.name).RankName()
     if bane and bane.type == 'spell' then
@@ -109,17 +107,6 @@ local function bane_ready(bane)
         return mq.TLO.Me.AltAbilityReady(bane.name) and not mq.TLO.Me.Casting()
     end
 end
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-local function correct_zone()
-    if mq.TLO.Zone.ShortName() ~= required_zone then
-        printf('\ag-->\arWrong Zone - Exiting\ag<--')
-        mq.exit()
-    end
-end
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function main()
     local my_class = mq.TLO.Me.Class.ShortName()
@@ -162,7 +149,6 @@ local function main()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 while true do
-    correct_zone()
     if
         mq.TLO.Me.Class.ShortName() == 'BRD'
         or mq.TLO.Me.Class.ShortName() == 'SHM'
@@ -177,6 +163,7 @@ while true do
         or mq.TLO.Me.Class.ShortName() == 'SHM'
         or mq.TLO.Me.Class.ShortName() == 'PAL'
         or mq.TLO.Me.Class.ShortName() == 'DRU'
+        or mq.TLO.Me.Class.ShortName() == 'CLR'
     then
         if mq.TLO.SpawnCount(bane_clean_name)() > 3 then
             main()
