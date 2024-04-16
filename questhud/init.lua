@@ -233,22 +233,8 @@ local function QuestHud_UI()
                 ImGui.TableNextRow()
                 ImGui.TableNextColumn()
                 drawNameButton(member)
-                ImGui.TableNextColumn()
-                
-                --local rand = mq.TLO.Math.Rand(1, 99999999)
-                
-                --if ImGui.Button("-" .. "##" .. tostring(member), 15, 15) then
-                --    groupMemberData.taskIndex = groupMemberData.taskIndex - 1
-                --end
-                --ImGui.SameLine()
-                --if ImGui.Button("+" .."##" .. tostring(member), 15, 15) then
-                --    mq.cmd("/g incrementing task idx")
-                --    groupMemberData.taskIndex = groupMemberData.taskIndex + 1
-                --end
-                
-                --ImGui.TableNextColumn()
-                
-                --ImGui.Text(taskName)
+                ImGui.TableNextColumn()                
+               
                 if ImGui.SmallButton(taskName .. "##" .. tostring(member)) then
                     groupMemberData.taskIndex = groupMemberData.taskIndex + 1
                 end
@@ -273,5 +259,5 @@ BL.info("QuestHUD loaded.")
 while not shouldTerminate do
 	askForQuestStepEcho()
 
-	mq.delay(1021)
+	mq.delay(2021)
 end
