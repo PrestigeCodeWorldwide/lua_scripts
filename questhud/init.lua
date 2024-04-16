@@ -6,12 +6,8 @@ require("ImGui")
 local actors = require("actors")
 local BL = require("biggerlib")
 
-local taskIndex = 3
+local taskIndex = 1
 
-local SETTINGS = {
-	-- If True, will spam in-game fellowship chat for updates.  This enables cross-network updates at the price of lots of spam
-	useFellowship = false,
-}
 
 local shouldTerminate = false
 
@@ -20,9 +16,8 @@ local group = {}
 local function addGroupMember(sender)
 	--BL.info("Adding group member from sender %s", sender.character)
 	group[sender.character] = {
-		taskName = "Loading...",
-		taskStep = "",
-		taskStatus = "",
+        tasksData = nil,
+        taskIndex = 1,
 	}
 end
 
@@ -38,57 +33,50 @@ local function statusIsDone(status)
     return done
 end
 
-local function questIndexHandler(...)	
-	local args = { ... }
-	
-	
 
-	-- make our full phrase
-    local sayPhrase = table.concat(args, "")
-    -- turn sayPhrase into an integer
-	taskIndex = tonumber(sayPhrase)
-	BL.info("Set taskIndex to %s", taskIndex)
-	--mq.cmd("/dga /say " .. sayPhrase)
-	--mq.delay(500)
-end
-
-mq.bind("/setquestindex param", questIndexHandler)
+-- mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").Items()
 
 local function getMyCurrentQuestInfo()
-	-- tostring to appease the linter
-	local taskName = tostring(mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").List(taskIndex, 3))
-
-	local taskStep = mq.TLO.Task(taskName).Step
-
-	local taskStatus = ""
-	local CurrentObjectiveIndex = 1
-	local noForeverLoop = 0
-	-- This is infinite looping somehow
-	repeat
-		taskStatus = mq.TLO.Task(taskName).Objective(CurrentObjectiveIndex).Status()
-		if statusIsDone(taskStatus) then
-			CurrentObjectiveIndex = CurrentObjectiveIndex + 1
-		end
-		noForeverLoop = noForeverLoop + 1
-		--mq.delay(250)
-	until not statusIsDone(taskStatus) or noForeverLoop > 15
-	if noForeverLoop >= 15 then
-		BL.warn("Infinite loop detected in getMyCurrentQuestStepAndStatus")
-	end
-
-	--mq.cmdf("/g TASK Name: %s Step: %s Status: %s", taskName, taskStep, taskStatus)
-	return tostring(taskName), tostring(taskStep), tostring(taskStatus)
+    -- tostring to appease the linter
+    local numTasks = mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").Items()
+    local allTaskInfo = {}
+    -- for loop from 1 to numTasks do
+    for i = 1, numTasks do
+        local taskName = tostring(mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").List(i, 3))
+        
+        local taskStep = mq.TLO.Task(taskName).Step()
+        
+        local taskStatus = ""
+        local CurrentObjectiveIndex = 1
+        local noForeverLoop = 0
+        -- This is infinite looping somehow
+        repeat
+            taskStatus = mq.TLO.Task(taskName).Objective(CurrentObjectiveIndex).Status()
+            if statusIsDone(taskStatus) then
+                CurrentObjectiveIndex = CurrentObjectiveIndex + 1
+            end
+            noForeverLoop = noForeverLoop + 1
+            --mq.delay(250)
+        until not statusIsDone(taskStatus) or noForeverLoop > 15
+        if noForeverLoop >= 15 then
+            BL.warn("Infinite loop detected in getMyCurrentQuestStepAndStatus")
+        end
+        
+        --mq.cmdf("/g TASK Name: %s Step: %s Status: %s", taskName, taskStep, taskStatus)
+        --return tostring(taskName), tostring(taskStep), tostring(taskStatus)
+        table.insert(allTaskInfo, { taskName = taskName, taskStep = taskStep, taskStatus = taskStatus })
+    end
+    -- how do i sort by taskName before returning allTaskInfo?
+    
+    -- sort tasks by their names
+    table.sort(allTaskInfo, function(a, b)
+        return a.taskName < b.taskName
+    end)
+    
+    return allTaskInfo
+	
 end
 
-local function sendMyCurrentQuestStepToFellowship(taskName, taskStep, taskStatus)
-	mq.cmdf(
-		"/fs QSCR %s is on task !!%s!! step @@%s@@ status !!%s!!",
-		mq.TLO.Me.CleanName(),
-		taskName,
-		taskStep,
-		tostring(taskStatus)
-	)
-end
 
 -- this is then message handler, so handle all messages we expect
 -- we are guaranteed that the only messages here we receive are
@@ -97,49 +85,60 @@ local actor = actors.register(function(message)
 	if message.content.id == "echoCurrentTaskStep" and message.sender then
 		-- request came in asking me to send my current quest step
 
-		local taskName, taskStep, taskStatus = getMyCurrentQuestInfo()
+		local tasksData = getMyCurrentQuestInfo()
 		if
-			BL.IsNil(taskName) or BL.IsNil(taskStep) or BL.IsNil(taskStatus)
+            BL.IsNil(tasksData) 
 		then
 			return
 		end
 		-- Respond with which step I'm on
 		message:send({
 			id = "currentTaskStepResponse",
-			taskName = taskName,
-			taskStep = taskStep,
-			taskStatus = taskStatus,
+			tasksData = tasksData,
 		})
 		-- For now,  also echo it into fellowship until Actors support cross-computer communication
 
-		if SETTINGS.useFellowship then
-			sendMyCurrentQuestStepToFellowship(taskName, taskStep, taskStatus)
-		end
+		
 	elseif message.content.id == "currentTaskStepResponse" then
 		-- someone sent back their current Task Step from echoCurrentTaskStep
-		message:reply(0, {})
+		--message:reply(0, {})
 		-- Add their current step to our GUI display		
 		if
-			BL.IsNil(message.content.taskName)
-			or BL.IsNil(message.content.taskStep)
-			or BL.IsNil(message.content.taskStatus)
+			BL.IsNil(message.content.tasksData)
 		then
 			return
 		end
-		--BL.info("Adding %s to group with step %s", message.sender.character, message.content.step)
-		group[message.sender.character] = {
-			taskName = message.content.taskName,
-			taskStep = message.content.taskStep,
-			taskStatus = message.content.taskStatus,
-		}
+        --BL.info("Adding %s to group with step %s", message.sender.character, message.content.step)
+        
+        if not group[message.sender.character] then
+            addGroupMember(message.sender)
+        end
+        
+		group[message.sender.character].tasksData = message.content.tasksData
+		
 	elseif message.content.id == "announce" then
 		-- a new actor (group member) has joined
 		addGroupMember(message.sender)
 	elseif message.content.id == "drop" then
 		-- a group member has dropped, remove them from the list
-		removeGroupMember(message.sender)
+        removeGroupMember(message.sender)
+    elseif message.content.id == "incrementTaskIndex" then
+        taskIndex = taskIndex + 1
+        
 	end
 end)
+
+-- These go in flow order, so first we ask for quest step echo, then everyone will receive the Request event which causes them to
+-- send a response with their name and what step text is.  Finally we catch those responses and add them to our group cache
+
+local function askForQuestStepEcho()
+    -- janky driver-only limiter
+    local myclass = mq.TLO.Me.Class()
+    if myclass == "Shadow Knight" or myclass == "Warrior" or myclass == "Paladin" then
+        actor:send({ id = "echoCurrentTaskStep" })
+        
+    end
+end
 
 local open_gui = true
 local should_draw_gui = true
@@ -147,136 +146,132 @@ local should_draw_gui = true
 local tableRandom = math.random(1, 100)
 
 local function drawNameButton(name)
-	local buttonText = name
-	local col = nil
+    local buttonText = name
+    local col = nil
 
-	-- Set color to normal one for name
-	col = { 0, 1, 0 }
-	ImGui.PushStyleColor(ImGuiCol.Text, col[1], col[2], col[3], 1)
+    -- Set color to normal one for name
+    col = { 0, 1, 0 }
+    ImGui.PushStyleColor(ImGuiCol.Text, col[1], col[2], col[3], 1)
 
-	if ImGui.SmallButton(buttonText .. "##" .. name) then
-		mq.cmdf("/squelch /dex %s /foreground", name)
-	end
-	ImGui.PopStyleColor(1)
+    if ImGui.SmallButton(buttonText .. "##" .. name) then
+        mq.cmdf("/squelch /dex %s /foreground", name)
+    end
+    ImGui.PopStyleColor(1)
 end
 
+--local function drawTaskButton(name)
+--    local buttonText = name
+--    local col = nil
+    
+--    -- Set color to normal one for name
+--    col = { 0, 1, 0 }
+--    ImGui.PushStyleColor(ImGuiCol.Text, col[1], col[2], col[3], 1)
+    
+--    if ImGui.SmallButton(buttonText .. "##" .. name) then
+--        mq.cmdf("/squelch /dex %s /foreground", name)
+--    end
+--    ImGui.PopStyleColor(1)
+--end
+
 local function QuestHud_UI()
-	if not open_gui or mq.TLO.MacroQuest.GameState() ~= "INGAME" then
-		return
-	end
+    if not open_gui or mq.TLO.MacroQuest.GameState() ~= "INGAME" then
+        return
+    end
 
-	local windowFlags = bit32.bor(
-		ImGuiWindowFlags.NoSavedSettings,
-		ImGuiWindowFlags.NoTitleBar,
-		ImGuiWindowFlags.NoScrollbar,
-		ImGuiWindowFlags.NoScrollWithMouse,
-		--ImGuiWindowFlags.NoBringToFrontOnFocus,
-		ImGuiWindowFlags.NoNavFocus
-	)
+    local windowFlags = bit32.bor(
+        ImGuiWindowFlags.NoSavedSettings,
+        ImGuiWindowFlags.NoTitleBar,
+        ImGuiWindowFlags.NoScrollbar,
+        ImGuiWindowFlags.NoScrollWithMouse,
+        --ImGuiWindowFlags.NoBringToFrontOnFocus,
+        ImGuiWindowFlags.NoNavFocus
+    )
 
-	open_gui, should_draw_gui = ImGui.Begin("QuestHUD", open_gui, windowFlags)
-	if should_draw_gui then
-		if ImGui.GetWindowHeight() <= 50 or ImGui.GetWindowWidth() <= 57 then
-			ImGui.SetWindowSize(360, 177)
-		end
+    open_gui, should_draw_gui = ImGui.Begin("QuestHUD", open_gui, windowFlags)
+    if should_draw_gui then
+        if ImGui.GetWindowHeight() <= 50 or ImGui.GetWindowWidth() <= 57 then
+            ImGui.SetWindowSize(360, 177)
+        end
 
-		local flags = bit32.bor(
-			ImGuiTableFlags.Resizable,
-			ImGuiTableFlags.Reorderable,
-			ImGuiTableFlags.Hideable,
-			ImGuiTableFlags.RowBg,
-			ImGuiTableFlags.BordersOuter,
-			ImGuiTableFlags.BordersV,
-			ImGuiTableFlags.ScrollY,
-			ImGuiTableFlags.NoSavedSettings
-		)
-		local tabName = "Characters"
-		if ImGui.BeginTable("##bhtable" .. tabName .. tostring(tableRandom), 4, flags, 0, 0, 0.0) then
-			ImGui.TableSetupColumn(
-				"Name",
-				bit32.bor(ImGuiTableColumnFlags.DefaultSort, ImGuiTableColumnFlags.WidthFixed),
-				60.0
-			)
-			ImGui.TableSetupColumn("Task", bit32.bor(ImGuiTableColumnFlags.WidthFixed), 40.0)
-			ImGui.TableSetupColumn("Step Text", bit32.bor(ImGuiTableColumnFlags.WidthFixed), 40.0)
-			ImGui.TableSetupColumn("Step Count", bit32.bor(ImGuiTableColumnFlags.WidthFixed), 100.0)
+        local flags = bit32.bor(
+            ImGuiTableFlags.Resizable,
+            ImGuiTableFlags.Reorderable,
+            ImGuiTableFlags.Hideable,
+            ImGuiTableFlags.RowBg,
+            ImGuiTableFlags.BordersOuter,
+            ImGuiTableFlags.BordersV,
+            ImGuiTableFlags.BordersH,
+            ImGuiTableFlags.ScrollY,
+            ImGuiTableFlags.NoSavedSettings
+        )
+        local tabName = "Characters"
+        if ImGui.BeginTable("##bhtable" .. tabName .. tostring(tableRandom), 4, flags, 0, 0, 0.0) then
+            ImGui.TableSetupColumn(
+                "Name",
+                bit32.bor(ImGuiTableColumnFlags.DefaultSort, ImGuiTableColumnFlags.WidthFixed),
+                60.0
+            )
+            ImGui.TableSetupColumn("Task", bit32.bor(ImGuiTableColumnFlags.WidthFixed), 40.0)
+            ImGui.TableSetupColumn("Step Count", bit32.bor(ImGuiTableColumnFlags.WidthFixed), 40.0)
+            ImGui.TableSetupColumn("Step Text", bit32.bor(ImGuiTableColumnFlags.WidthFixed), 100.0)
+            
+            ImGui.TableHeadersRow()
+            for member, groupMemberData in pairs(group) do
+                local memberTaskIdx = groupMemberData.taskIndex
+                if memberTaskIdx > #groupMemberData.tasksData then
+                    mq.cmd("/g task idx overflow")
+                    groupMemberData.taskIndex = 1
+                    memberTaskIdx = 1
+                end
+                
+                local task = groupMemberData.tasksData[memberTaskIdx]
+            
+                local taskName = task.taskName or "TASKNAME"
+                local taskStep = task.taskStep or "STEP"
+                local taskStatus = task.taskStatus or "TASKSTATUS"
 
-			ImGui.TableHeadersRow()
-			--BL.dump(group)
-			for member, task in pairs(group) do
-				local taskName = task.taskName or "TASKNAME"
-				local taskStep = task.taskStep or "STEP"
-				local taskStatus = task.taskStatus or "TASKSTATUS"
-
-				ImGui.TableNextRow()
-				ImGui.TableNextColumn()
-				drawNameButton(member)
-				ImGui.TableNextColumn()
-				ImGui.Text(taskName)
-				ImGui.TableNextColumn()
-				ImGui.Text(taskStep)
-				ImGui.TableNextColumn()
-				ImGui.Text(taskStatus)
-			end
-			ImGui.EndTable()
-		end
-	end
-	ImGui.End()
+                ImGui.TableNextRow()
+                ImGui.TableNextColumn()
+                drawNameButton(member)
+                ImGui.TableNextColumn()
+                
+                --local rand = mq.TLO.Math.Rand(1, 99999999)
+                
+                --if ImGui.Button("-" .. "##" .. tostring(member), 15, 15) then
+                --    groupMemberData.taskIndex = groupMemberData.taskIndex - 1
+                --end
+                --ImGui.SameLine()
+                --if ImGui.Button("+" .."##" .. tostring(member), 15, 15) then
+                --    mq.cmd("/g incrementing task idx")
+                --    groupMemberData.taskIndex = groupMemberData.taskIndex + 1
+                --end
+                
+                --ImGui.TableNextColumn()
+                
+                --ImGui.Text(taskName)
+                if ImGui.SmallButton(taskName .. "##" .. tostring(member)) then
+                    groupMemberData.taskIndex = groupMemberData.taskIndex + 1
+                end
+                
+                ImGui.TableNextColumn()
+                ImGui.Text(taskStatus)
+                ImGui.TableNextColumn()
+                ImGui.Text(taskStep)
+            end
+            ImGui.EndTable()
+        end
+    end
+    ImGui.End()
 end
 
 mq.imgui.init("QuestHUD", QuestHud_UI)
 
--- These go in flow order, so first we ask for quest step echo, then everyone will receive the Request event which causes them to
--- send a response with their name and what step text is.  Finally we catch those responses and add them to our group cache
 
-local function askForQuestStepEcho()
-	-- janky driver-only limiter
-	local myclass = mq.TLO.Me.Class()
-	if myclass == "Shadow Knight" or myclass == "Warrior" or myclass == "Paladin" then
-		actor:send({ id = "echoCurrentTaskStep" })
-		if SETTINGS.useFellowship then
-			mq.cmd("/fs QUESTSTEPECHO.")
-			--BL.info("I just asked for quest step echo")
-		end
-	end
-end
-
--- Triggers when driver says QUESTSTEPECHO. in fellowship
-mq.event("QuestStepEchoRequest", "#*#QUESTSTEPECHO.#*#", function(line)
-	--mq.cmd("/g responding to request")
-	--BL.info("/g responding to request")
-	sendMyCurrentQuestStepToFellowship()
-end)
-
-mq.event(
-	"QuestStepEchoResponse",
-	"#*#fellowship, 'QSCR #1# is on task !!#2#!! step @@#3#@@ status !!#4#!!'#*#",
-	function(line, characterName, taskName, taskStep, taskStatus)
-		-- someone sent back their current Task Step from echoCurrentTaskStep
-		-- Add their current step to our GUI display
-		if BL.IsNil(taskName) or BL.IsNil(taskStep) or BL.IsNil(taskStatus) then
-			return
-		end
-		--BL.info(
-		--	"In final event of the chain setting %s to %s -- %s -- %s",
-		--	characterName,
-		--	taskName,
-		--	taskStep,
-		--	taskStatus
-		--)
-
-		group[characterName] = { taskName = taskName, taskStep = taskStep, taskStatus = taskStatus }
-	end
-)
 
 BL.info("QuestHUD loaded.")
 
 while not shouldTerminate do
 	askForQuestStepEcho()
-	-- events are only used for Fellowship chat mode
 
-	if SETTINGS.useFellowship then
-		mq.doevents()
-	end
 	mq.delay(1021)
 end

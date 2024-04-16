@@ -910,7 +910,7 @@ function base.nowCast(args)
 
 	mq.TLO.Me.StopCast()
 	--BL.info("Delaying after stopcast before casting nowCast for 5s")
-	--mq.delay(500)
+	mq.delay(500)
 	BL.info("Force Casting " .. song)
 	--mq.cmdf("/casting \"%s\"", song)
 	mq.cmd("/cast " .. song)

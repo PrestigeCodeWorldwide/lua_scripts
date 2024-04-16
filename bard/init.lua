@@ -245,7 +245,14 @@ local function main()
 
 		mq.doevents()
 		updateLoopState()
-		buffSafetyCheck()
+        buffSafetyCheck()
+        
+        -- Aggressively stop casting while invis
+        if mq.TLO.Me.Invis() or state.loop.Invis or state.shouldSing == false or mq.TLO.Me.Sitting() then
+            mq.TLO.Me.StopCast()
+        end
+        
+        
 		if not state.paused and common.inControl() then
 			if not handleStates() then
 				zen.camp.cleanTargets()

@@ -1,5 +1,6 @@
 --- @type Mq
 local mq = require('mq')
+--- @type base
 local class = require('classes.classbase')
 local logger = require('utils.logger')
 local timer = require('utils.timer')
@@ -1266,12 +1267,7 @@ function class.cast()
 	if state.isForceCasting then
 		return true
 	end
-	-- Actively stop casting under these conditions
-	if mq.TLO.Me.Invis() or state.loop.Invis or state.shouldSing == false or mq.TLO.Me.Sitting() then
-		mq.TLO.Me.StopCast()
-		return false
-	end
-	
+  	
 	if class.doneSinging() then
 		-- Combat checks for clickies
 		if mq.TLO.Target.Type() == 'NPC' and mq.TLO.Me.CombatState() == 'COMBAT' then

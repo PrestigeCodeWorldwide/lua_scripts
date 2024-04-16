@@ -1,6 +1,16 @@
 ---@type Mq
 local mq = require("mq")
 local BL = require("biggerlib")
+local actors = require('actors')
+
+local actor = {}
+
+local State = {
+    hailTarget = nil,
+    sayTarget = nil,
+    sayPhrase = "",
+    doAllMount = false,
+}
 
 local function IAmDriver()
 	local driver = mq.TLO.Group.MainTank()
@@ -12,61 +22,15 @@ local function IAmDriver()
 	end
 end
 
-local function boxPrep()
-	if not IAmDriver() then
-		return
-	end
-	
-	mq.cmd("/dg /assist off")
-	local assistName = mq.TLO.Group.MainTank.CleanName()
-
-	mq.cmdf("/dge /assist %s", assistName)
-	mq.delay(1500)
-	mq.cmd("/dg /makemevisible")
-	mq.delay(1500)
+local function removeInvis()
+    mq.cmd("/makemevisible")
+    mq.delay(1)
 end
 
-local function sayCommandHandler(...)
-    if not IAmDriver() then
-	
-		return
-	end
-	
-	local args = { ... }
-	
-	boxPrep()
-	
-	-- make our full phrase
-	local sayPhrase = table.concat(args, " ")
-	
-	mq.cmd("/dg /say " .. sayPhrase)
-	mq.delay(500)
-end
-
-mq.bind("/asay param", sayCommandHandler)
-
-mq.bind("/ahail", function()
-	boxPrep()
-    mq.cmdf("/dge /assist %s", mq.TLO.Me.CleanName())
-	mq.delay(1500)
-	mq.cmd("/dg /keypress HAIL")
-	mq.delay(100)
-end)
 
 
-mq.bind("/allmount", function()
-    
-    if mq.TLO.Me.Mount() and  mq.TLO.Me.Mount.ID() > 1 then
-        BL.info("Already mounted")
-        return
-    end
-    
-    local mountItem = mq.TLO.Mount(1)
-    mq.cmdf("/dg")
-    
-    mq.cmd("/dg /keypress HAIL")
-    mq.delay(100)
-end)
+
+
 
 local groundSpawnPickupMatcherText = "#*#GROUNDPICKUP #1# #2#.#*#"
 -- GROUNDPICKUP CHARACTERNAME ITEMNAME. (note the period)
@@ -83,7 +47,7 @@ mq.event("GroundSpawnPickup", groundSpawnPickupMatcherText, function(line, charn
 		mq.delay(1500)
 		return
 	end
-
+	
 	grounditem.Grab()
 	mq.delay(1500)
 	if mq.TLO.Cursor() == nil then
@@ -244,12 +208,98 @@ local function allGiveItemToTargetHandler(...)
 end
 mq.bind("/agive", allGiveItemToTargetHandler)
 
+---------------------------------------------------------------------------
+
+local function DoHail()
+    removeInvis()
+    State.hailTarget.DoTarget()
+    mq.delay(1)
+    mq.cmd("/keypress HAIL")
+    mq.delay(500)
+    State.hailTarget = nil
+end
+
+mq.bind("/ahail", function()
+    actor:send({id='allhail', targetId = mq.TLO.Target.ID()})
+end)
+
+local function DoAllSay()
+    removeInvis()
+    
+    State.sayTarget.DoTarget()
+    mq.delay(1)
+
+    mq.cmd("/say " .. State.sayPhrase)
+    mq.delay(500)
+    State.sayTarget = nil
+end
+mq.bind("/asay param", function(...)    
+    -- make our full phrase
+    local args = { ... }
+    local sayPhrase = table.concat(args, " ")
+    
+    actor:send({id='allsay', targetId = mq.TLO.Target.ID(), sayPhrase = sayPhrase})
+end)
+
+local function DoAllMount()
+    mq.cmd("/dismount")
+    mq.delay(10)
+    mq.cmd("/removebuff summon drogmor")
+    mq.delay(10)
+    mq.cmd("/removebuff mount blessing")
+    mq.delay(50)
+    
+    mq.cmd("/keypress =")
+    mq.delay(4000)
+   
+    while not mq.TLO.Me.Mount() do
+        mq.cmd("/keypress =")
+        mq.delay(4000)
+    end
+    mq.cmd("/g Mounted!")
+    State.doAllMount = false
+end
+
+
+
+mq.bind("/allmount", function()
+   actor:send({id='allmount'})
+end)
+
 -------------------------------------------------------------------
+
+actor = actors.register(function(message)
+    if message.content.id == 'allhail' then
+        State.hailTarget = mq.TLO.Spawn("id " .. message.content.targetId)
+    elseif message.content.id == 'allsay' then
+        State.sayPhrase = message.content.sayPhrase       
+        State.sayTarget = mq.TLO.Spawn("id " .. message.content.targetId)
+    elseif message.content.id == 'allmount' then
+        State.doAllMount = true 
+    end
+end)
+
 BL.log.info(
 	"Allsay running! Use /asay phrase to have your group assist your tank for target, uninvis, and all say the given phrase.  Use /ahail to have group hail the target. Use /aground <ground spawn item name> to have group iteratively loot a ground spawn by name."
 )
 
+local function Tick()
+    -- Do hails
+    if BL.NotNil(State.hailTarget) then
+        DoHail()
+    end
+    
+    if BL.NotNil(State.sayTarget) then
+        DoAllSay()
+    end
+    
+    if State.doAllMount then
+        DoAllMount()
+    end
+end
+
 while true do
-	mq.doevents()
+    mq.doevents()
+    Tick()
 	mq.delay(546)
 end

@@ -7,3 +7,5 @@ _ReSharper.*
 *.code-workspace
 *.7z
 **/target/*
+**/aqobot/*
+**/bardnew/*

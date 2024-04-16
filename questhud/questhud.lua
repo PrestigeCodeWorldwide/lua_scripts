@@ -42,7 +42,7 @@ local function questIndexHandler(...)
 	local args = { ... }
 	
 	
-
+	
 	-- make our full phrase
     local sayPhrase = table.concat(args, "")
     -- turn sayPhrase into an integer
