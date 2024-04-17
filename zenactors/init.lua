@@ -5,7 +5,8 @@ local BL          = require("biggerlib")
 local Option      = require("biggerlib.option")
 local ffi         = require("ffi")
 --local cbor        = require("cbor")
-local json        = require("json")
+local json   = require("json")
+local socket = require("socket")
 
 local writeCount  = 0
 local readCount   = 0

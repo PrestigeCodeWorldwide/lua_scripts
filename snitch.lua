@@ -17,14 +17,10 @@ local function InitClass()
 end
 
 local function IsTankRoleOn()
-	if not ScriptState.IAmTank then return end
-	
 	local maintankrole = mq.TLO.Group.MainTank
 	if BL.IsNil(maintankrole) then
 		return
 	end
-	BL.dump(maintankrole)
-	BL.dump(maintankrole())
 	if maintankrole.Name() == ScriptState.MyName then
 		mq.cmd("/rs I'm a tank and my GROUP TANK ROLE is on!")
 	end
@@ -43,6 +39,7 @@ local function AmIGroupLeader()
 end
 
 local function IsCWTNTankModeOn()
+	
 	if BL.IsNil(mq.TLO.CWTN) then return end
 	
 	if mq.TLO.CWTN.Mode() == "Tank" then
@@ -51,6 +48,7 @@ local function IsCWTNTankModeOn()
 end
 
 local function IsUseAOEOn()
+    if not ScriptState.IAmTank then return end
 	if BL.IsNil(mq.TLO.CWTN) then return end
 	if mq.TLO.CWTN.UseAOE() then
 		mq.cmd("/rs My CWTN Plugin is set to USE AOE!")
@@ -58,6 +56,7 @@ local function IsUseAOEOn()
 end
 
 local function IsAoeCountTooLow()
+    if not ScriptState.IAmTank then return end
 	if BL.IsNil(mq.TLO.CWTN) then return end
 	if mq.TLO.CWTN.AoECount() < 99 then
 		mq.cmd("/rs My CWTN Plugin is set AOE COUNT BELOW 99!")
