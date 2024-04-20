@@ -67,12 +67,13 @@ local function leadCharacterThroughLootProcess(characterName, spawnName)
 	-- Have driver search the whole zone for the ground spawn, but the rest
 	-- must wait on that specific one to respawn so we don't have to worry about nav'ing to them
 	local searchRadius = ""
-	if characterName == mq.TLO.Me.CleanName() then
-		itsMeLooting = true
-		searchRadius = " radius 9999"
-	else
-		searchRadius = " radius 30"
-	end
+    if characterName == mq.TLO.Me.CleanName() then
+        itsMeLooting = true
+        searchRadius = " radius 9999"
+    else
+        searchRadius = " radius 30"
+    end
+    
 	local groundItem = mq.TLO.Ground.Search(spawnName .. searchRadius)
 
 	-- only spew once per character instead of inside while loop
@@ -171,6 +172,30 @@ local function groundSpawnPickupCommandHandler(...)
 end
 
 mq.bind("/aground", groundSpawnPickupCommandHandler)
+
+-- this one special bc i'm trying to use boxhud button for it
+mq.bind("/groundgrab", function()
+    local groundItem = mq.TLO.Ground.Search("")
+    if not groundItem then
+        BL.warn("No ground item found")
+        return
+    end
+    
+    BL.cmd.pauseAutomation()
+    while mq.TLO.Cursor() and mq.TLO.Cursor.ID() > 1 do
+        mq.cmd("/autoinventory")
+        mq.delay(250)
+    end
+    BL.cmd.resumeAutomation()
+    
+    groundItem.Grab()
+    mq.delay(750)
+    mq.cmd("/autoinventory")
+    mq.delay(250)
+    mq.cmd("/g Grabbed %s", groundItem.DisplayName())
+    
+    
+end)
 
 local function doGiveItemToTarget()
     BL.cmd.pauseAutomation()

@@ -5,7 +5,6 @@ local BL = require("biggerlib")
 BL.info("\arPrepping Boxes for raid")
 
 mq.cmd("/dgza /plugin autoaccept load")
-mq.cmd("/dgza /lua run zen/snitch")
 mq.cmd("/timed 10 /dgza /autoaccept add ${Me.Name}")
 mq.cmd("/timed 15 /dgza /autoaccept save")
 mq.cmd("/cwtna usepetweapons off")

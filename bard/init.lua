@@ -248,7 +248,7 @@ local function main()
         buffSafetyCheck()
         
         -- Aggressively stop casting while invis
-        if mq.TLO.Me.Invis() or state.loop.Invis or state.shouldSing == false or mq.TLO.Me.Sitting() then
+        if mq.TLO.Me.Invis() or state.loop.invis or state.shouldSing == false or mq.TLO.Me.Sitting() then
             mq.TLO.Me.StopCast()
         end
         
@@ -257,7 +257,7 @@ local function main()
 			if not handleStates() then
 				zen.camp.cleanTargets()
 				checkTarget()
-				if not state.loop.Invis and not common.isBlockingWindowOpen() then
+				if not state.loop.invis and not common.isBlockingWindowOpen() then
 					-- do active combat assist things when not paused and not invis
 					checkFD()
 					common.checkCursor()
@@ -283,7 +283,7 @@ local function main()
 						or mode:getName() == "huntertank"
 					then
                         mq.cmd("/makemevis")
-                        state.loop.Invis = false
+                        state.loop.invis = false
 					end
 					zen.camp.checkCamp()
 					common.checkChase()
@@ -299,9 +299,9 @@ local function main()
                 or mode:getName() == "huntertank"
             then
                 mq.cmd("/makemevis")
-                state.loop.Invis = false
+                state.loop.invis = false
             end
-			if state.loop.Invis then
+			if state.loop.invis then
 				-- if paused and invis, back pet off, otherwise let it keep doing its thing if we just paused mid-combat for something
 				local pet_target_id = mq.TLO.Pet.Target.ID() or 0
 				if mq.TLO.Pet.ID() > 0 and pet_target_id > 0 then

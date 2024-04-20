@@ -95,7 +95,7 @@ function class.sitCheck()
 end
 
 function class.IsInvis()
-	return mq.TLO.Me.Invis() or (state.loop and state.loop.Invis)
+	return mq.TLO.Me.Invis() or (state.loop and state.loop.invis)
 end
 
 
@@ -1268,7 +1268,9 @@ function class.cast()
         return true
     end
     
-    if mq.TLO.Me.Invis() then
+    if mq.TLO.Me.Invis() or state.loop.invis then
+        mq.cmd('/stopsong')
+        mq.delay(250)
         return false
     end
   	
@@ -1407,13 +1409,15 @@ function class.hold()
 end
 
 function class.invis()
-    state.loop.Invis = true
+    state.loop.invis = true
 	mq.cmd('/stopcast')
-	mq.delay(500)
+	mq.delay(1000)
 	mq.cmd('/alt act 231')
 	mq.delay(3500, function()
 		return mq.TLO.Me.Invis()
-	end)
+    end)
+    mq.delay(1000)
+    state.loop.invis = false
 end
 
 -- aura, chorus, war march, storm, rizlonas, verse, ancient,selos, chant flame, echoes, nivs
@@ -1432,7 +1436,7 @@ function class.doneSinging()
 		mq.cmd('/stopsong')
 		mq.delay(1)
 	end
-	if not mq.TLO.Me.Casting() and not mq.TLO.Me.Sitting() and not mq.TLO.Me.Invis() then
+	if not mq.TLO.Me.Casting() and not mq.TLO.Me.Sitting() and not mq.TLO.Me.Invis() and not state.loop.invis then
 		if
 			not state.paused
 			and class.selos

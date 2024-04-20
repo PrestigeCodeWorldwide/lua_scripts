@@ -929,7 +929,7 @@ end
 local function lifesupport()
 	if
 		mq.TLO.Me.CombatState() == 'COMBAT'
-		and not state.loop.Invis
+		and not state.loop.invis
 		and not mq.TLO.Me.Casting()
 		and mq.TLO.Me.Standing()
 		and state.loop.PctHPs < 60
