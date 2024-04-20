@@ -1,3 +1,5 @@
+local BL = require("biggerlib")
+local mq = require("mq")
 local mode = {
 	modes = {},
 	mode_names = {},
@@ -25,7 +27,7 @@ function mode:getName()
 end
 
 function mode:isManualMode()
-	return self.name == 'manual'
+	return self.currentMode.name == 'manual'
 end
 
 function mode:isCampMode()
@@ -38,6 +40,13 @@ end
 
 function mode:isTankMode()
 	return self.is_tank
+end
+
+function mode:isChaseMode()
+    
+    --if not amChaseMode then BL.info("/g Chase mode is %s", amChaseMode) end
+    
+    return self.currentMode.name == "chase"
 end
 
 function mode:isPullMode()
@@ -74,5 +83,4 @@ mode:new('puller', true, true, false, true, true)
 mode:new('huntertank', true, false, true, true, false)
 
 mode.currentMode = mode.modes.manual
-
 return mode

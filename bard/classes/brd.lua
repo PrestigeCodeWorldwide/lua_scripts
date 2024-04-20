@@ -1264,9 +1264,13 @@ end
 
 function class.cast()
 	-- Don't StopCast() if we're force casting, just return doing nothing
-	if state.isForceCasting then
-		return true
-	end
+    if state.isForceCasting then
+        return true
+    end
+    
+    if mq.TLO.Me.Invis() then
+        return false
+    end
   	
 	if class.doneSinging() then
 		-- Combat checks for clickies
@@ -1403,15 +1407,13 @@ function class.hold()
 end
 
 function class.invis()
+    state.loop.Invis = true
 	mq.cmd('/stopcast')
-	mq.delay(1)
-	if class.OPTS.USESELOS.value then
-		mq.cmd('/cast "selo\'s song of travel"')
-	end
+	mq.delay(500)
+	mq.cmd('/alt act 231')
 	mq.delay(3500, function()
 		return mq.TLO.Me.Invis()
 	end)
-	state.loop.Invis = true
 end
 
 -- aura, chorus, war march, storm, rizlonas, verse, ancient,selos, chant flame, echoes, nivs

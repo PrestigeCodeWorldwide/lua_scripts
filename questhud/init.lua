@@ -37,6 +37,10 @@ end
 -- mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").Items()
 
 local function getMyCurrentQuestInfo()
+    -- make sure UI window is open
+    if not mq.TLO.Window('TaskWnd').Open() then
+        mq.cmd("/windowstate TaskWnd open")
+    end
     -- tostring to appease the linter
     local numTasks = mq.TLO.Window("TaskWnd/TASK_TaskWnd/TASK_TaskList").Items()
     local allTaskInfo = {}
@@ -84,11 +88,14 @@ end
 local actor = actors.register(function(message)
 	if message.content.id == "echoCurrentTaskStep" and message.sender then
 		-- request came in asking me to send my current quest step
-
+		
+        
+        
 		local tasksData = getMyCurrentQuestInfo()
 		if
-            BL.IsNil(tasksData) 
-		then
+            BL.IsNil(tasksData) or #tasksData < 1
+        then
+            --BL.info("tasks Data is NIL from function")
 			return
 		end
 		-- Respond with which step I'm on
@@ -105,7 +112,9 @@ local actor = actors.register(function(message)
 		-- Add their current step to our GUI display		
 		if
 			BL.IsNil(message.content.tasksData)
-		then
+        then
+            BL.info("tasks Data is NIL in response from %s", message.sender)
+            group[message.sender.character].tasksData = nil
 			return
 		end
         --BL.info("Adding %s to group with step %s", message.sender.character, message.content.step)
@@ -133,11 +142,11 @@ end)
 
 local function askForQuestStepEcho()
     -- janky driver-only limiter
-    local myclass = mq.TLO.Me.Class()
-    if myclass == "Shadow Knight" or myclass == "Warrior" or myclass == "Paladin" then
+    --local myclass = mq.TLO.Me.Class()
+    --if myclass == "Shadow Knight" or myclass == "Warrior" or myclass == "Paladin" then
         actor:send({ id = "echoCurrentTaskStep" })
         
-    end
+    --end
 end
 
 local open_gui = true
@@ -237,6 +246,7 @@ local function QuestHud_UI()
                
                 if ImGui.SmallButton(taskName .. "##" .. tostring(member)) then
                     groupMemberData.taskIndex = groupMemberData.taskIndex + 1
+                    memberTaskIdx = groupMemberData.taskIndex
                 end
                 
                 ImGui.TableNextColumn()

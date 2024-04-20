@@ -278,10 +278,12 @@ local function main()
 					zen.camp.mobRadar()
 					if
 						(mode:isTankMode() and state.mobCount > 0)
-						or (mode:isAssistMode() and zen.assist.shouldAssist())
+                        or (mode:isAssistMode() and zen.assist.shouldAssist())
+                        or (mode:isChaseMode() and state.mobCount > 0)
 						or mode:getName() == "huntertank"
 					then
-						mq.cmd("/makemevis")
+                        mq.cmd("/makemevis")
+                        state.loop.Invis = false
 					end
 					zen.camp.checkCamp()
 					common.checkChase()
@@ -289,7 +291,16 @@ local function main()
 					mq.delay(50)
 				end
 			end
-		else
+        else
+            if
+                (mode:isTankMode() and state.mobCount > 0)
+                or (mode:isAssistMode() and zen.assist.shouldAssist())
+                or (mode:isChaseMode() and state.mobCount > 0)
+                or mode:getName() == "huntertank"
+            then
+                mq.cmd("/makemevis")
+                state.loop.Invis = false
+            end
 			if state.loop.Invis then
 				-- if paused and invis, back pet off, otherwise let it keep doing its thing if we just paused mid-combat for something
 				local pet_target_id = mq.TLO.Pet.Target.ID() or 0

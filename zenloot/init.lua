@@ -9,6 +9,8 @@ local ZenLoot = require("ZenLootly")
 
 local Open, ShowUI = true, true
 
+local DistributeLootNowFlag = false
+
 local config_dir = mq.configDir:gsub("\\", "/") .. "/"
 local config_file = "ZenLoot.ini"
 local zenloot_config = lip.load(config_dir .. config_file)
@@ -30,7 +32,7 @@ local loot_table_flags = bit32.bor(
 	ImGuiTableFlags.BordersInner
 )
 
-local choices = { "Keep", "Class", "Sell", "Ignore", "Destroy" }
+local choices = { "Keep", "Class", "Sell", "Ignore", "Destroy", "Distribute" }
 local looters = {
 	tradeskill = "NONE",
 	collection = "NONE",
@@ -428,7 +430,11 @@ end
 
 --- Buttons at the top of the display for various actions
 local function drawButtons()
-	if ImGui.Button("Reload##reload_btn") then
+	if ImGui.Button("Distribute Loot##disloot_btn") then
+        DistributeLootNowFlag = true
+    end
+    
+    if ImGui.Button("Reload##reload_btn") then
 		mq.cmd("/zenloot ini")
 		loadRemoteData(settings_path)
 		renderData(displayData)
@@ -550,10 +556,13 @@ local function main()
 		if ZenLoot.in_game() and ZenLoot.enabled then
 			-- only run these every second, the loop is going
 			-- to go faster to make the bind snappy
-			if os.difftime(os.time(), last_time) >= 1 then
-				ZenLoot.handle_master_looting(ZenLoot.tradeskillLooter, ZenLoot.collectionLooter)
-				ZenLoot.handle_personal_loot()
-				last_time = os.time()
+            if os.difftime(os.time(), last_time) >= 1 then
+                if DistributeLootNowFlag then
+				    ZenLoot.handle_master_looting(ZenLoot.tradeskillLooter, ZenLoot.collectionLooter)
+				    ZenLoot.handle_personal_loot()
+                    last_time = os.time()
+                    DistributeLootNowFlag = false
+                end
 			end
 			mq.doevents()
 		end

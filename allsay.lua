@@ -10,6 +10,9 @@ local State = {
     sayTarget = nil,
     sayPhrase = "",
     doAllMount = false,
+    --
+    giveItemName = "",
+    giveItemTargetId = nil
 }
 
 local function IAmDriver()
@@ -26,11 +29,6 @@ local function removeInvis()
     mq.cmd("/makemevisible")
     mq.delay(1)
 end
-
-
-
-
-
 
 local groundSpawnPickupMatcherText = "#*#GROUNDPICKUP #1# #2#.#*#"
 -- GROUNDPICKUP CHARACTERNAME ITEMNAME. (note the period)
@@ -174,37 +172,59 @@ end
 
 mq.bind("/aground", groundSpawnPickupCommandHandler)
 
+local function doGiveItemToTarget()
+    BL.cmd.pauseAutomation()
+    while mq.TLO.Cursor() and  mq.TLO.Cursor.ID() > 1 do
+        mq.cmd("/autoinventory")
+        mq.delay(250)        
+    end
+    -- target the right npc
+    --mq.cmdf("/dge /assist %s", mq.TLO.Me.CleanName())
+    targetSpawn = mq.TLO.Spawn("id "..State.giveItemTargetId)
+    targetSpawn.DoTarget()
+    mq.delay(1)
+
+    -- get really close
+    BL.info("Navving to target")
+    mq.cmd("/dg /nav target")
+    BL.MakeGroupVisible()
+
+    mq.delay(2000)
+    -- give him item somehow
+    -- note the escaped quotation marks, these are requiree
+        mq.cmdf('/shift /itemnotify "%s" leftmouseup', State.giveItemName)
+        BL.info("Picking up item onto cursor")
+        mq.delay(500)
+    
+    if not mq.TLO.Cursor.ID() then
+        mq.cmd("/g I couldn't pick the item up from inventory")
+    end
+    
+    mq.cmdf("/click left target")
+    mq.delay(500)
+    -- click givewnd
+    mq.cmdf("/notify GiveWnd GVW_Give_Button leftmouseup")
+    mq.delay(1500)
+
+    BL.cmd.resumeAutomation()
+    State.giveItemName = ""
+    State.giveItemTargetId = nil
+end
+
 local function allGiveItemToTargetHandler(...)
 	local args = { ... }
 
 	--local itemName = args[1]
-	BL.cmd.pauseAutomation()
-	-- make our full phrase
-	local itemName = table.concat(args, " ")
-
-	-- target the right npc
-	mq.cmdf("/dge /assist %s", mq.TLO.Me.CleanName())
-	mq.delay(1500)
-
-	-- get really close
-	BL.info("Navving to target")
-	mq.cmd("/dg /nav target")
-	BL.MakeGroupVisible()
-
-	mq.delay(2000)
-	-- give him item somehow
-	BL.info("Picking up item onto cursor")
-	-- note the escaped quotation marks, these are requiree
-	mq.cmdf('/dg /itemnotify "%s" leftmouseup', itemName)
-	mq.delay(500)
-	mq.cmdf("/dg /click left target")
-	mq.delay(500)
-	-- click givewnd
-	mq.cmdf("/dg /notify GiveWnd GVW_Give_Button leftmouseup")
-	mq.delay(1500)
-	
-	--BL.cmd.resumeAutomation()
-	-- /z
+    -- make our full phrase
+    local itemName = ""
+        
+    if mq.TLO.Cursor.ID() > 1 then 
+        itemName = mq.TLO.Cursor.Name()
+    else
+        itemName = table.concat(args, " ")
+    end
+   BL.info("Sending allgive for %s", itemName)
+   actor:send({id='allgive', giveItemTargetId = mq.TLO.Target.ID(), giveItemName = itemName})
 end
 mq.bind("/agive", allGiveItemToTargetHandler)
 
@@ -275,7 +295,10 @@ actor = actors.register(function(message)
         State.sayPhrase = message.content.sayPhrase       
         State.sayTarget = mq.TLO.Spawn("id " .. message.content.targetId)
     elseif message.content.id == 'allmount' then
-        State.doAllMount = true 
+        State.doAllMount = true
+    elseif message.content.id == 'allgive' then
+        State.giveItemName = message.content.giveItemName
+        State.giveItemTargetId = message.content.giveItemTargetId
     end
 end)
 
@@ -296,6 +319,11 @@ local function Tick()
     if State.doAllMount then
         DoAllMount()
     end
+    
+    if State.giveItemName and State.giveItemName ~= "" and State.giveItemTargetId ~= nil then 
+        doGiveItemToTarget()
+    end 
+    
 end
 
 while true do

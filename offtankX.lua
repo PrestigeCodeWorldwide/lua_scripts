@@ -7,6 +7,14 @@ local BL = require("biggerlib")
 
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
+local Tanks = {}
+
+local function BuildListOfRaidTanks()
+    
+end
+
+
+
 
 ---@class ScriptState
 local State = {

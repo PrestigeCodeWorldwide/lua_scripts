@@ -6,7 +6,7 @@ local sql = PackageMan.Require("lsqlite3")
 
 local Database = {
 	database = nil,
-	path = ("%s/yalm/items.db"):format(mq.luaDir),
+    path = ("%s/MQ2LinkDB.db"):format(mq.TLO.MacroQuest.Path("resources")),
 }
 
 Database.OpenDatabase = function(path)
@@ -26,19 +26,19 @@ end
 
 Database.QueryDatabaseForItemId = function(item_id)
 	local item_db
-	for row in Database.database:nrows(string.format("select * from items where id = %s", item_id)) do
-		item_db = row
-		break
-	end
+    for row in Database.database:nrows(string.format("select * from raw_item_data_315 where id = %s", item_id)) do
+        item_db = row
+        break
+    end
 	return item_db
 end
 
 Database.QueryDatabaseForItemName = function(item_name)
 	local item_db = nil
-	for row in Database.database:nrows(string.format('select * from items where name = "%s"', item_name)) do
-		item_db = row
-		break
-	end
+    for row in Database.database:nrows(string.format('select * from raw_item_data_315 where name = "%s"', item_name)) do
+        item_db = row
+        break
+    end
 	return item_db
 end
 

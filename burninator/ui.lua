@@ -80,7 +80,7 @@ function ui.LeftPaneWindow()
 				local popStyleColor = false
 				ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
 				popStyleColor = true
-
+				
 				local sel = ImGui.Selectable(className, selectedClass == className)
 				if sel and selectedClass ~= className then
 					selectedListItem = { nil, 0 }
