@@ -192,7 +192,7 @@ function BL.getRandomPointOnCircle()
 	-- Calculate the X and Y coordinates based on the random angle
 	local X = h + r * math.cos(theta)
 	local Y = k + r * math.sin(theta)
-
+	
 	return X, Y
 end
 
@@ -204,7 +204,6 @@ function BL.cmd.pauseAutomation()
 	mq.cmd("/nav stop")
 	mq.cmd("/stopsong")
 	mq.cmd("/attack off")
-	mq.delay(50)
 end
 
 --- Plain boxr unpause

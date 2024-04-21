@@ -41,14 +41,18 @@ local function init()
 	else
 		mq.cmd('/g I am NOT a pet class')
 	end
-
-	mq.cmd('/g Growing the group')
+	
+    BL.cmd.pauseAutomation()
+    mq.cmd('/g Growing the group')
+    mq.TLO.Me.DoTarget()
+    mq.delay(1)
 	mq.cmd('/useitem luclinite horde cube')
 	mq.delay(3500)
-
+	
 	mq.cmd('/g Levitating the group')
 	mq.cmd('/aa act perfected levitation')
     mq.delay(3500)
+    BL.cmd.resumeAutomation()
 end
 
 
@@ -64,7 +68,7 @@ local function handleEggs()
 			mq.cmd('/target npc egg')
 			mq.delay(1000)
 			mq.cmd('/pet attack')
-
+			
 			-- wait for egg to die
 			while mq.TLO.Spawn('npc egg').ID() ~= nil and mq.TLO.Spawn('npc egg').ID() > 0 do
 				mq.cmd('/target npc egg')
@@ -78,19 +82,25 @@ local function handleEggs()
 end
 
 -- This goes up by the NPC
-local safeSpot = {x = 568, y = -1317, z = 327}
 local debuffName = 'Song of Echoes'
+-- raid only
+local otherDebuffName = 'Song of Calling'
 
 local function handleAoEEvent()
 
-	if BL.IHaveBuff(debuffName) then
+    if BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName) then
 		-- we have the debuff, run to safe spot
 		mq.cmd('/g I have the AOE debuff, running to safe spot')
 		BL.cmd.pauseAutomation()
-        BL.NavToPos(safeSpot.x, safeSpot.y, safeSpot.z)
-		
-		while BL.IHaveBuff(debuffName) do
-			mq.delay(1000)
+        mq.delay(500)
+        mq.cmd("/attack off")
+        mq.cmdf("/target %s", mq.TLO.Me.CleanName())
+        mq.delay(250)
+        mq.cmd("/nav locyxz 568 -1317 327")
+                
+		while BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName) do
+			
+			mq.delay(100)
 		end
 		mq.cmd('/g AOE debuff is gone, resuming')
 		BL.cmd.resumeAutomation()
