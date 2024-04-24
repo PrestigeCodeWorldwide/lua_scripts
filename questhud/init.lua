@@ -228,16 +228,15 @@ local function QuestHud_UI()
             for member, groupMemberData in pairs(group) do
                 local memberTaskIdx = groupMemberData.taskIndex
                 if memberTaskIdx > #groupMemberData.tasksData then
-                    mq.cmd("/g task idx overflow")
                     groupMemberData.taskIndex = 1
                     memberTaskIdx = 1
                 end
                 
                 local task = groupMemberData.tasksData[memberTaskIdx]
             
-                local taskName = task.taskName or "TASKNAME"
-                local taskStep = task.taskStep or "STEP"
-                local taskStatus = task.taskStatus or "TASKSTATUS"
+                local taskName = task.taskName or ""
+                local taskStep = task.taskStep or ""
+                local taskStatus = task.taskStatus or ""
 
                 ImGui.TableNextRow()
                 ImGui.TableNextColumn()

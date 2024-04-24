@@ -352,7 +352,6 @@ local function init()
 		            ScriptState = State,
 		            DrawFunction = DrawUI,
 	            })
-	
 	return checkGroupTankRoleIsEmpty()
 end
 

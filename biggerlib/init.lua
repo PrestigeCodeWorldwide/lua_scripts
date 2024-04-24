@@ -3,6 +3,13 @@ local mq = require("mq")
 local Log = require("biggerlib.log")
 local Enum = require("biggerlib.enum")
 local Gui = require("biggerlib.ui")
+
+-- Version: 0.2.0
+
+-- Lua Require Paths for zen subfolder:
+-- MQ\lua\zen\?.lua
+-- MQ\lua\zen\?\init.lua
+
 ---@class BL
 ---BiggerLib (BL) is a utility library providing a collection of functions and submodules to enhance Lua scripting capabilities within MacroQuest.
 ---
@@ -192,7 +199,7 @@ function BL.getRandomPointOnCircle()
 	-- Calculate the X and Y coordinates based on the random angle
 	local X = h + r * math.cos(theta)
 	local Y = k + r * math.sin(theta)
-	
+
 	return X, Y
 end
 
@@ -204,6 +211,7 @@ function BL.cmd.pauseAutomation()
 	mq.cmd("/nav stop")
 	mq.cmd("/stopsong")
 	mq.cmd("/attack off")
+	mq.delay(50)
 end
 
 --- Plain boxr unpause

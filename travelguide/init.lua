@@ -10,6 +10,7 @@
 local mq = require("mq")
 --- @type ImGui
 require("ImGui")
+local BL = require("biggerlib")
 
 local zones = require("ladonzones")
 
@@ -44,22 +45,23 @@ function travelguide.searchShortnames(substring)
 end
 
 function travelguide.travelTo(shortName)
-	if useGroupTravel then
-		--print("Traveling GROUP to: " .. shortName)
+	BL.info("Traveling to: " .. shortName .. " with useGroupTravel: " .. tostring(useGroupTravel).. " and useDanNet: " .. tostring(useDanNet))
+	if useGroupTravel and mq.TLO.Group() and mq.TLO.Group.GroupSize() > 1 then
+		print("Traveling GROUP to: " .. shortName)
 		if useDanNet then
 			mq.cmd("/dgga /travelto " .. shortName)
 		else
 			mq.cmd("/bcaa //travelto " .. shortName)
 		end
 	else
-		--print("Traveling SELF to: " .. shortName)
+		print("Traveling SELF to: " .. shortName)
 		mq.cmd("/travelto " .. shortName)
 	end
 end
 
 local function commandHandler(args)
 	if not args[1] then
-		print("Called /tg without zone search name")
+		BL.warn("Called /tg without zone search name")
 		return
 	end
 
@@ -88,7 +90,7 @@ local function commandHandler(args)
 				mq.cmd("/travelto stop")
 			end
 		end
-
+		
 		-- See if someone gave an actual shortname and go directly if so
 		local shortName = travelguide.searchShortnames(firstArgLower)
 		if shortName ~= nil then
@@ -121,11 +123,16 @@ local function commandHandlerGroup(...)
 end
 
 local function commandHandlerSolo(...)
-	local args = { ... }
-	local oldGroupTravel = useGroupTravel
-	useGroupTravel = false
-	commandHandler(args)
-	useGroupTravel = oldGroupTravel
+    local args = { ... }
+    local oldGroupTravel = useGroupTravel
+    useGroupTravel = false
+    commandHandler(args)
+    useGroupTravel = oldGroupTravel
+end
+
+local function commandHandlerGeneric(...)
+    local args = { ... }
+    commandHandler(args)
 end
 
 -- Binds:
@@ -135,6 +142,7 @@ end
 mq.bind("/tgg", commandHandlerGroup)
 mq.bind("/tga", commandHandlerGroup)
 mq.bind("/tgs", commandHandlerSolo)
+mq.bind("/tg", commandHandlerGeneric)
 
 mq.bind("/nt", function(...)
 	local args = { ... }
@@ -146,8 +154,28 @@ mq.bind("/nt", function(...)
 		mq.cmd("/hidecorpse all")
 		mq.delay(1500)
 	end
-
-	local spawn = mq.TLO.Spawn(targetName)
+    
+    local spawn = mq.TLO.Spawn(targetName)
+    
+    if spawn() == nil then
+        BL.warn("Travel target not found!")
+        return
+    end
+    local spawnNameLower = string.lower(spawn.CleanName())
+    
+    while string.find(spawnNameLower, "corpse") do
+        -- The CleanName contains "corpse"
+        print("Found a corpse!")
+        mq.cmd("/hidecorpse all")
+        mq.delay(1500)
+        spawn = mq.TLO.Spawn(targetName)
+        if spawn() == nil then
+            BL.warn("Travel target not found!")
+            return
+        end
+        spawnNameLower = string.lower(spawn.CleanName())
+    end
+    
 	if spawn then
 		spawn.DoTarget()
 	end
