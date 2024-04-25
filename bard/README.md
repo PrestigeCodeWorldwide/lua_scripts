@@ -1,4 +1,4 @@
-#TODO
+Version="0.2.0"
 
 #BOXR
 In order for Boxr to work, regardless of whether your lua responds to the same commands as another automation,

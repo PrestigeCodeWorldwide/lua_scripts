@@ -37,14 +37,26 @@ local ReturnFromVenomFlag = false
 local RunFromSeedFlag = false
 local ReturnFromSeedFlag = false
 
+local function EventHandlerHateLoveRunAway(line, nameOne, nameTwo) 
+    local myName = mq.TLO.Me.CleanName()
+    if myName == nameOne or myName == nameTwo then
+        StartRunningFromHateLoveFlag = true
+    end
+end
+
 mq.event(
     "HateLoveRunAway",
     '#*#Illandrin seeds hatred into #1#. This causes a compensatory love to form in #2#.#*#',
     function(line, nameOne, nameTwo)
-        local myName = mq.TLO.Me.CleanName()        
-        if myName == nameOne or myName == nameTwo then        
-            StartRunningFromHateLoveFlag = true            
-        end
+       EventHandlerHateLoveRunAway(line, nameOne, nameTwo)
+    end
+)
+
+mq.event(
+    "HateLoveRunAwayWithAddedSpace",
+    '#*#Illandrin seeds hatred into  #1#. This causes a compensatory love to form in #2#.#*#',
+    function(line, nameOne, nameTwo)
+        EventHandlerHateLoveRunAway(line, nameOne, nameTwo)    
     end
 )
 
