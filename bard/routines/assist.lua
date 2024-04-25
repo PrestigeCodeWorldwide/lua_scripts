@@ -368,7 +368,7 @@ function assist.checkLOS()
 		or (cur_mode:isAssistMode() and assist.shouldAssist())
 	then
 		local maxRangeTo = (mq.TLO.Target.MaxRangeTo() or 0) + 20
-		if not mq.TLO.Target.LineOfSight() and maxRangeTo and not class.OPTS.CAMPHARD.value then
+		if not mq.TLO.Target.LineOfSight() and maxRangeTo and not zen.class.OPTS.CAMPHARD.value then
 			movement.navToTarget("dist=" .. maxRangeTo * 0.6)
 			state.positioning = true
 			state.positioningTimer:reset()

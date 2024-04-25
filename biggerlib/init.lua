@@ -205,13 +205,16 @@ end
 
 --- Pauses automation scripts and stops various character actions.
 function BL.cmd.pauseAutomation()
-	mq.cmd("/boxr Pause")
-	mq.delay(500)
-	mq.cmd("/afollow off")
-	mq.cmd("/nav stop")
-	mq.cmd("/stopsong")
-	mq.cmd("/attack off")
-	mq.delay(50)
+	-- mq.TLO.Macro.Paused() is nil if no macro running at all, false/true if there is
+	if not mq.TLO.CWTN.Paused() or (BL.NotNil(mq.TLO.Macro.Paused()) and mq.TLO.Macro.Paused() == false ) then
+	    mq.cmd("/boxr Pause")
+	    mq.delay(250)
+	    mq.cmd("/afollow off")
+	    mq.cmd("/nav stop")
+	    mq.cmd("/stopsong")
+	    mq.cmd("/attack off")
+	    mq.delay(50)
+    end
 end
 
 --- Plain boxr unpause

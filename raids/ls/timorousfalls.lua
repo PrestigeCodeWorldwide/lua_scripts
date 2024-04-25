@@ -28,13 +28,23 @@ hate/love is like hot/cold exactly, but only 2 toons get called out
     
 local HateDebuff = "Expression of Hatred"
 local LoveDebuff = "Expression of Love"
+local StartRunningFromHateLoveFlag = false
+local IsRunningFromHateLove = false
 
+local RunFromVenomFlag = false
+local ReturnFromVenomFlag = false
+
+local RunFromSeedFlag = false
+local ReturnFromSeedFlag = false
 
 mq.event(
     "HateLoveRunAway",
-    'Illandrin seeds hatred into  Scymmeran. This causes a compensatory love to form in Scymmeran.',
+    '#*#Illandrin seeds hatred into #1#. This causes a compensatory love to form in #2#.#*#',
     function(line, nameOne, nameTwo)
-            
+        local myName = mq.TLO.Me.CleanName()        
+        if myName == nameOne or myName == nameTwo then        
+            StartRunningFromHateLoveFlag = true            
+        end
     end
 )
 
@@ -42,30 +52,98 @@ mq.event(
 
 mq.event(
     "VenomRunAway",
-    " A shadow of venom hisses and glares at #1#",
-    function(line, nameOne, nameTwo)
-
+    "#*#A shadow of venom hisses and glares at #1#.#*#",
+    function(line, name)
+        if mq.TLO.Me.CleanName() == name then 
+            RunFromVenomFlag = true
+            ReturnFromVenomFlag = false
+            mq.cmd("/echo running from venom emote")
+        end
     end
 )
 
-BL.info("Ran successfully")
+mq.event(
+    "VenomReturn",
+    "#*#shadow pulls energy and life from your body#*#",
+    function()
+            ReturnFromVenomFlag = true
+            RunFromVenomFlag = false
+            mq.cmd("/echo Returning from venom emote")
+    end
+)
+
+mq.event(
+    "SeedRunAway",
+    "#*#seed of hate is planted in your mind#*#",
+    function(line, name)
+            RunFromSeedFlag = true
+            ReturnFromSeedFlag = false
+            mq.cmd("/echo running from SEED emote")
+    end
+)
+
+mq.event(
+    "SeedReturn",
+    "#*#seed of hate within you is gone#*#",
+    function(line, name)
+            ReturnFromSeedFlag = true
+            RunFromSeedFlag = false
+            mq.cmd("/echo Returning from SEED emote")
+    end
+)
 
 
+local function HandleRunningFromHateLove()
+    if StartRunningFromHateLoveFlag then
+        -- We need to actually run
+        StartRunningFromHateLoveFlag = false
+        IsRunningFromHateLove = true
+        BL.cmd.pauseAutomation()
+        mq.delay(500)
+    end
 
+    -- check if debuff is gone and resume if so
+    if IsRunningFromHateLove then
+        mq.cmdf("/nav locyxz 864 -2637 -1")
+        -- We should run until we no longer have the debuff
+        if not BL.IHaveBuff(HateDebuff) and not BL.IHaveBuff(LoveDebuff) then
+            IsRunningFromHateLove = false
+            BL.cmd.resumeAutomation()
+            mq.cmd("/gu Done running from Hate/Love because debuff is gone")
+        end
+    end
+end
 
+local function HandleRunningFromVenom()
+    if ReturnFromVenomFlag then
+        RunFromVenomFlag = false
+        BL.cmd.resumeAutomation()
+        ReturnFromVenomFlag = false -- clean up
+    end
+    
+    if RunFromVenomFlag then
+        BL.cmd.pauseAutomation()
+        mq.cmdf("/nav locyxz 986 -2386 -7")
+    end
+end
 
-
-
-
-
-
-
-
-
-
-
+local function HandleRunningFromSeed()
+    if ReturnFromSeedFlag then
+        RunFromSeedFlag = false
+        BL.cmd.resumeAutomation()
+        ReturnFromSeedFlag = false -- clean up
+    end
+    
+    if RunFromSeedFlag then
+        BL.cmd.pauseAutomation()
+        mq.cmdf("/nav locyxz 1049 -2141 -22")
+    end    
+end
 
 while true do
+    HandleRunningFromHateLove()
+    HandleRunningFromVenom()
+    HandleRunningFromSeed()
     mq.doevents()
-    mq.delay(1000)
+    mq.delay(513)
 end
