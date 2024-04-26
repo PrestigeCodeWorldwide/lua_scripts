@@ -1,0 +1,55 @@
+local mq = require('mq')
+local BL = require("biggerlib")
+
+local ElemDebuff = "Elemental Convergence"
+
+local State = {
+    IDLE = 1,
+    NEEDS_TO_RUN = 2,
+    RUNNING = 3,
+}
+local currentState = State.IDLE
+local safeSpots = {
+    "1205 789 442",
+    "1243 1107 452",
+    "1454 1381 438"
+}
+local mySafeSpot = ""
+
+mq.event("ElementalRunAway", "#*#Brigadier Swarn pulls elemental forces to gather around #1#, #2#, and #3#.#*#",
+    function(line, nameOne, nameTwo, nameThree)
+        local myName = mq.TLO.Me.CleanName()
+        if myName == nameOne or myName == nameTwo or myName == nameThree then
+            currentState = State.NEEDS_TO_RUN
+            mySafeSpot = safeSpots[myName == nameOne and 1 or myName == nameTwo and 2 or 3]
+        end
+    end)
+
+local function runToSafety()
+    BL.cmd.pauseAutomation()
+    mq.cmdf("/nav locyxz %s", mySafeSpot)
+    mq.cmd("/gu Running from Elem Convergence emote")
+    currentState = State.RUNNING
+end
+
+local function checkSafety()
+    if not BL.IHaveBuff(ElemDebuff) then
+        mq.cmd("/gu Elem AOE fired on me, returning")
+        BL.cmd.resumeAutomation()
+        currentState = State.IDLE
+    end
+end
+
+local function fsmUpdate()
+    if currentState == State.NEEDS_TO_RUN then
+        runToSafety()
+    elseif currentState == State.RUNNING then
+        checkSafety()
+    end
+end
+
+while true do
+    fsmUpdate()
+    mq.doevents()
+    mq.delay(113)
+end

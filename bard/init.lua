@@ -20,6 +20,7 @@ local state = require("state")
 local camp = require("routines.camp")
 local mez = require("routines.mez")
 local BL = require("biggerlib")
+local assist = require("routines.assist")
 local notifiable = require("biggerlib.notifiable")
 
 local zen = {}
@@ -286,7 +287,7 @@ local function main()
                         state.loop.invis = false
 					end
 					zen.camp.checkCamp()
-					common.checkChase()
+					common.checkChase(assist)
 					common.rest()
 					mq.delay(50)
 				end
@@ -309,7 +310,7 @@ local function main()
 				end
 			end
 			if config.get("CHASEPAUSED") then
-				common.checkChase()
+				common.checkChase(assist)
 			end
 			mq.delay(500)
 		end

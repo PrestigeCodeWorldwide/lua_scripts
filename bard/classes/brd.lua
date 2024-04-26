@@ -89,7 +89,8 @@ function class.sitCheck()
 		mq.delay(3500, function()
 			return mq.TLO.Me.Sitting()
 		end)
-	elseif not isSitting and mq.TLO.Me.Sitting() then
+    elseif not isSitting and mq.TLO.Me.Sitting() then
+        BL.info("Standing")
 		mq.cmd('/stand')
 	end
 end

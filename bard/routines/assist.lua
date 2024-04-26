@@ -305,7 +305,8 @@ end
 ---@param reset_timers function @An optional function to be called to reset combat timers specific to the class calling this function.
 function assist.setAndAnnounceNewAssistTarget(assistMobID, reset_timers)
 	state.assistMobID = assistMobID
-	if mq.TLO.Me.Sitting() then
+    if mq.TLO.Me.Sitting() then
+        BL.info("Standing C")
 		mq.cmd("/stand")
 	end
 	state.resists = {}

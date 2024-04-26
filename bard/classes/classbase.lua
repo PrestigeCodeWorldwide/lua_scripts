@@ -988,7 +988,7 @@ function base.mainLoop()
 			camp.checkCamp()
 		end
 		-- check whether we need to go chasing after the chase target, may happen while fighting
-		common.checkChase()
+		common.checkChase(assist)
 	end
 	if mode.currentMode:isPullMode() and not base.hold() and not state.lootBeforePull then
 		pull.pullMob()

@@ -10,6 +10,7 @@ local abilities = require("ability")
 local constants = require("constants")
 local mode = require("mode")
 local state = require("state")
+local BL = require("biggerlib")
 
 local common = {}
 
@@ -198,6 +199,7 @@ function common.inControl()
 	
     --stand up if feigned, we don't do this normally as a bard so it must be detrimental
     if mq.TLO.Me.Feigning() then
+        BL.info("Standing from FD")
         mq.cmd("/stand")
         mq.delay(50)
     end
@@ -225,8 +227,8 @@ end
 -- Movement Functions
 
 ---Chase after the assigned chase target if alive and in chase mode and the chase distance is exceeded.
-local checkChaseTimer = timer:new(1000)
-function common.checkChase()
+--- @param assist table - can pass in the require'd assist module so we can get the right target from it
+function common.checkChase(assist)
 	if mode.currentMode:getName() ~= "chase" then
 		return
 	end
@@ -276,9 +278,37 @@ function common.checkChase()
 		return
 	end
 	if helpers.distance(me_x, me_y, chase_x, chase_y) > (config.get("CHASEDISTANCE") ^ 2) then
-		if mq.TLO.Me.Sitting() and not mq.TLO.Group.MainAssist.Sitting() then
-			mq.cmd("/stand")
-		end
+        -- Get my assist manually since we might not be using Group as our MA
+        -- Same as class.sitCheck It it supposed to be, i just can't figure out how to access class from common
+        local myAssist = assist.getMainAssist()
+        if not myAssist then
+            return
+        end
+
+        if type(myAssist) == 'string' then
+            myAssist = mq.TLO.Spawn(myAssist)
+        end
+        if type(myAssist) == 'number' then
+            myAssist = mq.TLO.Spawn(myAssist)
+        end
+        -- see if he's sitting
+        local isSitting = myAssist.Sitting()
+        local meSitting = mq.TLO.Me.Sitting()
+
+        if isSitting and not meSitting then
+            mq.cmd('/stopsong')
+            mq.delay(10)
+            -- sit
+            mq.cmd('/sit')
+            -- Delay long enough the TLO starts returning True for Sitting()
+            mq.delay(3500, function()
+                return mq.TLO.Me.Sitting()
+            end)
+        elseif not isSitting and mq.TLO.Me.Sitting() then
+            BL.info("Standing")
+            mq.cmd('/stand')
+        end
+        -- Actual chase target movement
 		if not movement.navToSpawn("pc =" .. chaseTarget, "dist=20") then
 			local chaseSpawn = mq.TLO.Spawn("pc " .. chaseTarget)
 			if not mq.TLO.Navigation.Active() and chaseSpawn.LineOfSight() then
