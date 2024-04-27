@@ -4,7 +4,7 @@ local BL = require("biggerlib")
 
 local function RunCommand(cmd)
     mq.cmd(cmd)
-    mq.delay(100)
+    mq.delay(250)
 end
 
 BL.info("\arPrepping Boxes for raid")
@@ -27,6 +27,7 @@ RunCommand("/pet inventory destroy secondary")
 RunCommand(
 "/blockspell add pet 16287 16528 46212 65378 32376 63747 16525 6278 3290 64145 61421 16329 49719 49713 64105 63063 63033 11538 49278 61566 66969 68131 67005 68022 67011 67677")
 RunCommand("/timed 20 /blockspell remove pet 61568") -- Nights Perpetual Terror, otherwise chain casts, might be useless now that its changed
+RunCommand('/blockspell add me 67100') -- Rogue trickery effect
 
 -- Tribute enable
 RunCommand("/tribute personal on")

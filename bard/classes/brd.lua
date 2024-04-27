@@ -843,8 +843,8 @@ function class.initDPSAbilities(_zen)
 	table.insert(class.DPSAbilities, common.getBestDisc({ 'Reflexive Rebuttal' }))
 	table.insert(class.DPSAbilities, common.getSkill('Intimidation', { opt = 'USEINTIMIDATE' }))
 	table.insert(class.DPSAbilities, common.getSkill('Kick'))
-
-	table.insert(class.AEDPSAbilities, common.getAA('Vainglorious Shout', { threshold = 2 }))
+	
+	--table.insert(class.AEDPSAbilities, common.getAA('Vainglorious Shout', { threshold = 2 }))
 end
 
 function class.initBurns(_zen)

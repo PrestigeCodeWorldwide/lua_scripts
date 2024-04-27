@@ -1,6 +1,22 @@
 local mq = require('mq')
 local BL = require("biggerlib")
 
+--[[
+Navulta first
+Everyone move themselves back and out of knife aoe 
+tank in corner to leave other corner free to move to during explosive barrels
+move everyone back to safe spot during explosive barrels
+
+-- Swarn
+Adds every 12 percent starting at 86
+Follow him into aura constantly even while tanking adds
+monks turn off destructive/devastating assault
+zerkers turn off their aoe discs
+
+-- Commander
+
+--]]
+
 local ElemDebuff = "Elemental Convergence"
 
 local State = {

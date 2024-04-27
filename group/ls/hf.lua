@@ -24,13 +24,19 @@ local hide2 = "249 -1257 193"
 
 -- RAID ADDITION
 -- #*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1#, #2#, #3, and #4#.#*#
+--[Sat Apr 27 04:37:04 2024]
+--Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward Dyllana and Enemabot.
+--Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.
+--#*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.#*#
+--#*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.#*#
 
 mq.event(
     'ShalowainRunAway',
     '#*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.#*#',
     function(line, nameOne, nameTwo)
         local myName = mq.TLO.Me.CleanName()
-        
+        mq.cmd("/g EVENT CAUGHT IN GENERAL calling out %s and %s", nameOne, nameTwo)
+
         if nameOne == myName then
             mq.cmd("/g EVENT CAUGHT - I'm name ONE running")
             hideSpot = hide1
@@ -42,6 +48,7 @@ mq.event(
         end
     end
 )
+
 
 local function IHaveWaitedLongEnough()
     if os.clock() - StartedWaitingTime > WaitDuration then
@@ -86,7 +93,7 @@ local function init()
 
     mq.cmd('/g Levitating the group')
     mq.cmd('/aa act perfected levitation')
-    mq.delay(3500)
+    mq.delay(500)
     BL.cmd.resumeAutomation()
 end
 
@@ -159,10 +166,12 @@ local function handleAoEEvent()
             FSM = FSMStates.Default
             StartedWaitingTime = 0
             BL.cmd.resumeAutomation()
-            mq.cmd('/g AOE debuff is gone, resuming')
+            mq.cmd('/g I Have waited long enough after debuff at hiding spot, resuming')
         end
     end
 end
+
+
 
 init()
 
@@ -241,14 +250,14 @@ end
 --	else
 --		mq.cmd('/g I am NOT a pet class')
 --	end
-	
+
 --    BL.cmd.pauseAutomation()
 --    mq.cmd('/g Growing the group')
 --    mq.TLO.Me.DoTarget()
 --    mq.delay(1)
 --	mq.cmd('/useitem luclinite horde cube')
 --	mq.delay(3500)
-	
+
 --	mq.cmd('/g Levitating the group')
 --	mq.cmd('/aa act perfected levitation')
 --    mq.delay(3500)
@@ -268,7 +277,7 @@ end
 --			mq.cmd('/target npc egg')
 --			mq.delay(1000)
 --			mq.cmd('/pet attack')
-			
+
 --			-- wait for egg to die
 --			while mq.TLO.Spawn('npc egg').ID() ~= nil and mq.TLO.Spawn('npc egg').ID() > 0 do
 --				mq.cmd('/target npc egg')
@@ -297,9 +306,9 @@ end
 --        mq.cmdf("/target %s", mq.TLO.Me.CleanName())
 --        mq.delay(250)
 --        mq.cmd("/nav locyxz 568 -1317 327")
-                
+
 --		while BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName) do
-			
+
 --			mq.delay(100)
 --		end
 --		mq.cmd('/g AOE debuff is gone, resuming')
@@ -322,5 +331,5 @@ end
 --    end
 --    mq.doevents()
 --    mq.delay(512)
-    
+
 --end

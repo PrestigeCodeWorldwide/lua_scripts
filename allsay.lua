@@ -16,13 +16,13 @@ local State = {
 }
 
 local function IAmDriver()
-	local driver = mq.TLO.Group.MainTank()
-	if driver == mq.TLO.Me.CleanName() then
-		return true
-	else
+    local driver = mq.TLO.Group.MainTank()
+    if driver == mq.TLO.Me.CleanName() then
+        return true
+    else
         --return false
-		return true -- i don't think i like this function at all anymore
-	end
+        return true -- i don't think i like this function at all anymore
+    end
 end
 
 local function removeInvis()
@@ -30,145 +30,230 @@ local function removeInvis()
     mq.delay(1)
 end
 
+------------------------------------------------------------------------ Forced assist
+local function MoveToSpawn(spawn, distance)
+    if (distance == nil) then distance = 5 end
+
+    if (spawn == nil or spawn.ID() == nil) then return end
+    if (spawn.Distance() < distance) then return true end
+
+    mq.cmdf('/squelch /nav id %d npc |dist=%s', spawn.ID(), distance)
+    while mq.TLO.Nav.Active() do mq.delay(1) end
+    mq.delay(500)
+    return true
+end
+
+local function MoveTo(spawn_name, distance)
+    local spawn = mq.TLO.Spawn('npc ' .. spawn_name)
+    return MoveToSpawn(spawn, distance)
+end
+
+local function MoveToId(spawn_id, distance)
+    local spawn = mq.TLO.Spawn('npc id ' .. spawn_id)
+    return MoveToSpawn(spawn, distance)
+end
+
+local function MoveToAndAttackId(id)
+    if MoveToId(id) == false then return false end
+    mq.cmdf('/squelch /target id %s', id)
+    mq.delay(250)
+    mq.cmd('/attack on')
+    return true
+end
+
+local function send_message(do_noparse, scope, command, ...)
+    local full_command = string.format(command, ...)
+    local noparse = ''
+    if (do_noparse) then noparse = '/noparse ' end
+    local preslash = ''
+
+    full_command = string.format('%s/%s %s%s', noparse, scope, preslash, full_command)
+    mq.cmd(full_command)
+end
+
+local function send_others_message(command, ...)
+    send_message(false, 'dgge', command, ...)
+end
+
+local last_actual_spawn = nil
+local function AllKillTarget(target)
+    local is_new_target = false
+    local spawn_name = target.CleanName()
+    local actual_spawn = target
+    if (actual_spawn.ID() == nil) then
+        BL.info('No spawn found: (\at%s\ao)', spawn_name)
+        return false
+    end
+
+    if (is_new_target == true) then
+        BL.info('\aoKilling \at%s\ao (id:\at%s\ao)', spawn_name, actual_spawn.ID())
+    end
+
+    if (MoveToAndAttackId(actual_spawn.ID()) == false) then
+        BL.info('Move/Attack for (%s) failed', spawn_name)
+        return
+    end
+
+    send_others_message('/target id %d', actual_spawn.ID())
+    mq.delay(250)
+    send_others_message('/attack on')
+    mq.delay(250)
+    send_others_message("/stick 10")
+    mq.delay(250)
+    send_others_message("/g Sticking")
+end
+
+-- Some situations, the group would not automatically engage. This tells them all to target and attack
+
+
+mq.bind("/allkill", function()
+    local myTarget = mq.TLO.Target
+
+    AllKillTarget(myTarget)
+end)
+
+
+--------------------------------------------------------------------------------------------------
+
 local groundSpawnPickupMatcherText = "#*#GROUNDPICKUP #1# #2#.#*#"
 -- GROUNDPICKUP CHARACTERNAME ITEMNAME. (note the period)
 mq.event("GroundSpawnPickup", groundSpawnPickupMatcherText, function(line, charname, itemname)
-	if charname ~= mq.TLO.Me.CleanName() then
-		-- Someone else's turn to loot this one
-		return
-	end
-	mq.cmdf("/fs Doing Grab for %s", charname)
+    if charname ~= mq.TLO.Me.CleanName() then
+        -- Someone else's turn to loot this one
+        return
+    end
+    mq.cmdf("/fs Doing Grab for %s", charname)
 
-	local grounditem = mq.TLO.Ground.Search(itemname)
-	if BL.IsNil(grounditem) then
-		BL.warn("Ground item not found, we shouldn't be here in this event handler right now")
-		mq.delay(1500)
-		return
-	end
-	
-	grounditem.Grab()
-	mq.delay(1500)
-	if mq.TLO.Cursor() == nil then
-		BL.warn("Cursor is nil, so I couldn't grab the item!")
-		mq.cmd("/g Cursor is nil, so I couldn't grab the item!")
-		mq.delay(1500)
-	else
-		mq.cmd("/g Cursor is not nil, so I grabbed the item!")
-	end
-	mq.cmd("/autoinventory")
-	mq.delay(1500)
-	mq.cmdf("/fs Done Grab for %s", charname)
+    local grounditem = mq.TLO.Ground.Search(itemname)
+    if BL.IsNil(grounditem) then
+        BL.warn("Ground item not found, we shouldn't be here in this event handler right now")
+        mq.delay(1500)
+        return
+    end
+
+    grounditem.Grab()
+    mq.delay(1500)
+    if mq.TLO.Cursor() == nil then
+        BL.warn("Cursor is nil, so I couldn't grab the item!")
+        mq.cmd("/g Cursor is nil, so I couldn't grab the item!")
+        mq.delay(1500)
+    else
+        mq.cmd("/g Cursor is not nil, so I grabbed the item!")
+    end
+    mq.cmd("/autoinventory")
+    mq.delay(1500)
+    mq.cmdf("/fs Done Grab for %s", charname)
 end)
 
 local function leadCharacterThroughLootProcess(characterName, spawnName)
-	BL.info("Sending %s to loot ground item %s once it spawns", characterName, spawnName)
-	local itsMeLooting = false
+    BL.info("Sending %s to loot ground item %s once it spawns", characterName, spawnName)
+    local itsMeLooting = false
 
-	-- Have driver search the whole zone for the ground spawn, but the rest
-	-- must wait on that specific one to respawn so we don't have to worry about nav'ing to them
-	local searchRadius = ""
+    -- Have driver search the whole zone for the ground spawn, but the rest
+    -- must wait on that specific one to respawn so we don't have to worry about nav'ing to them
+    local searchRadius = ""
     if characterName == mq.TLO.Me.CleanName() then
         itsMeLooting = true
         searchRadius = " radius 9999"
     else
         searchRadius = " radius 30"
     end
-    
-	local groundItem = mq.TLO.Ground.Search(spawnName .. searchRadius)
 
-	-- only spew once per character instead of inside while loop
-	if BL.IsNil(groundItem()) then
-		BL.info("Ground item not found, waiting for spawn")
-	end
+    local groundItem = mq.TLO.Ground.Search(spawnName .. searchRadius)
 
-	while BL.IsNil(groundItem()) do
-		mq.delay(1500)
-		groundItem = mq.TLO.Ground.Search(spawnName)
-	end
+    -- only spew once per character instead of inside while loop
+    if BL.IsNil(groundItem()) then
+        BL.info("Ground item not found, waiting for spawn")
+    end
 
-	local groundID = groundItem.ID()
-	local groundX = groundItem.X()
-	local groundY = groundItem.Y()
-	local groundZ = groundItem.Z()
+    while BL.IsNil(groundItem()) do
+        mq.delay(1500)
+        groundItem = mq.TLO.Ground.Search(spawnName)
+    end
 
-	BL.info(
-		"Ground item Spawned! %s with ID %s, Position: <%d, %d, %d>",
-		groundItem or "NILNILNIL",
-		tostring(groundID or "NOID"),
-		groundX or -9876,
-		groundY or -9865,
-		groundZ or -9854
-	)
+    local groundID = groundItem.ID()
+    local groundX = groundItem.X()
+    local groundY = groundItem.Y()
+    local groundZ = groundItem.Z()
 
-	-- nav to ground item
-	BL.info("Nav to ground item")
-	-- Move driver to the item and wait until nav'd there, boxes should be on /chase
-	mq.cmdf("/nav locxyz %d %d %d", groundX, groundY, groundZ)
-	BL.WaitForNav()
-	if not itsMeLooting then
-		--everyone else should already be there since self goes first, but we'll give them a bump anyway
-		mq.cmdf("/dex %s /nav locxyz %d %d %d", characterName, groundX, groundY, groundZ)
-		mq.delay(2000)
-	end
+    BL.info(
+        "Ground item Spawned! %s with ID %s, Position: <%d, %d, %d>",
+        groundItem or "NILNILNIL",
+        tostring(groundID or "NOID"),
+        groundX or -9876,
+        groundY or -9865,
+        groundZ or -9854
+    )
 
-	BL.info("Nav to ground item complete")
+    -- nav to ground item
+    BL.info("Nav to ground item")
+    -- Move driver to the item and wait until nav'd there, boxes should be on /chase
+    mq.cmdf("/nav locxyz %d %d %d", groundX, groundY, groundZ)
+    BL.WaitForNav()
+    if not itsMeLooting then
+        --everyone else should already be there since self goes first, but we'll give them a bump anyway
+        mq.cmdf("/dex %s /nav locxyz %d %d %d", characterName, groundX, groundY, groundZ)
+        mq.delay(2000)
+    end
 
-	-- emit event to be caught by that box's version of the script, ghettoactor
-	mq.cmdf("/fs GROUNDPICKUP %s %s.", characterName, spawnName)
+    BL.info("Nav to ground item complete")
+
+    -- emit event to be caught by that box's version of the script, ghettoactor
+    mq.cmdf("/fs GROUNDPICKUP %s %s.", characterName, spawnName)
 end
 
 local GroupCache = {
-	"",
-	"",
-	"",
-	"",
-	"",
-	"",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
 }
 
 local function InitializeGroupCache()
-	GroupCache[1] = mq.TLO.Group.Member(0).CleanName()
-	GroupCache[2] = mq.TLO.Group.Member(1).CleanName() or "NONE"
-	GroupCache[3] = mq.TLO.Group.Member(2).CleanName() or "NONE"
-	GroupCache[4] = mq.TLO.Group.Member(3).CleanName() or "NONE"
-	GroupCache[5] = mq.TLO.Group.Member(4).CleanName() or "NONE"
-	GroupCache[6] = mq.TLO.Group.Member(5).CleanName() or "NONE"
-	
-	local myName = mq.TLO.Me.CleanName()
-	if GroupCache[1] ~= myName then
-		-- its not me, so lets find me
-		for i = 2, 6 do
-			if GroupCache[i] == myName then
-				-- swap me to the front2
-				GroupCache[i] = GroupCache.member1
-				GroupCache[1] = myName
-				break
-			end
-		end
-	end
+    GroupCache[1] = mq.TLO.Group.Member(0).CleanName()
+    GroupCache[2] = mq.TLO.Group.Member(1).CleanName() or "NONE"
+    GroupCache[3] = mq.TLO.Group.Member(2).CleanName() or "NONE"
+    GroupCache[4] = mq.TLO.Group.Member(3).CleanName() or "NONE"
+    GroupCache[5] = mq.TLO.Group.Member(4).CleanName() or "NONE"
+    GroupCache[6] = mq.TLO.Group.Member(5).CleanName() or "NONE"
+
+    local myName = mq.TLO.Me.CleanName()
+    if GroupCache[1] ~= myName then
+        -- its not me, so lets find me
+        for i = 2, 6 do
+            if GroupCache[i] == myName then
+                -- swap me to the front2
+                GroupCache[i] = GroupCache.member1
+                GroupCache[1] = myName
+                break
+            end
+        end
+    end
 end
 
 local function groundSpawnPickupCommandHandler(...)
-	local args = { ... }
+    local args = { ... }
 
-	local spawn = args[1]
-	InitializeGroupCache()
+    local spawn = args[1]
+    InitializeGroupCache()
 
-	BL.cmd.pauseAutomation()
-	mq.delay(1500)
+    BL.cmd.pauseAutomation()
+    mq.delay(1500)
 
-	-- foreach group member once spawn is spawned, send the event to them
-	for _, memberName in ipairs(GroupCache) do
-		if memberName and memberName ~= "NONE" then
-			BL.info("Starting loot proceess for %s", memberName)
-			leadCharacterThroughLootProcess(memberName, spawn)
-			--give the box time to loot
-			mq.delay(5000)
-		end
-	end
-	BL.info("Ground Spawn Process Completed!")
-	mq.cmd("/fs Ground Spawn Process Completed!")
-	BL.cmd.resumeAutomation()
+    -- foreach group member once spawn is spawned, send the event to them
+    for _, memberName in ipairs(GroupCache) do
+        if memberName and memberName ~= "NONE" then
+            BL.info("Starting loot proceess for %s", memberName)
+            leadCharacterThroughLootProcess(memberName, spawn)
+            --give the box time to loot
+            mq.delay(5000)
+        end
+    end
+    BL.info("Ground Spawn Process Completed!")
+    mq.cmd("/fs Ground Spawn Process Completed!")
+    BL.cmd.resumeAutomation()
 end
 
 mq.bind("/aground", groundSpawnPickupCommandHandler)
@@ -180,32 +265,30 @@ mq.bind("/groundgrab", function()
         BL.warn("No ground item found")
         return
     end
-    
+
     BL.cmd.pauseAutomation()
     while mq.TLO.Cursor() and mq.TLO.Cursor.ID() > 1 do
         mq.cmd("/autoinventory")
         mq.delay(250)
     end
     BL.cmd.resumeAutomation()
-    
+
     groundItem.Grab()
     mq.delay(750)
     mq.cmd("/autoinventory")
     mq.delay(250)
     mq.cmd("/g Grabbed %s", groundItem.DisplayName())
-    
-    
 end)
 
 local function doGiveItemToTarget()
     BL.cmd.pauseAutomation()
-    while mq.TLO.Cursor() and  mq.TLO.Cursor.ID() > 1 do
+    while mq.TLO.Cursor() and mq.TLO.Cursor.ID() > 1 do
         mq.cmd("/autoinventory")
-        mq.delay(250)        
+        mq.delay(250)
     end
     -- target the right npc
     --mq.cmdf("/dge /assist %s", mq.TLO.Me.CleanName())
-    targetSpawn = mq.TLO.Spawn("id "..State.giveItemTargetId)
+    targetSpawn = mq.TLO.Spawn("id " .. State.giveItemTargetId)
     targetSpawn.DoTarget()
     mq.delay(1)
 
@@ -217,14 +300,14 @@ local function doGiveItemToTarget()
     mq.delay(2000)
     -- give him item somehow
     -- note the escaped quotation marks, these are requiree
-        mq.cmdf('/shift /itemnotify "%s" leftmouseup', State.giveItemName)
-        BL.info("Picking up item onto cursor")
-        mq.delay(500)
-    
+    mq.cmdf('/shift /itemnotify "%s" leftmouseup', State.giveItemName)
+    BL.info("Picking up item onto cursor")
+    mq.delay(500)
+
     if not mq.TLO.Cursor.ID() then
         mq.cmd("/g I couldn't pick the item up from inventory")
     end
-    
+
     mq.cmdf("/click left target")
     mq.delay(500)
     -- click givewnd
@@ -237,19 +320,19 @@ local function doGiveItemToTarget()
 end
 
 local function allGiveItemToTargetHandler(...)
-	local args = { ... }
+    local args = { ... }
 
-	--local itemName = args[1]
+    --local itemName = args[1]
     -- make our full phrase
     local itemName = ""
-        
-    if mq.TLO.Cursor.ID() > 1 then 
+
+    if mq.TLO.Cursor.ID() > 1 then
         itemName = mq.TLO.Cursor.Name()
     else
         itemName = table.concat(args, " ")
     end
-   BL.info("Sending allgive for %s", itemName)
-   actor:send({id='allgive', giveItemTargetId = mq.TLO.Target.ID(), giveItemName = itemName})
+    BL.info("Sending allgive for %s", itemName)
+    actor:send({ id = 'allgive', giveItemTargetId = mq.TLO.Target.ID(), giveItemName = itemName })
 end
 mq.bind("/agive", allGiveItemToTargetHandler)
 
@@ -265,12 +348,12 @@ local function DoHail()
 end
 
 mq.bind("/ahail", function()
-    actor:send({id='allhail', targetId = mq.TLO.Target.ID()})
+    actor:send({ id = 'allhail', targetId = mq.TLO.Target.ID() })
 end)
 
 local function DoAllSay()
     removeInvis()
-    
+
     State.sayTarget.DoTarget()
     mq.delay(1)
 
@@ -278,12 +361,12 @@ local function DoAllSay()
     mq.delay(500)
     State.sayTarget = nil
 end
-mq.bind("/asay param", function(...)    
+mq.bind("/asay param", function(...)
     -- make our full phrase
     local args = { ... }
     local sayPhrase = table.concat(args, " ")
-    
-    actor:send({id='allsay', targetId = mq.TLO.Target.ID(), sayPhrase = sayPhrase})
+
+    actor:send({ id = 'allsay', targetId = mq.TLO.Target.ID(), sayPhrase = sayPhrase })
 end)
 
 local function DoAllMount()
@@ -293,10 +376,10 @@ local function DoAllMount()
     mq.delay(10)
     mq.cmd("/removebuff mount blessing")
     mq.delay(50)
-    
+
     mq.cmd("/keypress =")
     mq.delay(4000)
-   
+
     while not mq.TLO.Me.Mount() do
         mq.cmd("/keypress =")
         mq.delay(4000)
@@ -308,7 +391,7 @@ end
 
 
 mq.bind("/allmount", function()
-   actor:send({id='allmount'})
+    actor:send({ id = 'allmount' })
 end)
 
 -------------------------------------------------------------------
@@ -317,7 +400,7 @@ actor = actors.register(function(message)
     if message.content.id == 'allhail' then
         State.hailTarget = mq.TLO.Spawn("id " .. message.content.targetId)
     elseif message.content.id == 'allsay' then
-        State.sayPhrase = message.content.sayPhrase       
+        State.sayPhrase = message.content.sayPhrase
         State.sayTarget = mq.TLO.Spawn("id " .. message.content.targetId)
     elseif message.content.id == 'allmount' then
         State.doAllMount = true
@@ -328,7 +411,7 @@ actor = actors.register(function(message)
 end)
 
 BL.log.info(
-	"Allsay running! Use /asay phrase to have your group assist your tank for target, uninvis, and all say the given phrase.  Use /ahail to have group hail the target. Use /aground <ground spawn item name> to have group iteratively loot a ground spawn by name."
+    "Allsay running! Use /asay phrase to have your group assist your tank for target, uninvis, and all say the given phrase.  Use /ahail to have group hail the target. Use /aground <ground spawn item name> to have group iteratively loot a ground spawn by name."
 )
 
 local function Tick()
@@ -336,23 +419,22 @@ local function Tick()
     if BL.NotNil(State.hailTarget) then
         DoHail()
     end
-    
+
     if BL.NotNil(State.sayTarget) then
         DoAllSay()
     end
-    
+
     if State.doAllMount then
         DoAllMount()
     end
-    
-    if State.giveItemName and State.giveItemName ~= "" and State.giveItemTargetId ~= nil then 
+
+    if State.giveItemName and State.giveItemName ~= "" and State.giveItemTargetId ~= nil then
         doGiveItemToTarget()
-    end 
-    
+    end
 end
 
 while true do
     mq.doevents()
     Tick()
-	mq.delay(546)
+    mq.delay(546)
 end
