@@ -19,6 +19,10 @@ local TriggerStartRunning = false
 local hide1 = "152 -1145 193"
 local hide2 = "249 -1257 193"
 
+-- 0 is nil, mySpot == 1 means you're hide1, etc
+local mySpot = 0
+
+
 -- LEM group emote
 -- #*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.#*#
 
@@ -32,23 +36,42 @@ local hide2 = "249 -1257 193"
 
 mq.event(
     'ShalowainRunAway',
-    '#*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.#*#',
+    '#*#music starts to form into a solid object that begins to move toward #1# and #2#.#*#',
     function(line, nameOne, nameTwo)
         local myName = mq.TLO.Me.CleanName()
-        mq.cmd("/g EVENT CAUGHT IN GENERAL calling out %s and %s", nameOne, nameTwo)
-
+        --mq.cmd("/g EVENT ONE CAUGHT")
         if nameOne == myName then
             mq.cmd("/g EVENT CAUGHT - I'm name ONE running")
             hideSpot = hide1
             TriggerStartRunning = true
+            mySpot = 1
         elseif nameTwo == myName then
             mq.cmd("/g EVENT CAUGHT - I'm name TWO running")
+            hideSpot = hide2
+            TriggerStartRunning = true
+            mySpot = 2
+        end
+    end
+)
+
+mq.event(
+    'ShalowainRunAway',
+    '#*#music starts to form into a solid object that begins to move toward #1# and #2#.',
+    function(line, nameOne, nameTwo)
+        local myName = mq.TLO.Me.CleanName()
+        mq.cmd("/g EVENT TWO CAUGHT")
+
+        if nameOne == myName then
+            mq.cmd("/g EVENT TWO CAUGHT - I'm name ONE running")
+            hideSpot = hide1
+            TriggerStartRunning = true
+        elseif nameTwo == myName then
+            mq.cmd("/g EVENT TWO CAUGHT - I'm name TWO running")
             hideSpot = hide2
             TriggerStartRunning = true
         end
     end
 )
-
 
 local function IHaveWaitedLongEnough()
     if os.clock() - StartedWaitingTime > WaitDuration then
@@ -130,7 +153,9 @@ local function RunWhileDebuffed()
     if FSM == FSMStates.Default then
         mq.cmd('/g I have the AOE debuff, running to safe spot')
     end
+
     FSM = FSMStates.HaveDebuffRun
+
     -- we have the debuff, run to safe spot
     if not mq.TLO.CWTN.Paused() then
         BL.cmd.pauseAutomation()
@@ -138,46 +163,45 @@ local function RunWhileDebuffed()
         mq.delay(250)
     end
     mq.cmd("/nav locyxz 568 -1317 327")
-    while BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName) do
-        mq.delay(100)
+    while IHaveADebuff() do
+        mq.delay(200)
     end
-    mq.cmd("/g My Debuff is gone")
+    mq.cmdf("/g Debuff Dropped on %s, running to hideSpot", mq.TLO.Me.CleanName())
+    FSM = FSMStates.DebuffDroppedGoWait
     TriggerStartRunning = false
+    StartedWaitingTime = os.clock()
+    --mq.cmdf("/nav locyxz %s", hideSpot)
 end
 
 local function handleAoEEvent()
     -- We got the debuff event and we're one of the called-out people, run
     if TriggerStartRunning then
         RunWhileDebuffed()
-    end
-
-    -- I had the debuff but its gone now, lets move to safe spot
-    if not IHaveADebuff() and FSM == FSMStates.HaveDebuffRun then
-        mq.cmdf("/g Debuff Dropped on %s", mq.TLO.Me.CleanName())
-        FSM = FSMStates.DebuffDroppedGoWait
-        StartedWaitingTime = os.clock()
+        return
     end
 
     -- We're waiting for aura despawn
     if FSM == FSMStates.DebuffDroppedGoWait then
-        mq.cmdf("/nav locyxz %s", hideSpot)
-        mq.cmd("/g Running to hide spot since debuff is gone")
         if IHaveWaitedLongEnough() then
             FSM = FSMStates.Default
             StartedWaitingTime = 0
             BL.cmd.resumeAutomation()
             mq.cmd('/g I Have waited long enough after debuff at hiding spot, resuming')
+        else
+            -- we need to run into closest echo
+            local myEcho = "a_sound_echo0" .. tostring(mySpot - 1) --needs a -1 because a_sound_echo00 to 02
+            mq.cmdf('/nav spawn %s', myEcho)
+            mq.cmd('/g Naving into %s', myEcho)
         end
     end
 end
-
-
 
 init()
 
 while true do
     handleEggs()
     handleAoEEvent()
+    mq.doevents()
     mq.delay(112)
 end
 

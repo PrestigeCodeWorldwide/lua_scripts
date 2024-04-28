@@ -32,7 +32,7 @@ end
 
 ------------------------------------------------------------------------ Forced assist
 local function MoveToSpawn(spawn, distance)
-    if (distance == nil) then distance = 5 end
+    if (distance == nil) then distance = 15 end
 
     if (spawn == nil or spawn.ID() == nil) then return end
     if (spawn.Distance() < distance) then return true end
@@ -72,29 +72,25 @@ local function send_message(do_noparse, scope, command, ...)
 end
 
 local function send_others_message(command, ...)
-    send_message(false, 'dgge', command, ...)
+    send_message(false, 'dgze', command, ...)
 end
 
-local last_actual_spawn = nil
-local function AllKillTarget(target)
-    local is_new_target = false
-    local spawn_name = target.CleanName()
-    local actual_spawn = target
-    if (actual_spawn.ID() == nil) then
+local function AllKillTarget()
+    local spawn_name = mq.TLO.Target.CleanName()
+    local spawn_id = mq.TLO.Target.ID()
+    if (spawn_id == nil) then
         BL.info('No spawn found: (\at%s\ao)', spawn_name)
         return false
     end
 
-    if (is_new_target == true) then
-        BL.info('\aoKilling \at%s\ao (id:\at%s\ao)', spawn_name, actual_spawn.ID())
-    end
+    BL.info('\aoKilling \at%s\ao (id:\at%s\ao)', spawn_name, spawn_id)
 
-    if (MoveToAndAttackId(actual_spawn.ID()) == false) then
+    if (MoveToAndAttackId(spawn_id) == false) then
         BL.info('Move/Attack for (%s) failed', spawn_name)
         return
     end
-
-    send_others_message('/target id %d', actual_spawn.ID())
+    
+    send_others_message('/target id %d', spawn_id)
     mq.delay(250)
     send_others_message('/attack on')
     mq.delay(250)
@@ -104,12 +100,8 @@ local function AllKillTarget(target)
 end
 
 -- Some situations, the group would not automatically engage. This tells them all to target and attack
-
-
 mq.bind("/allkill", function()
-    local myTarget = mq.TLO.Target
-
-    AllKillTarget(myTarget)
+    AllKillTarget()
 end)
 
 
@@ -427,7 +419,7 @@ local function Tick()
     if State.doAllMount then
         DoAllMount()
     end
-
+    
     if State.giveItemName and State.giveItemName ~= "" and State.giveItemTargetId ~= nil then
         doGiveItemToTarget()
     end

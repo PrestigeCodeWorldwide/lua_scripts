@@ -2,24 +2,19 @@
 local mq = require('mq')
 --- @type ImGui
 require('ImGui')
---- @type BL
 local BL = require('biggerlib')
 
 -- This goes up by the NPC
 local debuffName = 'Song of Echoes'
 local otherDebuffName = 'Song of Calling'
 
-local WaitDuration = 36
-local StartedWaitingTime = 0
-
-local hideSpot = ""
 local TriggerStartRunning = false
 
 -- THESE ARE locYXZ
-local hide1 = "152 -1145 193"
-local hide2 = "249 -1257 193"
-local hide3 = "381 -914 193"
-local hide4 = "488 -1016 193"
+--local hide1 = "152 -1145 193"
+--local hide2 = "249 -1257 193"
+--local hide3 = "381 -914 193"
+--local hide4 = "488 -1016 193"
 
 -- LEM group emote
 -- #*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1# and #2#.#*#
@@ -29,33 +24,49 @@ local hide4 = "488 -1016 193"
 
 mq.event(
     'ShalowainRunAway',
-    '#*#Shalowain links the sounds of footfalls and heartbeats of several people to her musical magic. That music starts to form into a solid object that begins to move toward #1#, #2#, #3, and #4#.#*#',
+    '#*#music starts to form into a solid object that begins to move toward #1#, #2#, #3, and #4#.#*#',
     function(line, nameOne, nameTwo, nameThree, nameFour)
         local myName = mq.TLO.Me.CleanName()
         
         if nameOne == myName then 
-            hideSpot = hide1
+            --hideSpot = hide1
             TriggerStartRunning = true
         elseif nameTwo == myName then 
-            hideSpot = hide2
+            --hideSpot = hide2
             TriggerStartRunning = true
         elseif nameThree == myName then 
-            hideSpot = hide3
+            --hideSpot = hide3
             TriggerStartRunning = true
         elseif nameFour == myName then
-            hideSpot = hide4
+            --hideSpot = hide4
             TriggerStartRunning = true
         end
     end
 )
 
-local function IHaveWaitedLongEnough()
-    if os.clock() - StartedWaitingTime > WaitDuration then
-        return true
+mq.event(
+    'ShalowainRunAwayTwo',
+    '#*#music starts to form into a solid object that begins to move toward #1#, #2#, #3, and #4#.',
+    function(line, nameOne, nameTwo, nameThree, nameFour)
+        local myName = mq.TLO.Me.CleanName()
+
+        if nameOne == myName then
+            --hideSpot = hide1
+            TriggerStartRunning = true
+        elseif nameTwo == myName then
+            --hideSpot = hide2
+            TriggerStartRunning = true
+        elseif nameThree == myName then
+            --hideSpot = hide3
+            TriggerStartRunning = true
+        elseif nameFour == myName then
+            --hideSpot = hide4
+            TriggerStartRunning = true
+        end
     end
-    
-    return false
-end
+)
+
+
 
 local FSMStates = {
     Default = 1,
@@ -79,19 +90,8 @@ local function init()
         mq.cmd('/g I AM a pet class, prioritizing eggs')
     else
         mq.cmd('/g I am NOT a pet class, ignoring eggs')
-    end
-    
-    BL.cmd.pauseAutomation()
-    mq.cmd('/g Growing myself with RC kit clicky horde cube')
-    mq.TLO.Me.DoTarget()
-    mq.delay(1)
-    mq.cmd('/useitem luclinite horde cube')
-    mq.delay(3500)
-    
-    mq.cmd('/g Levitating the group')
-    mq.cmd('/aa act perfected levitation')
-    mq.delay(3500)
-    BL.cmd.resumeAutomation()
+    end 
+  
 end
 
 local function handleEggs()
@@ -119,50 +119,43 @@ local function handleEggs()
     end
 end
 
-local function IHaveADebuff()
-    return BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName)
-end
-
-local function RunWhileDebuffed()
-    if FSM == FSMStates.Default then
-        mq.cmd('/rs I have the AOE debuff, running to safe spot')
-    end
-    FSM = FSMStates.HaveDebuffRun
-    -- we have the debuff, run to safe spot
-    if not mq.TLO.CWTN.Paused() then
-        BL.cmd.pauseAutomation()
-        mq.cmdf("/target %s", mq.TLO.Me.CleanName())
-        mq.delay(250)
-    end
-    mq.cmd("/nav locyxz 568 -1317 327")
-    while BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName) do
-        mq.delay(100)
-    end
-    TriggerStartRunning = false
-end
 
 local function handleAoEEvent()
     -- We got the debuff event and we're one of the called-out people, run
-    if TriggerStartRunning then
-        RunWhileDebuffed()
-    end
-    
-    -- I had the debuff but its gone now, lets move to safe spot
-    if not IHaveADebuff() and FSM == FSMStates.HaveDebuffRun then
-        FSM = FSMStates.DebuffDroppedGoWait
-        StartedWaitingTime = os.clock()
-    end
-    
-    -- We're waiting for aura despawn
-    if FSM == FSMStates.DebuffDroppedGoWait then
-        mq.cmdf("/nav locyxz %s", hideSpot)
-        if IHaveWaitedLongEnough() then
-            FSM = FSMStates.Default
-            StartedWaitingTime = 0
-            BL.cmd.resumeAutomation()
-            mq.cmd('/rs AOE debuff is gone, resuming')
+    if TriggerStartRunning then            
+        if FSM == FSMStates.Default then
+            mq.cmd('/rs I have the AOE debuff, running to safe spot')
+        end
+        FSM = FSMStates.HaveDebuffRun
+        -- we have the debuff, run to safe spot
+        if not mq.TLO.CWTN.Paused() then
+            BL.cmd.pauseAutomation()
+            mq.cmdf("/target %s", mq.TLO.Me.CleanName())
+            mq.delay(250)
+        end
+        mq.cmd("/nav locyxz 568 -1317 327")
+        while BL.IHaveBuff(debuffName) or BL.IHaveBuff(otherDebuffName) do
+            mq.delay(100)
         end
     end
+    
+    -- REMOVED in favor of never bringing our boxes back and burning the fuck out of him instead
+    ---- I had the debuff but its gone now, lets move to safe spot
+    --if not IHaveADebuff() and FSM == FSMStates.HaveDebuffRun then
+    --    FSM = FSMStates.DebuffDroppedGoWait
+    --    StartedWaitingTime = os.clock()
+    --end
+    
+    ---- We're waiting for aura despawn
+    --if FSM == FSMStates.DebuffDroppedGoWait then
+    --    mq.cmdf("/nav locyxz %s", hideSpot)
+    --    if IHaveWaitedLongEnough() then
+    --        FSM = FSMStates.Default
+    --        StartedWaitingTime = 0
+    --        BL.cmd.resumeAutomation()
+    --        mq.cmd('/rs AOE debuff is gone, resuming')
+    --    end
+    --end
 end
 
 init()
@@ -172,3 +165,11 @@ while true do
     handleAoEEvent()    
     mq.delay(112)
 end
+
+--local function IHaveWaitedLongEnough()
+--    if os.clock() - StartedWaitingTime > WaitDuration then
+--        return true
+--    end
+
+--    return false
+--end

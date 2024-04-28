@@ -43,12 +43,13 @@ mq.event("ElementalRunAway", "#*#Brigadier Swarn pulls elemental forces to gathe
 
 local function runToSafety()
     BL.cmd.pauseAutomation()
+    mq.cmd("/gu Running in EIGHT SECONDS, taunt off me!")
+    mq.delay(8000)
     mq.cmdf("/nav locyxz %s", mySafeSpot)
-    mq.cmd("/gu Running from Elem Convergence emote")
     currentState = State.RUNNING
 end
 
-local function checkSafety()
+local function checkSafeToReturn()
     if not BL.IHaveBuff(ElemDebuff) then
         mq.cmd("/gu Elem AOE fired on me, returning")
         BL.cmd.resumeAutomation()
@@ -60,7 +61,7 @@ local function fsmUpdate()
     if currentState == State.NEEDS_TO_RUN then
         runToSafety()
     elseif currentState == State.RUNNING then
-        checkSafety()
+        checkSafeToReturn()
     end
 end
 

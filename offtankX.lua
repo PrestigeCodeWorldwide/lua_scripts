@@ -243,9 +243,9 @@ end
 
 local function DoTanking()
 	-- i should refactor later parts into modular fns like this new free mob one
-    if State.OfftankMethod == OfftankMethods.LooseMobs then 
-        return DoFreeMobTanking()
-    end
+    --if State.OfftankMethod == OfftankMethods.LooseMobs then 
+    --    return DoFreeMobTanking()
+    --end
     
 	local assigned_mob = State.current_mob_being_tanked
 	if assigned_mob == nil or assigned_mob == 0 then
