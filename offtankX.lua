@@ -4,33 +4,8 @@ local mq = require("mq")
 require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
-local lume = require("biggerlib.lume")
 
 --local _chosenMode = mq.TLO.CWTN.Mode()
-
-local Tanks = {}
-
-local function BuildListOfRaidTanks()
-    local raidMemberCount = mq.TLO.Raid.Members()
-    
-    Tanks = {}
-    for i = 1, raidMemberCount do
-        local member = mq.TLO.Raid.Member(i)
-        local memberClass = member.Class()
-        local memberName = member.Name()
-        
-        if memberClass == "SHD" or memberClass == "WAR" then
-            table.insert(Tanks, memberName)
-        end
-        
-    end
-end
-
-local OfftankMethods = {
-    ByName = 1,
-    ByXtar = 2,
-    LooseMobs = 3,
-}
 
 
 ---@class ScriptState
@@ -78,9 +53,7 @@ local State = {
 	IAmTanking = false,
 	UserChangedSelectionFlag = false,
 	UserChangedModeFlag = false,
-    my_class = mq.TLO.Me.Class.ShortName(),
-    
-    OfftankMethod = OfftankMethods.LooseMobs
+	my_class = mq.TLO.Me.Class.ShortName()
 }
 
 local function initMQBindings()
@@ -123,7 +96,7 @@ end
 
 local function cwtnTANK()
 	if mq.TLO.CWTN.Mode() ~= "Tank" then
-		mq.cmdf("/%s mode 7", State.my_class)
+		mq.cmdf("/%s mode 4", State.my_class)
 	end
 end
 
@@ -175,78 +148,65 @@ local function IsNotIgnored(targetName)
 end
 
 local function UpdateAggroState()
-    if State.UserChangedModeFlag then
-        cwtnCHOSEN()
-        State.UserChangedModeFlag = false
-    end
-    --BL.dump(State.selected_xtar_to_tank)
-    if BL.IsNil(State.selected_xtar_to_tank)
-        or State.selected_xtar_to_tank == "NONE"
+	
+	if State.UserChangedModeFlag then
+		cwtnCHOSEN()
+		State.UserChangedModeFlag = false
+	end
+	--BL.dump(State.selected_xtar_to_tank)
+	if BL.IsNil(State.selected_xtar_to_tank)
+		or State.selected_xtar_to_tank == "NONE"
     then
-        BL.info("NO SELECTED XTAR")
-        if State.IAmTanking then
-            cwtnTANK()
-            State.IAmTanking = false
-        end
-        return
-    end
-
-    -- Get entire xtar list so we can filter out the ignored ones
-    local xtarCount = mq.TLO.Me.XTarget()
-    State.filtered_xtar_list = {}
-    for i = 1, xtarCount do
-        local currtar = mq.TLO.Me.XTarget(i)
-        if not BL.IsNil(currtar)
-            and IsNotIgnored(currtar.CleanName())
-
-        then
-            table.insert(State.filtered_xtar_list, currtar)
-        end
-    end
-    --BL.dump(State.filtered_xtar_list)
-    --BL.dump(State.selected_xtar_to_tank)
-    --- @type xtarget
-    local xtar = State.filtered_xtar_list[State.selected_xtar_to_tank]
-    --BL.dump(xtar)
-    if xtar ~= nil and not xtar.Dead() then
-        local xtarId = xtar.ID()
-        local xtarName = xtar.Name()
-        local targetType = xtar.TargetType()
-        local xtarSpawn = mq.TLO.Spawn(xtarId)
-        --BL.dump(xtarName, "xtarName")
-        --BL.dump(State.selected_xtar_to_tank, "selected xtar")
-        State.current_mob_being_tanked = xtarSpawn
-    else
-        State.current_mob_being_tanked = nil
-        cwtnCHOSEN()
-        State.IAmTanking = false
-    end
-end
-
-local function DoFreeMobTanking()
-    BL.info("Free mob tanking")
-    -- rebuild tank list
-    BuildListOfRaidTanks()
-    -- check for free/loose mobs against tank list
-    local xtarCount = mq.TLO.Me.XTarget()
+		BL.info("NO SELECTED XTAR")
+		if State.IAmTanking then
+			cwtnTANK()
+			State.IAmTanking = false
+		end
+		return
+	end
+	
+	-- Get entire xtar list so we can filter out the ignored ones
+	local xtarCount = mq.TLO.Me.XTarget()
+	State.filtered_xtar_list = {}
+	for i = 1, xtarCount do
+		local currtar = mq.TLO.Me.XTarget(i)
+		if not BL.IsNil(currtar)
+			and IsNotIgnored(currtar.CleanName())
+		
+		then
+			table.insert(State.filtered_xtar_list, currtar)
+		end
+	end
+	--BL.dump(State.filtered_xtar_list)
+	--BL.dump(State.selected_xtar_to_tank)
+	--- @type xtarget
+	local xtar = State.filtered_xtar_list[State.selected_xtar_to_tank]
+	--BL.dump(xtar)
+	if xtar ~= nil and not xtar.Dead()   then
+		local xtarId = xtar.ID()
+		local xtarName = xtar.Name()
+		local targetType = xtar.TargetType()
+		local xtarSpawn = mq.TLO.Spawn(xtarId)
+		--BL.dump(xtarName, "xtarName")
+		--BL.dump(State.selected_xtar_to_tank, "selected xtar")
+		State.current_mob_being_tanked = xtarSpawn
+	else
+		State.current_mob_being_tanked = nil
+		cwtnCHOSEN()
+		State.IAmTanking = false
+	end
 end
 
 local function StartTankingTarget()
-    cwtnTANK()
-    mq.delay(1)
-    if not mq.TLO.Me.Combat() then
-        mq.cmd("/attack on")
-    end
-    mq.delay(50)
+	cwtnTANK()
+	mq.delay(1)
+	if not mq.TLO.Me.Combat() then
+		mq.cmd("/attack on")
+	end
+	mq.delay(50)
 end
 
-
 local function DoTanking()
-	-- i should refactor later parts into modular fns like this new free mob one
-    --if State.OfftankMethod == OfftankMethods.LooseMobs then 
-    --    return DoFreeMobTanking()
-    --end
-    
 	local assigned_mob = State.current_mob_being_tanked
 	if assigned_mob == nil or assigned_mob == 0 then
 		--BL.info("Early out cwtnChosen call from DoTanking")
@@ -340,8 +300,7 @@ local DrawUI = function()
 	local changedXtarSelection = false
 	selected, changedXtarSelection = draw_combo_box("XTar to Tank", selected, State.xtar_options)
 	if changedXtarSelection then
-        State.UserChangedSelectionFlag = true
-        State.DirtyFlag = true
+		State.UserChangedSelectionFlag = true
 		local selectionNum = tonumber(selected)
         if BL.IsNil(selectionNum) then
 			BL.info("Sel num is nil, setting to NONE")
@@ -349,7 +308,7 @@ local DrawUI = function()
 			State.selected_xtar_to_tank = "NONE"
         else
 			BL.info("Sel xtar num is " .. tostring(selectionNum))
-			State.selected_xtar_to_tank = tostring(selectionNum)
+			State.selected_xtar_to_tank = selectionNum
 		end
 	end
 	
@@ -357,9 +316,9 @@ local DrawUI = function()
 	local selectedMode = State.chosenMode
 	selectedMode, changedMode = draw_combo_box("Non-Tanking Mode", selectedMode, State.cwtnModeList)
 	if changedMode then
-        State.chosenMode = selectedMode
-        BL.info("Setting dirty flag")
-		State.DirtyFlag = true	
+		State.chosenMode = selectedMode
+		State.UserChangedModeFlag = true
+	
 	end
 	
 	-- Accept user input for list of names and put them into string array State.ignored_mobs
@@ -384,6 +343,7 @@ local function init()
 		            ScriptState = State,
 		            DrawFunction = DrawUI,
 	            })
+	
 	return checkGroupTankRoleIsEmpty()
 end
 
