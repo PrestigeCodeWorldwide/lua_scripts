@@ -40,6 +40,10 @@ local Gui = require("biggerlib.ui")
 ---@field WaitForNav fun() Waits until navigation is complete before continuing.
 ---@field UI.GetOnOffColor fun(val: string):string Utility function for on/off text coloring.
 ---@field MakeGroupVisible fun() Makes the entire group visible.
+---@field checkChestSpawn fun(chestName: string|nil) Checks if a chest has spawned and exits the script if it has.
+---@field cmd.TurnOffAllAoE fun() Turns off all AoE's and AoE related settings for all classes using CWTN plugins.
+---@field cmd.TurnOnAllAoE fun() Turns on all AoE's and AoE related settings for all classes using CWTN plugins.
+---@field cmd.StandIfFeigned fun() Checks if the current character is feigned and stands if so.
 local BL = {}
 
 ---@class BL.Log
@@ -57,7 +61,56 @@ BL.UI = {}
 BL.Gui = Gui
 -- #region Oneoffs
 
+--- Checks if the character is feigned and stands if they are.
+function BL.cmd.StandIfFeigned()
+	if mq.TLO.Me.Spawn.State() == "FEIGN" then
+		mq.cmd("/stand")
+		mq.delay(100)
+	end
+end
 
+--- Turns off AoE's and AoE related settings for all classes using CWTN plugins. 
+--- Meant for events that we don't want any AoE damage.
+function BL.cmd.TurnOffAllAoE()
+	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE off")
+	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 99")
+	if mq.TLO.Me.Class.ShortName() == "BER" or mq.TLO.Me.Class.ShortName() == "MNK" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault off")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive off")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHD" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious off")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHM" and mq.TLO.Me.AltAbility("Languid Bite: Enabled").ID() ~= nil then
+		mq.cmd("/alt act 861")
+	end
+end
+
+function BL.cmd.TurnOnAllAoE()
+	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE on")
+	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 2")
+	if mq.TLO.Me.Class.ShortName() == "BER" or mq.TLO.Me.Class.ShortName() == "MNK" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault on")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive on")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHD" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious on")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHM" and mq.TLO.Me.AltAbility("Languid Bite: Disabled").ID() ~= nil then
+		mq.cmd("/alt act 861")
+	end
+end
+
+--- Checks if a chest has spawned and exits the script if it has.
+---@param chestName string|nil @The name of the chest to check for. Defaults to "a_military_chest".
+function BL.checkChestSpawn(chestName)
+    chestName = chestName or "a_military_chest"
+    local chest = mq.TLO.Spawn(chestName)
+    if chest() and chest.ID() > 0 then
+        BL.info(string.format("Chest '%s' has spawned! Ending script.", chestName))
+        mq.exit()
+    end
+end
 
 --- Runs /dgga "cmd", so your whole group will each execute whatever command
 ---@param cmd string @The command to be executed on the group.
@@ -299,7 +352,7 @@ function BL.WaitForNav()
 	mq.delay(100, function()
 		return mq.TLO.Navigation.Active()
 	end)
-	mq.delay(1000, function()
+	mq.delay(60000, function()
 		return not mq.TLO.Navigation.Active()
 	end)
 end
