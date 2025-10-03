@@ -6,67 +6,71 @@ local radiusXY = 75
 local successfullyHitTarget = false
 
 local OnHitEventMatcher = 'You hit #1# for 1 points #*#.'
+local OnPierceEventMatcher = 'You pierce #*#.'
 ----
 mq.event('HitCurrentMobSuccessfullyEvent', OnHitEventMatcher, function(line, name)
-	successfullyHitTarget = true
+    successfullyHitTarget = true
 end)
 
+mq.event('PierceCurrentMobSuccessfullyEvent', OnPierceEventMatcher, function(line, name)
+    successfullyHitTarget = true
+end)
 
 local function hitAll()
-	mq.cmd("/hidecorpse all")
-	mq.delay(50)
-	mq.cmd("/nav spawn kodajii")
-	BL.WaitForNav()
+    mq.cmd("/hidecorpse all")
+    mq.delay(50)
+    mq.cmd("/nav spawn kodajii")
+    BL.WaitForNav()
 
-	local spawnCount = mq.TLO.SpawnCount("npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)()
-	local hitArrayID = {}
-	for i = 1, spawnCount do
-		local spawn = mq.TLO.NearestSpawn(i, "npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)
-		if spawn() and not (spawn.Name():find("pet") or spawn.Name():find("Pet")) then
-			hitArrayID[i] = spawn.ID()
-		end
-	end
-	BL.info("iterating spawns with count: ", #hitArrayID)
-	local target
-	--for i, npcID in mobs do
-	for i= 1, #hitArrayID do
-		local npcID = hitArrayID[i]
-		if npcID == nil then
-			--BL.dump(hitArrayID, "hitArrayID index: " .. i )
-			BL.info("Mob %d is nil, skipping", i)
-			goto continue
-		end
-		BL.info("Iteration starting, count: " .. i .. " of " ..  #hitArrayID .. " npcID: " .. npcID)
-		target = mq.TLO.Spawn(npcID)
-		target.DoTarget()
-        mq.delay(500)		
-		mq.cmdf("/dgza /echo Attacking new target : %s who is %d out of %d total", target.Name(), i, #hitArrayID)
-		successfullyHitTarget = false
-		
-		mq.cmd('/stick 12 uw !front')
-		mq.delay(500)
-		BL.info("Turning attack on")
-		mq.cmd('/attack on')
-		
-		while not successfullyHitTarget do
-			if not mq.TLO.Me.Combat() then mq.cmd('/attack on') end
-			mq.doevents()
-			mq.delay(200)
-		end
-		mq.doevents()
+    local spawnCount = mq.TLO.SpawnCount("npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)()
+    local hitArrayID = {}
+    for i = 1, spawnCount do
+        local spawn = mq.TLO.NearestSpawn(i, "npc targetable los radius " .. radiusXY .. " zradius " .. radiusZ)
+        if spawn() and not (spawn.Name():find("pet") or spawn.Name():find("Pet")) then
+            hitArrayID[i] = spawn.ID()
+        end
+    end
+    BL.info("iterating spawns with count: ", #hitArrayID)
+    local target
+    --for i, npcID in mobs do
+    for i = 1, #hitArrayID do
+        local npcID = hitArrayID[i]
+        if npcID == nil then
+            --BL.dump(hitArrayID, "hitArrayID index: " .. i )
+            BL.info("Mob %d is nil, skipping", i)
+            goto continue
+        end
+        BL.info("Iteration starting, count: " .. i .. " of " .. #hitArrayID .. " npcID: " .. npcID)
+        target = mq.TLO.Spawn(npcID)
+        target.DoTarget()
+        mq.delay(500)
+        mq.cmdf("/dgza /echo Attacking new target : %s who is %d out of %d total", target.Name(), i, #hitArrayID)
+        successfullyHitTarget = false
+
+        mq.cmd('/stick 12 uw !front')
+        mq.delay(500)
+        BL.info("Turning attack on")
+        mq.cmd('/attack on')
+
+        while not successfullyHitTarget do
+            if not mq.TLO.Me.Combat() then mq.cmd('/attack on') end
+            mq.doevents()
+            mq.delay(200)
+        end
+        mq.doevents()
         ::continue::
         mq.delay(500)
-		BL.info("Finished iteration: ", i)
-	end
-	mq.cmd('/attack off')
-	mq.cmd("/dgza /echo DONE HITTING ALL!")
+        BL.info("Finished iteration: ", i)
+    end
+    mq.cmd('/attack off')
+    mq.cmd("/dgza /echo DONE HITTING ALL!")
 end
 
 local function main()
-	mq.cmd("/dgza /echo Starting Golden Pick Hitall...")
+    mq.cmd("/dgza /echo Starting Golden Pick Hitall...")
     mq.delay(100)
-	mq.doevents()
-	hitAll()
+    mq.doevents()
+    hitAll()
 end
 
 main()
