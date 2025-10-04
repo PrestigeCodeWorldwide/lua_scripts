@@ -1,11 +1,10 @@
---Version 2.0
 local mq = require 'mq'
 require 'ImGui'
 local bit = require 'bit'
 local Open, ShowUI = true, true
 local BL = require("biggerlib")
 
-BL.info('HunterHood v2.0 loaded')
+BL.info('HunterHood v2.03 loaded')
 
 -- Load and initialize zone data
 local zoneData = require("Hunterhood.zone_data").create(mq)
@@ -195,6 +194,7 @@ local notDone = mq.FindTextureAnimation('A_TransparentCheckBoxNormal')
 
 -- Some WindowFlags
 local WindowFlags = bit.bor(ImGuiWindowFlags.NoTitleBar, ImGuiWindowFlags.NoResize, ImGuiWindowFlags.AlwaysAutoResize)
+local HoodWindowFlags = bit.bor(ImGuiWindowFlags.NoTitleBar, ImGuiWindowFlags.NoScrollbar)
 
 -- print format function
 local function printf(...)
@@ -209,6 +209,9 @@ local showGrind = false
 local onlySpawned = false
 local spawnUp = 0
 local totalDone = ''
+local currentTab = "Hunter"                          -- Track which tab is active
+local hoodWindowSize = { width = 270, height = 350 } -- Saved size for Hood tab
+local lastTab = "Hunter"                             -- Track the last active tab
 
 -- shortening the mq bind for achievements
 local myAch = mq.TLO.Achievement
@@ -567,7 +570,7 @@ local function renderHoodTab()
     end
 
     -- Expansion selector combo
-    ImGui.SetNextItemWidth(150)
+    ImGui.SetNextItemWidth(190)
     if ImGui.BeginCombo("Expansion", combo_items[selected_index]) then
         for i, item in ipairs(combo_items) do
             if ImGui.Selectable(item, i == selected_index) then
@@ -592,12 +595,10 @@ local function renderHoodTab()
         currentZoneName = zones[selected_zone_index].name()
     end
 
-    ImGui.SameLine()
-    ImGui.SetNextItemWidth(200)
+    ImGui.SetNextItemWidth(190)
     if ImGui.BeginCombo("Zone", currentZoneName) then
         for i, zone in ipairs(zones) do
             local zoneText = getZoneDisplayName(zone.id)
-
             if ImGui.Selectable(zoneText, i == selected_zone_index) then
                 selected_zone_index = i
                 updateHoodAchievement(zone.id)
@@ -608,33 +609,47 @@ local function renderHoodTab()
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
-        local fixedChildHeight = 300
-        ImGui.BeginChild("MobList", 0, fixedChildHeight, ImGuiChildFlags.Border, ImGuiWindowFlags
-            .AlwaysVerticalScrollbar)
+        -----------------------------------------------------
+        -- FIXED HEADER SECTION (aligned with body columns)
+        -----------------------------------------------------
+        local windowWidth = select(1, ImGui.GetContentRegionAvail())
 
-        -- Columns setup
-        ImGui.Columns(3, "##mob_columns", false)
-        local windowWidth = ImGui.GetWindowWidth()
-        local col1Width = windowWidth * 0.6 - 50
-        local col2Width = 75
-        local col3Width = windowWidth - col1Width - col2Width + 20
+        local col1MinWidth = 200
+        local col2Width = 50
+        local remainingSpace = windowWidth - col2Width - 20
+        local col1Width = math.max(col1MinWidth, remainingSpace * 0.5)
+        local col3Width = remainingSpace - col1Width
+
+        ImGui.Columns(3, "##mob_columns_header", false)
         ImGui.SetColumnWidth(0, col1Width)
         ImGui.SetColumnWidth(1, col2Width)
         ImGui.SetColumnWidth(2, col3Width)
 
-        -- Count completed spawns live
+        -- Header col 1: Completed
         local completed, total = 0, #hoodAch.Spawns
         for _, spawn in ipairs(hoodAch.Spawns) do
-            if spawn.done then
-                completed = completed + 1
-            end
+            if spawn.done then completed = completed + 1 end
         end
-
-        -- Header with live completion counter
         ImGui.Text(string.format("Completed ( %d/%d )", completed, total))
-        ImGui.NextColumn()
+ImGui.SameLine(0, 10)  -- Add space after text
+ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
+ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
+if ImGui.SmallButton("GO##ExecuteAction") then
+    if not navActive then
+        navActive = true
+        navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
+        printf("\ayStarted navigation to selected mobs")
+    else
+        navActive = false
+        navCoroutine = nil
+        mq.cmd("/nav stop")
+        printf("\ayStopped navigation")
+    end
+end
+ImGui.PopStyleColor(2)
+ImGui.NextColumn()
 
-        -- "Check All" checkbox
+        -- Header col 2: Check All
         local allChecked = true
         for _, spawn in ipairs(hoodAch.Spawns) do
             if not mobCheckboxes[spawn.name] then
@@ -642,7 +657,10 @@ local function renderHoodTab()
                 break
             end
         end
+        local checkPosX = ImGui.GetCursorPosX()
+        ImGui.SetCursorPosX(checkPosX + 8) -- Add 15px offset
         local newAllChecked = ImGui.Checkbox("##CheckAll", allChecked)
+        ImGui.SetCursorPosX(checkPosX)     -- Reset cursor position
         if newAllChecked ~= allChecked then
             for _, s in ipairs(hoodAch.Spawns) do
                 mobCheckboxes[s.name] = newAllChecked
@@ -651,48 +669,36 @@ local function renderHoodTab()
         end
         ImGui.NextColumn()
 
-        -- Actions header + GO button
-        ImGui.BeginGroup()
-        ImGui.Text("Actions")
-        ImGui.SameLine()
-        ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
-        ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
-        if ImGui.SmallButton("GO##ExecuteAction") then
-            -- Toggle navigation on/off
-            if not navActive then
-                -- Start navigation
-                navActive = true
-                navCoroutine = navigateToTargets(hoodAch, mobCheckboxes) -- Pass both parameters
-                printf("\ayStarted navigation to selected mobs")
-            else
-                -- Stop navigation
-                navActive = false
-                navCoroutine = nil
-                mq.cmd("/nav stop")
-                printf("\ayStopped navigation")
-            end
-        end
-        ImGui.PopStyleColor(2)
-        ImGui.EndGroup()
-        ImGui.NextColumn()
+        ImGui.Columns(1)
         ImGui.Separator()
+
+        -----------------------------------------------------
+        -- SCROLLABLE BODY (same column widths)
+        -----------------------------------------------------
+        local availX, availY = ImGui.GetContentRegionAvail()
+        ImGui.BeginChild("MobList", 0, availY, ImGuiChildFlags.Border)
+
+        ImGui.Columns(3, "##mob_columns_body", false)
+        ImGui.SetColumnWidth(0, col1Width)
+        ImGui.SetColumnWidth(1, col2Width)
+        ImGui.SetColumnWidth(2, col3Width)
+
+
         -- Mob rows
         for _, spawn in ipairs(hoodAch.Spawns) do
-            -- Column 1: Achievement status indicator ✔ / ✘
+            -- Column 1: completion + name
             if spawn.done then
-                ImGui.DrawTextureAnimation(done, 15, 15)    -- green check texture
+                ImGui.DrawTextureAnimation(done, 15, 15)
             else
-                ImGui.DrawTextureAnimation(notDone, 15, 15) -- empty box / red cross substitute
+                ImGui.DrawTextureAnimation(notDone, 15, 15)
             end
             ImGui.SameLine(0, 5)
 
-
-            -- Column 1 continued: Mob name colored by spawn status
             local isSpawned = mq.TLO.SpawnCount("npc " .. spawn.name)() > 0
             if isSpawned then
-                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
             else
-                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1)       -- Grey
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1)
             end
 
             ImGui.PushID("mob_" .. tostring(spawn.id or 0) .. "_" .. spawn.name)
@@ -707,8 +713,9 @@ local function renderHoodTab()
                 end
             end
             ImGui.PopID()
+            ImGui.PopStyleColor()
 
-            -- Tooltip for PH info
+            -- Tooltip for PH info (unchanged)
             if ImGui.IsItemHovered() then
                 local phList = require("Hunterhood.ph_list").ph_list
                 local function normalizeName(name)
@@ -716,7 +723,6 @@ local function renderHoodTab()
                 end
                 local normalizedSpawnName = normalizeName(spawn.name)
                 local placeholders = phList[spawn.name] or {}
-
                 if #placeholders == 0 then
                     for mobName, phs in pairs(phList) do
                         if normalizeName(mobName):find(normalizedSpawnName, 1, true)
@@ -726,62 +732,44 @@ local function renderHoodTab()
                         end
                     end
                 end
-
                 local spawnedPHs, totalSpawned = {}, 0
                 for _, phName in ipairs(placeholders) do
                     local count = mq.TLO.SpawnCount("npc " .. phName)() or 0
                     if count > 0 then
-                        -- Create a unique key using both spawn.name and phName
-                        local uniqueKey = spawn.name .. ":" .. phName
-                        table.insert(spawnedPHs, {
-                            name = phName,
-                            count = count,
-                            key = uniqueKey -- Add a unique key for each PH entry
-                        })
+                        table.insert(spawnedPHs, { name = phName, count = count })
                         totalSpawned = totalSpawned + count
                     end
                 end
-
                 if #placeholders > 0 or #spawnedPHs > 0 then
                     ImGui.BeginTooltip()
                     ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
                     ImGui.Text("PH(s) for " .. spawn.name .. ":")
-
                     if #spawnedPHs > 0 then
                         ImGui.Text(string.format("\nCurrently spawned (%d):", totalSpawned))
                         for _, ph in ipairs(spawnedPHs) do
-                            -- Use the unique key for the ID to ensure proper hover behavior
-                            ImGui.PushID(ph.key)
                             ImGui.BulletText(string.format("%s (x%d)", ph.name, ph.count))
-                            ImGui.PopID()
                         end
                     end
-
                     if #placeholders > 0 then
                         ImGui.Text("\nPossible placeholders:")
-                        for i, ph in ipairs(placeholders) do
-                            -- Create a unique ID for each placeholder bullet point
-                            ImGui.PushID(spawn.name .. "_ph_" .. i)
+                        for _, ph in ipairs(placeholders) do
                             ImGui.BulletText(ph)
-                            ImGui.PopID()
                         end
                     end
-
                     ImGui.PopStyleColor()
                     ImGui.EndTooltip()
                 end
             end
 
-            ImGui.PopStyleColor() -- pop gold/grey text color
             ImGui.NextColumn()
 
-            -- Column 2: Checkbox (independent of achievements)
+            -- Column 2: checkbox
             local state = mobCheckboxes[spawn.name]
             local newState = ImGui.Checkbox("##" .. spawn.name, state)
             mobCheckboxes[spawn.name] = newState
             ImGui.NextColumn()
 
-            -- Column 3: Action buttons
+            -- Column 3: action buttons
             ImGui.BeginGroup()
             ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
@@ -800,17 +788,33 @@ local function renderHoodTab()
         ImGui.Columns(1)
         ImGui.EndChild()
     else
-        -- Fallback child when no mobs
         ImGui.BeginChild("MobList", 0, 50, ImGuiChildFlags.Border)
         ImGui.Text("No hunter achievement found for this zone.")
         ImGui.EndChild()
     end
 end
 
+
 local function HunterHUD()
     if ShowUI then
         ImGui.PushStyleColor(ImGuiCol.WindowBg, 0, 0, 0, 0.66)
-        Open, _ = ImGui.Begin('HunterHUD', Open, WindowFlags)
+
+        -- Use different window flags based on active tab
+        local activeWindowFlags = (currentTab == "Hood") and HoodWindowFlags or WindowFlags
+
+        -- Set window size for Hood tab before Begin
+        if currentTab == "Hood" and lastTab ~= "Hood" then
+            ImGui.SetNextWindowSize(hoodWindowSize.width, hoodWindowSize.height, ImGuiCond.Always)
+        end
+
+        Open, _ = ImGui.Begin('HunterHUD', Open, activeWindowFlags)
+
+        -- Save Hood tab size when it's active
+        if currentTab == "Hood" then
+            hoodWindowSize.width = ImGui.GetWindowWidth()
+            hoodWindowSize.height = ImGui.GetWindowHeight()
+        end
+
         ImGui.PopStyleColor()
 
         if ImGui.BeginTabBar("HunterHUDTabs") then
@@ -829,6 +833,8 @@ local function HunterHUD()
 
             -- Hunter tab
             if ImGui.BeginTabItem("Hunter") then
+                lastTab = currentTab  -- Save previous tab
+                currentTab = "Hunter" -- Set active tab
                 RenderTitle()
                 if curHunterAch.ID then
                     RenderHunter()
@@ -839,6 +845,8 @@ local function HunterHUD()
 
             -- Hood tab
             if ImGui.BeginTabItem("Hood") then
+                lastTab = currentTab -- Save previous tab
+                currentTab = "Hood"  -- Set active tab
                 -- push custom style
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1)
                 ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1)
@@ -916,60 +924,3 @@ while Open do
     end
     mq.delay(250)
 end
-
-
-
---[[
-
-Version 2.0 -- Davros
-* Added a new tab to track and view all zones Hunter achievements.
-
-Version 1.2.1
-* Progrssbar will now show Completed! if the achievement is done.
-* Findspawn function was optimized, cause i done dumb the first time.
-* Fixed achievements:
-    - Hunter of The Ruins of Old Guk       The Reinforced Ruins of Old Guk=gukbottom
-    - Hunter of the Permafrost Caverns     Permafrost Keep=permafrost
-    - Hunter of The Temple of Droga        The Temple of Droga=droga
-    - Hunter of The Burning Wood           The Burning Woods=burningwood
-    - Hunter of The Ruins of Old Sebilis   The Reinforced Ruins of Old Sebilis=sebilis
-* Some rogue integer vars fixed to proper string vars where used
-* Fancy icon for people in zone, still need to fix it proper counting when you not in group.
-
-**Version 1.2.0
-* Fixed achievements:
-    - Hunter of The Feerrott               The Feerrott=Feerrott2
-    - Hunter of West Karana (Ethernere)    Ethernere Tainted West Karana=ethernere
-    - Hunter of the Plane of Hate: Broken Mirror  Plane of hate Revisited=hateplane
-    - Hunter of Frontier Mountains         Frontier Mountains=frontiermtnsb
-    - Hunter of Kurn's Tower               Kurn's Tower=oldkurn
-
-* In world mob name to achievement objective name mapping, as some names dont match properly, please report names if you find any, i need a screenshot of the mobs ingame name, and the achievement name
-
-* Removed some commnad line options as i didnt like them, now that we got the right click menu.
-
-* Removed the check that made the achievment name grey when you didnt have any spawns up
-
-* Added infoline (its a work in progrss!)
-    - shows numbers of players in zone
-    - Working on an invis indicator for group
-    - Working on indicator for showing if spawns are up
-        - indicator will show if you need the spawn or if its just or if something is just up.
-
-* cleaned up some code and restructured some code to make it more modular and fanzys.
-
-
-
-local function findspawnold(spawn)
-    if nameMap[spawn] then spawn = nameMap[spawn] end
-    local spawnCount = mq.TLO.SpawnCount(string.format('npc "%s"', spawn))()
-    for i = 1, spawnCount do
-        local mySpawn = mq.TLO.NearestSpawn(string.format('%d,npc "%s"',i , spawn))
-        if mySpawn.CleanName() == spawn then
-            return mySpawn.ID()
-        end
-    end
-    return 0
-end
-
-]] --
