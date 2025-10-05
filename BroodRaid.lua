@@ -21,7 +21,7 @@ local iAmWaiting = false
 
 -- Green Slime spawn detection
 -- spawn name= a dripping greenish puddle
-local SPAWN_NAME = "Strateg"
+local SPAWN_NAME = "greenish"
 local ANNOUNCE_MESSAGE = "The Green Slime has spawned! Run!"
 local DESPAWN_MESSAGE = "Slime is no longer up!"
 local lastAnnounced = false
@@ -29,7 +29,7 @@ local spawnCounter = 0
 
 -- Function to check if the spawn is up
 local function isSpawnUp()
-    local spawn = mq.TLO.Spawn("pc " .. SPAWN_NAME)
+    local spawn = mq.TLO.Spawn("npc " .. SPAWN_NAME)
     return spawn.ID() ~= nil and spawn.ID() ~= 0
 end
 
