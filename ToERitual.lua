@@ -3,7 +3,7 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToERitual Script v1.21 Started")
+BL.info("ToERitual Script v1.22 Started")
 
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} mode 2")
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} chasedistance 10 nosave")
@@ -33,9 +33,21 @@ local function copyTable(tbl)
     return new
 end
 
+-- Check if any group member is dead
+local function isAnyGroupMemberDead()
+    local groupSize = mq.TLO.Group.Members() or 0
+    for i = 1, groupSize do
+        local member = mq.TLO.Group.Member(i)
+        if member() and member.Dead() then
+            BL.info(string.format("Pausing movement - %s is dead", member.Name() or "Unknown"))
+            return true
+        end
+    end
+    return false
+end
 -- Move to next circle in the queue
 local function moveToNextCircle()
-    if movingToCircle or not canMoveToCircles or #circleQueue == 0 then return end
+    if movingToCircle or not canMoveToCircles or #circleQueue == 0 or isAnyGroupMemberDead() then return end
 
     local nextColor = table.remove(circleQueue, 1)
     local loc = circleLocations[nextColor]
@@ -151,6 +163,13 @@ mq.event("YellowCircle", "#*#The circle to the west flashes with yellow energy#*
 -- Main loop
 while true do
     BL.checkChestSpawn("a_military_chest")
+    
+    -- If we were moving to a circle but a group member died, stop movement
+    if movingToCircle and isAnyGroupMemberDead() then
+        mq.cmd("/nav stop")
+        movingToCircle = false
+        BL.info("Movement paused due to dead group member")
+    end
 
     mq.doevents()
     mq.delay(200)
