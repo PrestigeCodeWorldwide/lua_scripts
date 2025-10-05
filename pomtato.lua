@@ -1,6 +1,8 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 
+BL.info("Pomtato v1.2 loaded")
+
 -- Default value if no argument is provided
 local hotpotato_person = "Stratsk"
 
@@ -15,7 +17,7 @@ end
 
 local function giveHotPotato()
     BL.info("\ag[%s] Hot potato triggered! Targeting: %s", mq.TLO.Me.CleanName(), hotpotato_person)
-    mq.cmd("/boxr pause")
+    BL.cmd.pauseAutomation()
     mq.delay(500)
     mq.cmd("/autoinventory")
     mq.delay(500)
@@ -23,7 +25,7 @@ local function giveHotPotato()
     mq.delay(1000)
     mq.cmdf("/useitem Magnificent Planar Gem")
     --mq.delay(3500)
-    mq.cmd("/boxr unpause")
+    BL.cmd.resumeAutomation()
 end
 
 -- Bind the /hotpotato command as a backup
@@ -46,6 +48,12 @@ local function setupEventHandlers()
     -- Event 3: 
     mq.event("PotatoRaid", "#*#You just got the gem and fumble to get ahold of it well enough to toss it#*#", function()
         BL.info("\ag[%s] Fumble to get ahold of it emote recieved! Passing it on...", mq.TLO.Me.CleanName())
+        giveHotPotato()
+    end)
+    
+    -- Event 4: 
+    mq.event("PotatoRaidstart", string.format("#*#He tosses a huge gem to %s#*#", mq.TLO.Me.CleanName() or ""), function()
+        BL.info("\ag[%s] Raid start emote recieved! Passing it on...", mq.TLO.Me.CleanName())
         giveHotPotato()
     end)
     
