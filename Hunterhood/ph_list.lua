@@ -4,7 +4,7 @@
 local ph_list = {
     -- Format: ["Named Mob"] = {"Placeholder1", "Placeholder2", ...}
 
-    ----- Beginning of ToB PH list ----
+    --------- Beginning of ToB PH list ---------
     -- Aureate Covert
     ["scalewrought aerialist"] = {
         "scalewrought skyguardian"
@@ -179,7 +179,7 @@ local ph_list = {
         "a void conger"
     },
 
-    ---- Beginning of LS PH list ----
+    --------- Beginning of LS PH list ---------
     --Ankexfen Keep
     ["Ankexfen Experiment"] = {
         "a gorge scavenger"
@@ -393,7 +393,7 @@ local ph_list = {
         "	a treant planter"
     },
 
-    ----Beginning of NoS PH list----
+    --------- Beginning of NoS PH list ---------
     --Darklight Caverns
     ["Chromatic Widow Queen"] = {
         "an ethereal widow"
@@ -551,7 +551,7 @@ local ph_list = {
         "a hungry xakra worm"
     },
 
-    ----Beginning of ToL PH list----
+    ---------Beginning of ToL PH list---------
     --Basilica of Adumbration
     ["Congealed Shadow Mass"] = {
         "a tangible shadow"
@@ -571,44 +571,196 @@ local ph_list = {
     ["Mistakenly Animated Salt Golem"] = {
         "an animated experiment"
     },
-    ["Xetheg, Luclin`s Warden"] = {
+    ["Xetheg, Luclin`s Warder"] = {  -- TODO: verify
         "a tekuel"
     },
 
     --Bloodfalls
-    ["bloodfalls_1"] = {
-        "bloodfalls_1"
+    ["A Retainer of Shadow"] = {
+        "a laborer of shadow"
+    },
+    [" Centien Xi Va Xakra"] = {
+        "a war shade"
+    },
+    ["Coagulus"] = {
+        "a viscious blood bag"
+    },
+    ["Cruor"] = {
+        "a sanguineous blood beast"
+    },
+    ["Lady Constance"] = {
+        "a nameless vampire"
+    },
+    ["Nikolas the Exiled"] = {
+        "a lost vampire"
+    },
+    ["Pli Xin Laiko"] = {
+        "Zun Xin Liako"
     },
 
     --Ka Vethan
-    ["ka_vethan_1"] = {
-        "ka_vethan_1"
+    ['Centi Thall'] = {
+        "Centi Atulus"
+    },
+    ['Diabo Tatrua'] = {
+        "Gel'Temariel Centi"
+    },
+    ['Diabo Va Thall'] = {
+        "Fer'Tatrua Centi"
+    },
+    ['Diabo Xi Va'] = {
+        "Fer'Temariel Centi"
+    },
+    ['Diabo Xi Xin'] = {
+        "Teka'Temariel Centi"
+    },
+    ['The Protector'] = {
+        "a shade guardian"
     },
 
     --Maiden's Eye
-    ["maidens_eye_1"] = {
-        "maidens_eye_1"
+    [" Centien Rashen Xaui"] = {
+        "Pli Torgarath Xi Vex"
+    },
+    ["Darkmeat"] = {
+        "a luclin scavenger",
+        "a luclin stalker"
+    },
+    ["Diabo Xi Akuel"] = {
+        "a well-fed rockbreaker"
+    },
+    [" Lucca Brightfeld"] = {
+        "a winged scavenger"
+    },
+    ["Namdrows"] = {
+        "a mind burrower"
+    },
+    ["Quietus the Forgotten"] = {
+        "an erased hero's guard",
+        "a lost shade or forlorn"
+    },
+    ["Temariel Xi Tetoracu"] = {
+        "Dabo Xi Vereor"
+    },
+    ["Tess Zelinstein"] = {
+        "a peckish vampyre",
+        "a beaten vampyre"
+    },
+    ["Txiki"] = {
+        "a gleeful miscreant"
+    },
+    ["Xenacious Von Deek"] = {
+        "a rabid bat",
+        "a repressed vampyre",
+        "a pacified vampyre",
     },
 
     --Shadow Valley
-    ["shadow_valley_1"] = {
-        "shadow_valley_1"
+    ["a scorched terror"] = {
+        "a gnarled terror"
+    },
+    ["a tenebrous slight"] = {
+        "a tenebrous shadow"
+    },
+    [" an avaricious mass"] = {
+        "an avenging mass"
+    },
+    ["an illusive dim"] = {
+        "an illusive swarm"
+    },
+    ["Ander, Wolf of Shadows"] = {
+        "a ruinous wolf"
+    },
+    ["Bynn the Tormented"] = {
+        "an obscured shade"
+    },
+    ["Tearc, Shade Keeper"] = {
+        "a remnant of shade",
+        "an unsettled tumbler"
     },
 
     --Umbral Plains
-    ["umbral_plains_1"] = {
-        "umbral_plains_1"
+    ["Bloodwretch"] = {
+        "a netherbian ripper"
+    },
+    ["Captain Resh Sogran"] = {
+        "a fallen sergeant"
+    },
+    ["Fleshrot"] = {
+        "a netherbian carrion"
+    },
+    ["Fyrthek Fior"] = {
+        "a fyr jen keeper"
+    },
+    ["Gantru Shojralen"] = {
+        "a gantru ralktran"
+    },
+    ["Nightfall"] = {
+        "a dark shadow"
+    },
+    ["Rumblecrush"] = {
+        "a hefty stone guardian"
+    },
+    ["Shak Dathor Warlord"] = {
+        "a shak dathor keeper"
+    },
+    ["Sylra Fris"] = {
+        "a syl ren keeper"
+    },
+    ["Telaris Xeturisun"] = {
+        "Torgarath Renthais"
     },
 
     --Vex Thal
-    ["vex_thal_1"] = {
-        "vex_thal_1"
+    ["Diabo Xi Va Temariel"] = {
+        "Kela Va"
+    },
+    ["Diabo Xi Xin Thall"] = {
+        "Xin Thall"
+    },
+    [" Kaas Thox Xi Ans Dyek"] = {
+        "Qua Kaas Thox"
+    },
+    ["Thall Va Kelun"] = {
+        "Thall Xi Va"
+    },
+    [" Thall Xundraux Diabo"] = {
+        "Kela Thall"
+    },
+    ["Thox Xakra"] = {
+        "Raux Xakra"
+    },
+    ["Va Xakra"] = {
+        "Kaas Xakra"
     },
 
-    ----Beginning of CoV PH list----
+    ---------Beginning of CoV PH list---------
     --Cobalt Scar
     ["Morwenna Undertow"] = {
         "a neriad huntress"
+    },
+    ["Delmare Undertow"] = {
+        "a neriad guard"
+    },
+    ["Pikebreath"] = {
+        "a restless othmir"
+    },
+    ["Ol` Grinnin` Finley"] = {
+        "a deepwater gnasher"
+    },
+    ["Desirae Fanfare"] = {
+        "an alluring siren"
+    },
+    ["Octave Sforzando"] = {
+        "any siren then cycle ends with",
+        "a siren muse"
+    },
+    ["Skolskin Haeger"] = {
+        "a protective ulthork"
+    },
+    ["Kirezelbough"] = {
+        "any wyvern then cycle ends with",
+        "a winged terror"
     },
 
     --Dragon Necropolis
@@ -636,15 +788,404 @@ local ph_list = {
         "the_western_wastes_1"
     },
 
-    ----Beginning of EoK PH list----
+    ---------Beginning of ToV PH list---------
+    ---Crystal Caverns---
+    ["Crystal Grinder"] = {
+        "a crystal skitterer"
+    },
+    ["Gem collector"] = {
+        "a focus geonid"
+    },
+    ["Life Leech"] = {
+        "a terror carver",
+        "a hollow carver",
+    },
+    ["Queen Dracnia"] = {
+        "a crystal purifier",
+        "a drachnid retainer",
+    },
+
+    --Kael Drakkel
+    ["kael_drakkel_1"] = {
+        "kael_drakkel_1"
+    },
+
+    --Eastern Wastes
+    ["a returned dracoliche"] = {
+        "a restless dracoliche"
+    },
+    ["Bolman"] = {
+        "a frozen fright"
+    },
+    ["Cadcane the Unmourned"] = {
+        "a cold skeleton"
+    },
+    ["Coldears"] = {
+        "a frosted mammoth"
+    },
+    ["Mahaha"] = {
+        "a hypothermic ghoul"
+    },
+    [" Monolith the Unstoppable"] = {
+        "an exiled sentry"
+    },
+    [" Servant of the Sleeper"] = {
+        "a restless dracholiche"
+    },
+    ["Sofia the Quiet"] = {
+        "a wandering mourner"
+    },
+    ["Vekboz Wolfpunch"] = {
+        "a Coldain fighter"
+    },
+    ["Windchill"] = {
+        "a frosted dire wolf"
+    },
+    ["Zburator the Damned"] = {
+        "a hoarfrost cadaver"
+    },
+
+    --The Great Divide
+    ["a forgotten raid leader"] = {
+        "a forgotten enforcer"
+    },
+    ["a tizmak augur"] = {
+        "a shivering tizmak"
+    },
+    ["Blizzent"] = {
+        "a shivering shardwurm"
+    },
+    ["Bloodmaw"] = {
+        "a frosted kodiak"
+    },
+    ["Gerton Dumkin"] = {
+        "a Coldain fighter"
+    },
+    ["Gorul Longshanks"] = {
+        "a corrupted giant"
+    },
+    ["Laima Ratgur"] = {
+        "a frigid coldain"
+    },
+    ["Loremaster Metiheib the Lost"] = {
+        "a windchilled marrowbones"
+    },
+    [" Lost Squire of Narandi"] = {
+        "a forgotten enforcer"
+    },
+    ["Margidor"] = {
+        "A shivering corpse"
+    },
+    ["Orfur, Priest of Zek"] = {
+        "a shivering screamer"
+    },
+    ["Thosgromri Warmgranite"] = {
+        "a frigid cadaver"
+    },
+
+    --The Ry'Gorr Mines
+    ["Ry`Gorr Herbalist"] = {
+        "a Ry'Gorr apprentice"
+    },
+    ["Ry`Gorr Inspector"] = {
+        "a restless Ry'Gorr foreman"
+    },
+
+    --The Tower of Frozen Shadow
+    ["tower_of_frozen_shadow_1"] = {
+        "tower_of_frozen_shadow_1"
+    },
+
+    --Velketor's Labyrinth
+    ["velketor_s_labyrinth_1"] = {
+        "velketor_s_labyrinth_1"
+    },
+
+    ---------Beginning of TBL PH list---------\
+    --Stratos: Zephyr's Flight
+    ["Cloud_Iron_Lance"] = {
+        "an abundant gale"
+    },
+    ["Daring Cloud Spear"] = {
+        "a dusty mephit"
+    },
+    ["Dawnbreeze"] = {
+        "a whirlweaver phoenix"
+    },
+    ["Dour Eighth Guardian"] = {
+        "a dignified djinn"
+    },
+    ["Eastern Radiant Glance"] = {
+        "a voluminous gale"
+    },
+    ["Glassbeak Stormbreaker"] = {
+        "a windweaver phoenix"
+    },
+    ["Horizon of Destiny"] = {
+        "a tempestuous gust"
+    },
+    ["Infinite Horizon Star"] = {
+        "a billowing gale"
+    },
+    ["Silver Eyes Dread"] = {
+        "a glorious djinn"
+    },
+    ["Starshine, Icebreaker"] = {
+        "a brumebreeze armor"
+    },
+    ["Triumphal Still Sky"] = {
+        "a grand djinn"
+    },
+    ["Wild Blossom Star's_Flight"] = {
+        "an easterly mephit's_Flight"
+    },
+    
+    ---------Beginning of RoS PH list---------
+    --Sathir's Tomb
+    ["a Kar`zok grave robber"] = {
+        "a Krellnakor filcher",
+        "a Fereth appraiser"
+    },
+    ["a Kar`zok infiltrator"] = {
+        "a Krellnakor enforcer",
+        "a Wulthan thief",
+        "a Krellnakor scavenger",
+        "an Arcron lifter",
+    },
+    ["Arisen Gloriant Kra`du"] = {
+        "an Arisen steward",
+        "an Elevated skeleton",
+    },
+    [" Xalgoz the Arisen"] = {
+        "an Arisen ritualist",
+        "an Exalted spirit",
+    },
+    ["Ancient Apparition"] = {
+        "an arisen apparition"
+    },
+    
+    --Gorowyn
+    ["Artikla, Fereth Despot"] = {
+        "a Fereth commander"
+    },
+    ["Elkikatar"] = {
+        "a Kar'Zok scourge"
+    },
+    ["Gnaw"] = {
+        "a chokidai elder"
+    },
+    ["Head Boiler Akett"] = {
+        "a soup boiler"
+    },
+    ["High Arcron Zeklor"] = {
+        "an Arcron burner"
+    },
+    ["Hissilith, the Brittlebones"] = {
+        "an enslaved skeleton"
+    },
+    ["Overlord Klerkon"] = {
+        "a Krellnakor destroyer"
+    },
+    [" Overlord Teralov"] = {
+        "a Krellnakor terror"
+    },
+    [" Overlord Tevik"] = {
+        "a Krellnakor seeker"
+    },
+    ["Rekatok One-Eye"] = {
+        "an aging pit fighter"
+    },
+    ["The Magmalisk"] = {
+        "a hungry lavalisk"
+    },
+    [" Wulthan High Inquisitor Kraz"] = {
+        "a Wulthan administrator"
+    },
+    ["Fereth Captain Ordran"] = {
+        "a fereth captain"
+    },
+    ["Wulthan Elder Priest Ovun"] = {
+        "a wulthan priest"
+    },
+
+    --Howling Stones
+    ["Howling_Stones"] = {
+        "howling_stones"
+    },
+
+    --The Skyfire Mountains
+    ["The_Skyfire_Mountains"] = {
+        "the_skyfire_mountains"
+    },
+
+    --The Overthere
+    ["Banshee"] = {
+        "a screeching chokidai"
+    },
+    ["Bloodstalker"] = {
+        "a blood-stained stalker"
+    },
+    ["a bluff golem"] = {
+        "a rocky cliff golem"
+    },
+    ["Drakis"] = {
+        "a dreadful scorpikis"
+    },
+    ["Fang"] = {
+        "a stonepeep cockatrice"
+    },
+    ["a grotesque succulent"] = {
+        "a sickly succulent"
+    },
+    ["an iron sentinel"] = {
+        "a rubble golem"
+    },
+    ["Janissary Virzak"] = {
+        "a Wulthan Zealot"
+    },
+    ["a Kar`Zok lacerator"] = {
+        "a Fereth procurator"
+    },
+    ["a majestic cockatrice"] = {
+        "a stoneglint cockatrice"
+    },
+    ["Myrmidon Tundak"] = {
+        "a Krellnakor officer"
+    },
+    ["Needle"] = {
+        "a needle-covered succulent"
+    },
+    ["Observer Eyrzekla"] = {
+        "a mysterious sarnak"
+    },
+    ["Rigelon the Watcher"] = {
+        "a shifty scorpikis"
+    },
+    ["Saber"] = {
+        "a raging rhino"
+    },
+    ["Arcron Thaumaturge Osellik"] = {
+        "an arcron thaumaturge"
+    },
+    ["Flamescale Overlord Takarious"] = {
+        "a Krellnakor overlord"
+    },
+
+    --Veeshan's Peak
+    ["Veeshan_s_Peak"] = {
+        "veeshan_s_peak"
+    },
+    
+    ---------Beginning of EoK PH list---------
     --Chardok
+    ["Battle Master Ska`tu"] = {
+        "a reanimated berserker",
+        "a reanimated dragoon",
+        "a reanimated partisan",
+    },
     ["The Bridge Keeper"] = {
         "a bridge guardian"
     },
+    ["Crackjaw"] = {
+        "a starving beetle",
+        "a frenzied beetle",
+    },
+    ["Deathfang"] = {
+        "a chokidai bonecrusher",
+        "a cholidai lacerater",
+    },
+    ["Dread Overseer Akalod"] = {
+        "Heroic Adventure: Others' Things",
+        "a weary overseer",
+    },
+    ["Dry Rot"] = {
+        "a moldering fungusman"
+    },
+    ["Flight Master Hak`ouz"] = {
+        "a flight coordinator"
+    },
+    ["Fractured Shard"] = {
+        "a magic tear"
+    },
+    ["Grand Advisor Zum`uul"] = {
+        "a Shai`din scribe"
+    },
+    ["Grand Herbalist Mak`ha"] = {
+        "a Di`zok herb gardener",
+        "a chokidai herbdigger",
+    },
+    ["Kennel Master Al`ele"] = {
+        "a kennel mucker",
+        "a kennel keeper",
+    },
+    ["Observer Aq`touz"] = {
+        "a Di`zok watcher"
+    },
+    ["Overseer Dal`guur"] = {
+        "a Di`zok foreman",
+        "a Di`zok slavemaster",
+    },
+    ["Queen Velazul`s Aide"] = {
+        "royal escort"
+    },
+    ["Royal Guard Kakator"] = {
+        "Heroic Adventure: On Behest of the Emperor",
+        "a weary royal guard"
+    },
+    ["Selrach`s Regent"] = {
+        "royal guard"
+    },
+    ["Shai'din Warmaster Roh`ki"] = {
+        "a Di`zok strategist"
+    },
+    ["The Sokokar Matron"] = {
+        "a sokokar consort",
+        "a sokokar welpling",
+    },
+    [" Watch Captain Hir`roul"] = {
+        "a Di`zok watchman"
+    },
 
     --Frontier Mtns
-    ["frontier_mtns_b_1"] = {
-        "frontier_mtns_b_1"
+    ["Belligerent Biarn"] = {
+        "a Konikor drunk"
+    },
+    ["Bi`faak the Shadowwalker"] = {
+        "a Drogan reveler"
+    },
+    ["Blooddrinker Furasza"] = {
+        "a Syldon flamewarden"
+    },
+    ["Brute Herder Ar`shok"] = {
+        "a Syldon agitator"
+    },
+    ["Corrupted Grove Guardian"] = {
+        "a grove guardian"
+    },
+    ["Delirious Berserker"] = {
+        "a Drogan berserker"
+    },
+    ["Drillmaster Mak`tak"] = {
+        "a Syldon drill sergeant"
+    },
+    ["Flamewarden Zev`ran"] = {
+        "a Syldon neophyte",
+        "an experimental behemoth"
+    },
+    ["Flintikki Peltpile"] = {
+        "a frontier bear"
+    },
+    ["Masterchef Ram`see"] = {
+        "a Syldon chef"
+    },
+    ["Orechomper"] = {
+        "a Legion miner"
+    },
+    ["Reese the Rhinopocalypse"] = {
+        "a frontier poacher"
+    },
+    ["Spyhunter Zath`ran"] = {
+        "a Syldon greenhorn"
     },
 
     --Gates of Kor-Sha
@@ -709,7 +1250,34 @@ local ph_list = {
         "scorched_woods_1"
     },
 
-    ----Beginning of TSS PH list----
+---------Beginning of TBM PH list---------
+--Crypt of Sul
+    ["Bokon Revel the Reborn"] = {
+        "an unliving hulk"
+    },
+    ["Citizen Pain"] = {
+        "Heroic Adventure: To The Brave, Go The Spoils!",
+        "a reserved worshiper"
+    },
+    ["Devourer of All"] = {
+        "an insatiable fiend"
+    },
+    ["Grinder"] = {
+        "Heroic Adventure: The Head of the Snake",
+        "a faithblind hulk"
+    },
+    ["High Priestess Kal`vius"] = {
+        "a high bokon"
+    },
+    ["Spine Eater"] = {
+        "Heroic Adventure: The Bokon High Council",
+        "a drooling ghoul"
+    },
+    ["The Watcher"] = {
+        "a skeletal sentinel"
+    },
+
+    ---------Beginning of TSS PH list---------
     ---Ashengate---
     ["ashengate_1"] = {
         "ashengate_1"
@@ -768,6 +1336,74 @@ local ph_list = {
     ["Anghel"] = {
         "a Minohten satyr"
     },
+    ["Aurelia"] = {
+        "a napaea windstriker"
+    },
+    ["Craita"] = {
+        "an oread stonehide"
+    },
+    ["Fantoma"] = {
+        "a mesa alpha wolf"
+    },
+    ["Florenta"] = {
+        "a dryad tender",
+        "a dryad maiden",
+        "a dryad windweaver",
+        "a dryad protector",
+    },
+    ["Ghita"] = {
+        "a Minohten satyr"
+    },
+    ["Glasson"] = {
+        "Quest Only: Hanook #2: Oh No!"
+    },
+    ["Incinspaianjen"] = {
+        "a dark widow"
+    },
+    ["Ionela"] = {
+        "a potamide maiden",
+        "a potamide matron",
+        "a potamide noble",
+        "a potamide protector",
+        "a potamide retainer",
+    },
+    ["Latham"] = {
+        "60 minute timer"
+    },
+    ["Mal"] = {
+        "a murkwater ooze"
+    },
+    ["Manunchi"] = {
+        "a windwillow wisp"
+    },
+    ["Nemarsarpe"] = {
+        "a diamondback snake"
+    },
+    ["Plasa"] = {
+        "a harpy hunter"
+    },
+    ["Refugiu"] = {
+        "a rotwood strangler"
+    },
+    ["Sandu"] = {
+        "a Tuffein satyr"
+    },
+    ["Schelet"] = {
+        "a lingering dryad"
+    },
+    ["Tarsiit Movila"] = {
+        "a rotwood tangleweed"
+    },
+    ["Ternsmochin"] = {
+        "a lost rotwood"
+    },
+    ["Uriasarpe"] = {
+        "a ring snake"
+    },
+    ["Ursalua"] = {
+        "a mesa bear",
+        "a mesa mother bear",
+    },
     --Icefall Glacier
     ["icefall_glacier_1"] = {
         "icefall_glacier_1"
@@ -793,7 +1429,7 @@ local ph_list = {
         "vergalid_mines_1"
     },
     --
-    
+
     --Add more entries here following the same pattern
     -- Each key is the named mob, and the value is a table of possible placeholders
 }
