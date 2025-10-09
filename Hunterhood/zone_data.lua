@@ -175,8 +175,20 @@ local function createZoneData(mq)
             {id = 816, name = function() return getZoneDisplayName(816) end, shortname = "chambersb"},
         },
         ["SoF"] = {
-            {id = 815, name = function() return getZoneDisplayName(815) end, shortname = "chambersa"},
-            {id = 816, name = function() return getZoneDisplayName(816) end, shortname = "chambersb"},
+            {id = 445, name = function() return getZoneDisplayName(445) end, shortname = "bloodmoon"},
+            {id = 449, name = function() return getZoneDisplayName(449) end, shortname = "cryptofshade"},
+            {id = 446, name = function() return getZoneDisplayName(446) end, shortname = "crystallos"},
+            {id = 442, name = function() return getZoneDisplayName(442) end, shortname = "dragonscale"},
+            {id = 451, name = function() return getZoneDisplayName(451) end, shortname = "dragonscaleb"},
+            {id = 436, name = function() return getZoneDisplayName(436) end, shortname = "mechanotus"},
+            {id = 441, name = function() return getZoneDisplayName(441) end, shortname = "gyrospirez"},
+            {id = 440, name = function() return getZoneDisplayName(440) end, shortname = "gyrospireb"},
+            {id = 444, name = function() return getZoneDisplayName(444) end, shortname = "hillsofshade"},
+            {id = 443, name = function() return getZoneDisplayName(443) end, shortname = "lopingplains"},
+            {id = 437, name = function() return getZoneDisplayName(437) end, shortname = "mansion"},
+            {id = 439, name = function() return getZoneDisplayName(439) end, shortname = "shipworkshop"},
+            {id = 438, name = function() return getZoneDisplayName(438) end, shortname = "steamfactory"},
+            {id = 447, name = function() return getZoneDisplayName(447) end, shortname = "guardian"},
         },
         ["TBS"] = {
             {id = 815, name = function() return getZoneDisplayName(815) end, shortname = "chambersa"},
@@ -199,6 +211,7 @@ local function createZoneData(mq)
         },
         ["Debug"] = {
             {id = 751, name = function() return getZoneDisplayName(751) end, shortname = "guildhall3_int"},
+            {id = 202, name = function() return getZoneDisplayName(202) end, shortname = "poknowledge"},
             {id = 752, name = function() return getZoneDisplayName(752) end, shortname = "chambersb"},
         }
     }

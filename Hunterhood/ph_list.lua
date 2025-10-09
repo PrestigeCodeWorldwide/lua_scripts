@@ -1277,6 +1277,64 @@ local ph_list = {
         "a skeletal sentinel"
     },
 
+    ---------Beggining of SoF PH list---------
+    --Dragonscale Hills
+    ["Arachnotron"] = {
+        "a spiderwork scavenger"
+    },
+    ["Bloodbeak"] = {
+        "a cursed crow"
+    },
+    ["Captain of the Leafguard"] = {
+        "a Darkvine"
+    },
+    ["Chief Thundragon"] = {
+        "Spawns every 10 min 40 sec"
+    },
+    ["Click-o-nik"] = {
+        "a clockwork overseer"
+    },
+    ["Delilah Windrider"] = {
+        "Unknown"
+    },
+    ["Diddle D"] = {
+        "a clockwork overseer"
+    },
+    ["Dungore"] = {
+        "a doombug scavenger"
+    },
+    ["Elder Krunggar Whiptail"] = {
+        "a minotaur weaponsmaster",
+        "a minotaur furyblade"
+    },
+    ["Fiddle D"] = {
+        "a clockwork overseer"
+    },
+    ["Gillipuzz"] = {
+        "dragonscale_hills_12"
+    },
+    ["King Mustef"] = {
+        "a frisky shadowcat"
+    },
+    ["Leafrot"] = {
+        "dragonscale_hills_14"
+    },
+    ["Mad MX"] = {
+        "a clockwork overseer"
+    },
+    ["Strawshanks"] = {
+        "a blighted scarecrow"
+    },
+    ["Tangler Timbleton"] = {
+        "dragonscale_hills_17"
+    },
+    ["Ton o`Tin"] = {
+        "dragonscale_hills_18"
+    },
+    ["Witchkin"] = {
+        "a dragonscale viper"
+    },
+
     ---------Beginning of TSS PH list---------
     ---Ashengate---
     ["ashengate_1"] = {
@@ -1405,8 +1463,47 @@ local ph_list = {
         "a mesa mother bear",
     },
     --Icefall Glacier
-    ["icefall_glacier_1"] = {
-        "icefall_glacier_1"
+    ["Blackfoot"] = {
+        "any nightmoon"
+    },
+    ["icefall_glacier_2"] = {
+        "icefall_glacier_2"
+    },
+    ["icefall_glacier_3"] = {
+        "icefall_glacier_3"
+    },
+    ["icefall_glacier_4"] = {
+        "icefall_glacier_4"
+    },
+    ["icefall_glacier_5"] = {
+        "icefall_glacier_5"
+    },
+    ["icefall_glacier_6"] = {
+        "icefall_glacier_6"
+    },
+    ["icefall_glacier_7"] = {
+        "icefall_glacier_7"
+    },
+    ["icefall_glacier_8"] = {
+        "icefall_glacier_8"
+    },
+    ["icefall_glacier_9"] = {
+        "icefall_glacier_9"
+    },
+    ["icefall_glacier_10"] = {
+        "icefall_glacier_10"
+    },
+    ["icefall_glacier_11"] = {
+        "icefall_glacier_11"
+    },
+    ["icefall_glacier_12"] = {
+        "icefall_glacier_12"
+    },
+    ["icefall_glacier_13"] = {
+        "icefall_glacier_13"
+    },
+    ["icefall_glacier_14"] = {
+        "icefall_glacier_14"
     },
     --Stone Hive
     ["stone_hive_1"] = {
@@ -1417,8 +1514,76 @@ local ph_list = {
         "sunderock_springs_1"
     },
     --The Steppes
-    ["the_steppes_1"] = {
-        "the_steppes_1"
+    ["Chef Gudez"] = {
+        "any Darkfell",
+        "a Darkfell archer",
+        "a Darkfell captain",
+        "a darkfell elite",
+        "a Darkfell gnoll",
+        "a Darkfell guard",
+    },
+    ["Deathfang"] = {
+        "a mature wasp spider"
+    },
+    ["Firebelly the Cook"] = {
+        "a Stonemight"
+    },
+    ["Gruet Longsight"] = {
+        "any Darkfell",
+        "a Darkfell archer",
+        "a Darkfell captain",
+        "a darkfell elite",
+        "a Darkfell gnoll",
+        "a Darkfell guard",
+    },
+    ["Gruntor the Mad"] = {
+        "a hill giant"
+    },
+    ["Hesmire Farflight"] = {
+        "a guardian of the grove"
+    },
+    ["High Shaman Firglum"] = {
+        "a Darkfell elder",
+        "a Darkfell shaman",
+    },
+    ["Hunter Borty"] = {
+        "Unknown"
+    },
+    ["Hunter Groppa"] = {
+        "Unknown"
+    },
+    ["Littlebiter the Skinchanger"] = {
+        "a Stonemight elder"
+    },
+    ["Midnight"] = {
+        "a Steppes leopard"
+    },
+    ["Nanertak"] = {
+        "Unknown"
+    },
+    ["Oldbones"] = {
+        "a dire wolf",
+        "a hill giant",
+        "A stone viper",
+        "A brown bear",
+    },
+    ["Skurl"] = {
+        "a Stonemight veteran",
+        "a Stonemight elder",
+    },
+    ["Sneaktalker Gizdor"] = {
+        "any Darkfell",
+        "a Darkfell archer",
+        "a Darkfell captain",
+        "a darkfell elite",
+        "a Darkfell gnoll",
+        "a Darkfell guard",
+    },
+    ["Splotchy"] = {
+        "any Stonemight"
+    },
+    ["Tarbelly the Wanderer"] = {
+        "multiple types"
     },
     --Valdeholm
     ["valdeholm_1"] = {

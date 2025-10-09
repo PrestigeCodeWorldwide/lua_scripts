@@ -3,60 +3,23 @@ require 'ImGui'
 local bit = require 'bit'
 local Open, ShowUI = true, true
 local BL = require("biggerlib")
+local helpers = require("Hunterhood.helpers")
+local zoneData = require("Hunterhood.zone_data").create(mq)
 
-BL.info('HunterHood v2.03 loaded')
+BL.info('HunterHood v2.05 loaded')
 
 -- Load and initialize zone data
-local zoneData = require("Hunterhood.zone_data").create(mq)
 local zoneMap = zoneData.zoneMap
 local zone_lists = zoneData.zone_lists
 local combo_items = zoneData.combo_items
 local getZoneDisplayName = zoneData.getZoneDisplayName
+-- shortening the mq bind for achievements
+local myAch = mq.TLO.Achievement
+local helpers = require("Hunterhood.helpers").new(myAch)  -- Pass myAch to helpers
 -- Navigation coroutine
 local navCoroutine = nil
 local navActive = false
 
--- Helper function to check for non-PH mobs on extended target
-local function hasNonPHTargets(phList, hoodAch)
-    local xtargetCount = mq.TLO.Me.XTarget() or 0
-    for i = 1, xtargetCount do
-        local target = mq.TLO.Me.XTarget(i)
-        if target() and target.ID() > 0 then
-            local spawn = mq.TLO.Spawn(target.ID())
-            if spawn() and not spawn.Dead() then
-                local isPHorNamed = false
-                local spawnName = spawn.CleanName()
-
-                -- Check if it's one of our named mobs
-                for _, mob in ipairs(hoodAch.Spawns) do
-                    if mob.name == spawnName then
-                        isPHorNamed = true
-                        break
-                    end
-                end
-
-                -- Check if it's a PH for any of our mobs
-                if not isPHorNamed then
-                    for _, phs in pairs(phList) do
-                        for _, ph in ipairs(phs) do
-                            if ph == spawnName then
-                                isPHorNamed = true
-                                break
-                            end
-                        end
-                        if isPHorNamed then break end
-                    end
-                end
-
-                -- If we found a non-PH, non-named mob on extended target
-                if not isPHorNamed then
-                    return true, spawn
-                end
-            end
-        end
-    end
-    return false, nil
-end
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
@@ -67,37 +30,46 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
         while navActive do
             -- Check for non-PH mobs on extended target
-            local hasAdd, addSpawn = hasNonPHTargets(phList, hoodAch)
-            if hasAdd and addSpawn then
+            local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch)
+            if hasAdd then
                 -- If we're currently navigating to a target, stop that navigation
                 if mq.TLO.Navigation.Active() then
                     mq.cmd("/nav stop")
                     navComplete = true
                 end
 
-                printf("\arAdd detected: \ay%s\ar - Engaging first", addSpawn.CleanName())
-                mq.cmdf("/nav id %d log=error", addSpawn.ID())
-                mq.cmdf("/tar id %d", addSpawn.ID())
-                mq.cmd("/docommand /${Me.Class.ShortName} resetcamp")
-                navComplete = false
-                currentTarget = addSpawn
+                if addSpawn then
+                    printf("\arAdd detected: \ay%s\ar - Engaging first", addSpawn.CleanName())
+                    mq.cmdf("/nav id %d log=error", addSpawn.ID())
+                    mq.cmdf("/tar id %d", addSpawn.ID())
+                    --mq.cmd("/docommand /${Me.Class.ShortName} resetcamp")
+                    --mq.cmd("/attack on")
+                    navComplete = false
+                    currentTarget = addSpawn
 
-                -- Wait for add to die
-                while navActive and addSpawn() and not addSpawn.Dead() do
-                    -- Check if more adds appear while fighting this one
-                    local newAdd = hasNonPHTargets(phList, hoodAch)
-                    if newAdd then
-                        printf("\ayNew add detected, will engage after current target")
+                    -- Wait for add to die
+                    while navActive and addSpawn() and not addSpawn.Dead() do
+                        if addSpawn.Distance() < 20 then  -- Check if target is in range (adjust 100 as needed)
+                            mq.cmd("/attack on")
+                            break
+                        end
+                        coroutine.yield()
                     end
-                    coroutine.yield()
                 end
+            else
 
                 -- Short delay after killing add
-                for i = 1, 10 do
-                    if not navActive then break end
-                    coroutine.yield()
+                if helpers.groupNeedsInvis() then
+                    printf("\\ayGroup needs invisibility - casting...")
+                    mq.cmd("/docommand /dgga /alt act 231")
+                    mq.cmd("/alt act 231")
+                    -- Wait a moment for cast to complete
+                    for i = 1, 20 do
+                        if not navActive then break end
+                        coroutine.yield()
+                    end
                 end
-                goto continue
+
             end
 
             -- If we get here, no adds are present, proceed with normal targeting
@@ -149,13 +121,28 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
                     -- If we found a valid target, navigate to it
                     if closestSpawn and (not currentTarget or currentTarget.ID() ~= closestSpawn.ID()) then
+                        -- Check if group needs invisibility before moving to next target
+                        printf("\\ayDEBUG: About to check if group needs invisibility")
+                        if helpers.groupNeedsInvis() then
+                            printf("\\ayGroup needs invisibility - casting before moving to next target...")
+                            mq.cmd("/noparse /docommand /dgga /alt act 231")
+                            printf("\\ayDEBUG: Sent invis command, waiting...")
+                            -- Wait a moment for cast to complete
+                            for i = 1, 20 do
+                                if not navActive then break end
+                                coroutine.yield()
+                            end
+                            printf("\\ayDEBUG: Done waiting for invis")
+                        else
+                            printf("\\ayDEBUG: Group does not need invisibility")
+                        end
+                        
                         printf("\ayNavigating to \ag%s\ay (%.1f away)",
                             closestSpawn.CleanName(),
                             closestSpawn.Distance3D() or 0)
                         mq.cmdf("/nav id %d log=error", closestSpawn.ID())
                         mq.cmdf("/tar id %d", closestSpawn.ID())
-                        if not mq.TLO.Me.Combat() then
-                        end
+                        
                         currentTarget = closestSpawn
                         navComplete = false
                     end
@@ -164,11 +151,14 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
             -- Check if we've reached our current target
             if currentTarget and currentTarget() and not currentTarget.Dead() then
-                if currentTarget.Distance3D() <= 10 then
-                    mq.cmd("/docommand /${Me.Class.ShortName} mode 4")
-                    mq.cmd("/docommand /${Me.Class.ShortName} pause off")
-                    mq.cmd("/docommand /${Me.Class.ShortName} resetcamp")
-                    if not mq.TLO.Me.Combat() and currentTarget.Distance3D() <= 15 then
+                printf("\ayDEBUG: Target %s is alive at distance %.1f", currentTarget.CleanName(), currentTarget.Distance3D() or 0)
+                if currentTarget.Distance3D() <= 15 then
+                    printf("\ayDEBUG: In range, setting up combat...")
+                    --mq.cmd("/docommand /${Me.Class.ShortName} mode 4")
+                    --mq.cmd("/docommand /${Me.Class.ShortName} pause off")
+                    --mq.cmd("/docommand /${Me.Class.ShortName} resetcamp")
+                    if not mq.TLO.Me.Combat() then
+                        printf("\ayDEBUG: Enabling attack mode (in range)")
                         mq.cmd("/attack on")
                     end
                     -- Wait at the target for a bit
@@ -179,6 +169,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     navComplete = true
                 end
             else
+                printf("\ayDEBUG: No valid target or target is dead")
                 navComplete = true
             end
 
@@ -210,11 +201,12 @@ local onlySpawned = false
 local spawnUp = 0
 local totalDone = ''
 local currentTab = "Hunter"                          -- Track which tab is active
-local hoodWindowSize = { width = 270, height = 350 } -- Saved size for Hood tab
+local hoodWindowSize = { width = 275, height = 350 } -- Saved size for Hood tab
 local lastTab = "Hunter"                             -- Track the last active tab
 
 -- shortening the mq bind for achievements
 local myAch = mq.TLO.Achievement
+local helpers = require("Hunterhood.helpers").new(myAch)  -- Pass myAch to helpers
 
 -- Current Achievement information for Hunter tab
 local curHunterAch = {}
@@ -231,68 +223,48 @@ local nameMap = {
 -- Track selected zone per group for Hood tab
 local selected_zone_index = 1
 local selected_index = 1 -- default to first expansion
-
-local function findspawn(spawn)
-    if not spawn then return 0 end
-    if nameMap[spawn] then spawn = nameMap[spawn] end
-    local mySpawn = mq.TLO and mq.TLO.Spawn and mq.TLO.Spawn(string.format('npc "%s"', spawn))
-    return (mySpawn and mySpawn.CleanName and mySpawn.CleanName() == spawn) and (mySpawn.ID and mySpawn.ID() or 0) or 0
-end
-
 -- Achievement information for Hood tab
 local hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {} }
 local mobCheckboxes = {}
 local selectedZoneID = nil
 local hasInitialized = false
 
--- Rename the original AchID to getHoodAchID for clarity
-local function getHoodAchID(zoneID)
-    if zoneID and zoneMap[zoneID] then
-        return zoneMap[zoneID]
-    end
-    return nil
-end
-
--- New function to get current zone's achievement ID for Hunter tab
-local function getCurrentZoneAchID()
-    local zoneID = mq.TLO.Zone.ID()
-    if zoneMap[zoneID] then
-        return zoneMap[zoneID]
-    end
-
-    -- Fallback for zones with different achievement name patterns
-    local achName = 'Hunter of the ' .. mq.TLO.Zone.Name()
-    if myAch(achName).ID() then
-        return myAch(achName).ID()
-    else
-        achName = 'Hunter of ' .. mq.TLO.Zone.Name()
-        return myAch(achName).ID()
-    end
-end
-
 local function updateHunterTab()
     myHunterSpawn = {}
     curHunterAch = {}
-    local achID = getCurrentZoneAchID()
+    local achID = helpers.getCurrentZoneAchID(zoneMap)
+    printf('Debug: updateHunterTab called with achID: %s', tostring(achID))
 
-    if achID ~= nil then
+    if achID and achID > 0 then
         local ach = myAch(achID)
+        if not ach or not ach() then
+            printf('Error: Achievement ID %d not found', achID)
+            return
+        end
+        
+        local achName = ach.Name() or "Unknown Achievement"
+        local objCount = ach.ObjectiveCount() or 0
+        printf('Debug: Found achievement "%s" with %d objectives', achName, objCount)
+        
         curHunterAch = {
             ID = achID,
-            Name = ach.Name(),
-            Count = ach.ObjectiveCount()
+            Name = achName,
+            Count = objCount
         }
         printf('\a#f8bd21Updating Hunter Tab(\a#b08d42%s\a#f8bd21)', curHunterAch.Name)
 
-        -- Get all objectives by name instead of by index to ensure we get them all
-        for i = 1, curHunterAch.Count do
+        -- Get all objectives by name
+        for i = 1, objCount do
             local objective = ach.ObjectiveByIndex(i)
             if objective and objective() then
-                table.insert(myHunterSpawn, objective())
+                local objName = objective()
+                if objName and objName ~= "" then
+                    table.insert(myHunterSpawn, objName)
+                end
             end
         end
 
-        -- Debug output to verify we got all mobs
+        -- Debug output
         printf('\a#f8bd21Found %d mobs for %s', #myHunterSpawn, curHunterAch.Name)
         for i, mob in ipairs(myHunterSpawn) do
             printf('  %d. %s', i, mob)
@@ -300,20 +272,8 @@ local function updateHunterTab()
 
         printf('\a#f8bd21Hunter Tab Update Done(\a#b08d42%s\a#f8bd21)', curHunterAch.Name)
     else
-        print('\a#f8bd21No Hunts found in \a#b08d42' .. mq.TLO.Zone())
+        print('\a#f8bd21No Hunts found in \a#b08d42' .. (mq.TLO.Zone() or "current zone"))
     end
-end
-
-local function getPctCompleted()
-    local tmp = 0
-    for index, hunterSpawn in ipairs(myHunterSpawn) do
-        if myAch(curHunterAch.ID).Objective(hunterSpawn).Completed() then
-            tmp = tmp + 1
-        end
-    end
-    totalDone = string.format('%d/%d', tmp, curHunterAch.Count)
-    if tmp == curHunterAch.Count then totalDone = 'Completed!' end
-    return tmp / curHunterAch.Count
 end
 
 local function drawCheckBox(spawn)
@@ -327,36 +287,57 @@ local function drawCheckBox(spawn)
 end
 
 local function textEnabled(spawn)
-    ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1)
+    -- Check if the spawn is up
+    local spawnID = helpers.findSpawn(spawn, nameMap)
+    local isUp = spawnID ~= 0 and mq.TLO.Spawn(spawnID).ID() ~= nil
+    
+    -- Set text color based on spawn status
+    if isUp then
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)  -- Gold for up
+    else
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1)  -- Grey for down
+    end
+    
     ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.33, 0.33, 0.33, 0.5)
     ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
+    
     local selSpawn = ImGui.Selectable(spawn, false, ImGuiSelectableFlags.AllowDoubleClick)
-    ImGui.PopStyleColor(3)
+    
+    ImGui.PopStyleColor(3)  -- Pop all three style colors
+    
     if selSpawn and ImGui.IsMouseDoubleClicked(0) then
-        mq.cmdf('/nav id %d log=error', findspawn(spawn))
+        mq.cmdf('/nav id %d log=error', spawnID)
         printf('\ayMoving to \ag%s', spawn)
     end
 end
 
 local function hunterProgress()
+    local pct, doneText = helpers.getPctCompleted(curHunterAch.ID, myHunterSpawn, curHunterAch)
+    totalDone = doneText  -- Keep the global variable updated
     local x, y = ImGui.GetContentRegionAvail()
     ImGui.PushStyleColor(ImGuiCol.PlotHistogram, 0.690, 0.553, 0.259, 0.5)
     ImGui.PushStyleColor(ImGuiCol.FrameBg, 0.33, 0.33, 0.33, 0.5)
+    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)  -- Text color (white)
     ImGui.SetWindowFontScale(0.85)
     ImGui.Indent(2)
-    ImGui.ProgressBar(getPctCompleted(), x - 4, 14, totalDone)
-    ImGui.PopStyleColor(2)
+    ImGui.ProgressBar(pct, x - 4, 16, totalDone)  -- Changed from getPctCompleted() to pct
+    ImGui.PopStyleColor(3)
     ImGui.SetWindowFontScale(1)
 end
 
 local function createLines(spawn)
-    if findspawn(spawn) ~= 0 then
-        drawCheckBox(spawn)
-        textEnabled(spawn)
-    elseif not onlySpawned then
-        drawCheckBox(spawn)
-        ImGui.TextDisabled(spawn)
+    -- Check if we should skip non-spawned mobs when onlySpawned is true
+    if onlySpawned then
+        local spawnID = helpers.findSpawn(spawn, nameMap)
+        local isUp = spawnID ~= 0 and mq.TLO.Spawn(spawnID).ID() ~= nil
+        if not isUp then
+            return  -- Skip this spawn if it's not up and we're only showing spawned
+        end
     end
+    
+    -- Draw the checkbox and text for the spawn
+    drawCheckBox(spawn)
+    textEnabled(spawn)
 end
 
 local function popupmenu()
@@ -466,9 +447,11 @@ local function RenderTitle()
 end
 
 local function RenderHunter()
+    --printf('Debug: RenderHunter called, myHunterSpawn count: %d', #myHunterSpawn) --debug
     hunterProgress()
     if not minimize then
         ImGui.Separator()
+        --printf('Debug: Showing %d mobs', #myHunterSpawn) --debug
         -- Always show all mobs, but use different styling based on completion and spawn status
         for _, hunterSpawn in ipairs(myHunterSpawn) do
             if showOnlyMissing then
@@ -489,7 +472,7 @@ local function updateHoodAchievement(zoneID)
 
     if not zoneID then return false end
 
-    local achID = getHoodAchID(zoneID) or 0
+    local achID = helpers.getHoodAchID(zoneID, zoneMap) or 0
 
     -- Try to find achievement by name as fallback if no direct mapping exists
     if achID == 0 then
@@ -548,7 +531,7 @@ local function updateHoodAchievement(zoneID)
                 table.insert(hoodAch.Spawns, {
                     name = objName,
                     done = objective.Completed() or false,
-                    id = findspawn(objName) or 0
+                    id = helpers.findSpawn(objName, nameMap) or 0
                 })
             end
         end
@@ -568,6 +551,7 @@ local function renderHoodTab()
             updateHoodAchievement(zones[1].id)
         end
     end
+
 
     -- Expansion selector combo
     ImGui.SetNextItemWidth(190)
@@ -596,7 +580,7 @@ local function renderHoodTab()
     end
 
     ImGui.SetNextItemWidth(190)
-    if ImGui.BeginCombo("Zone", currentZoneName) then
+    if ImGui.BeginCombo("##ZoneCombo", currentZoneName) then
         for i, zone in ipairs(zones) do
             local zoneText = getZoneDisplayName(zone.id)
             if ImGui.Selectable(zoneText, i == selected_zone_index) then
@@ -606,6 +590,38 @@ local function renderHoodTab()
         end
         ImGui.EndCombo()
     end
+    -- Save the current style colors
+    ImGui.SameLine(0, 4)
+local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
+local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
+
+-- Set the button colors
+ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)        -- Black background
+ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
+ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555)  -- Lighter gray when pressed
+ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)          -- Green text
+
+if ImGui.Button("Zone") then
+    local zones = zone_lists[combo_items[selected_index] or ""] or {}
+    if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
+        local zone = zones[selected_zone_index]
+        printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
+        mq.cmdf("/travelto %s", zone.shortname)
+    end
+end
+
+-- Move the tooltip inside the same scope where zone is defined
+local zones = zone_lists[combo_items[selected_index] or ""] or {}
+if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
+    local zone = zones[selected_zone_index]
+    if ImGui.IsItemHovered() then
+        ImGui.BeginTooltip()
+        ImGui.Text("Click to /travelto %s", zone.shortname)
+        ImGui.EndTooltip()
+    end
+end
+-- Restore the original style colors
+ImGui.PopStyleColor(4)
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
@@ -636,6 +652,15 @@ ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
 if ImGui.SmallButton("GO##ExecuteAction") then
     if not navActive then
+        -- Check if group needs invisibility before starting navigation
+        if helpers.groupNeedsInvis() then
+            printf("\ayGroup members need invisibility, casting...")
+            mq.cmd("/noparse /docommand /dgga /alt act 231")
+            -- Add your invisibility spell/ability here
+            -- For example: mq.cmd("/cast " .. yourInvisSpell)
+            -- or use a helper function if you have one
+            -- helpers.castInvis()
+        end
         navActive = true
         navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
         printf("\ayStarted navigation to selected mobs")
@@ -645,6 +670,38 @@ if ImGui.SmallButton("GO##ExecuteAction") then
         mq.cmd("/nav stop")
         printf("\ayStopped navigation")
     end
+end
+if ImGui.IsItemHovered() then
+    ImGui.SetTooltip("Start/Stop navigation to selected mobs")
+end
+ImGui.PopStyleColor(2)
+-- Current Zone button
+ImGui.SameLine()
+ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
+ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 1, 1)  -- Cyan color
+if ImGui.SmallButton("CZ##CurrentZone") then
+    local exp, zone = helpers.getCurrentZoneData(zoneMap, zone_lists)
+    if exp and zone then
+        for i, item in ipairs(combo_items) do
+            if item == exp then
+                selected_index = i
+                local zones = zone_lists[exp] or {}
+                for j, z in ipairs(zones) do
+                    if z.id == zone.id then
+                        selected_zone_index = j
+                        break
+                    end
+                end
+                updateHoodAchievement(zone.id)
+                break
+            end
+        end
+    else
+        printf("\\ayCurrent zone not found in HunterHood database.")
+    end
+end
+if ImGui.IsItemHovered() then
+    ImGui.SetTooltip("Click to select your Current Zone")
 end
 ImGui.PopStyleColor(2)
 ImGui.NextColumn()
@@ -718,15 +775,12 @@ ImGui.NextColumn()
             -- Tooltip for PH info (unchanged)
             if ImGui.IsItemHovered() then
                 local phList = require("Hunterhood.ph_list").ph_list
-                local function normalizeName(name)
-                    return name:lower():gsub(" ", "_"):gsub("'", ""):gsub("-", "")
-                end
-                local normalizedSpawnName = normalizeName(spawn.name)
+                local normalizedSpawnName = helpers.normalizeName(spawn.name)
                 local placeholders = phList[spawn.name] or {}
                 if #placeholders == 0 then
                     for mobName, phs in pairs(phList) do
-                        if normalizeName(mobName):find(normalizedSpawnName, 1, true)
-                            or normalizedSpawnName:find(normalizeName(mobName), 1, true) then
+                        if helpers.normalizeName(mobName):find(helpers.normalizeName(normalizedSpawnName), 1, true)
+    or helpers.normalizeName(normalizedSpawnName):find(helpers.normalizeName(mobName), 1, true) then
                             placeholders = phs
                             break
                         end
