@@ -571,7 +571,7 @@ local ph_list = {
     ["Mistakenly Animated Salt Golem"] = {
         "an animated experiment"
     },
-    ["Xetheg, Luclin`s Warder"] = {  -- TODO: verify
+    ["Xetheg, Luclin's Warden"] = {  -- TODO: verify
         "a tekuel"
     },
 
@@ -764,28 +764,155 @@ local ph_list = {
     },
 
     --Dragon Necropolis
-    ["dragon_necropolis_1"] = {
-        "dragon_necropolis_1"
+    ["a massive dracoliche"] = {
+        "a dragon construct"
+    },
+    ["a moon bat"] = {
+        "a scavenger bat"
+    },
+    ["a ravenous entropy serpent"] = {
+        "a decay serpent"
+    },
+    ["a restless warlord"] = {
+        "a wandering Chetari"
+    },
+    ["a toxic phase spider"] = {
+        "a phasing spider"
+    },
+    ["another great green slime"] = {
+        "an amorphous blob"
+    },
+    ["Dustbinder Tarlin"] = {
+        "a Chetari dustmaker"
+    },
+    ["Foulfang"] = {
+        "a decay serpent"
+    },
+    ["Jaled Dar's trapped shade"] = {
+        "must kill all ritualists to break the bond ",
+        "a trapped dracoliche"
+    },
+    ["Queen Kitlaa"] = {
+        "a phasing spider"
+    },
+    ["restless Dominator Yisaki"] = {
+        "a wandering Chetari"
+    },
+    ["restless Vaniki"] = {
+        "a wandering Chetari"
+    },
+    [" restless Warmaster Ultvara"] = {
+        "a wandering Chetari"
+    },
+    ["Seeker Larada"] = {
+        "a Chetari explorer"
     },
 
     --Skyshrine
-    ["skyshrine_1"] = {
-        "skyshrine_1"
+    ["a blessed racnar"] = {
+        "a convincing doomsayer"
+    },
+    ["Dagarn the Destroyer"] = {
+        "a pretentious wurm"
+    },
+    ["Lord Koi'Doken"] = {
+        "an onyx conspirator"
+    },
+    ["Professor Atkru"] = {
+        "a tenured mentor"
+    },
+    ["Shoen the Fanatic"] = {
+        "a subservient convert"
+    },
+    ["Templeton the Clear"] = {
+        "a crystal abomination"
+    },
+    ["Ziglark Whisperwing"] = {
+        "an obsidian believer"
     },
 
     --The Sleeper's Tomb
-    ["the_sleeper_s_tomb_1"] = {
-        "the_sleeper_s_tomb_1"
+    ["Kildrukaun the Ancient"] = {
+        "a restless drakeen"
+    },
+    ["Milas An'Rev"] = {
+        "a venerated sadist"
+    },
+    ["The Overseer Reborn"] = {
+        "The Captain of the Guard",
+        "Master of The Guard"
+    },
+    ["The Progenitor Reborn"] = {
+        "The Progenitor"
+    },
+    [" Tjudawos the Ancient"] = {
+        "a shimmering drakeen"
+    },
+    ["Ulessa the Insane"] = {
+        "a wyvern sentinel"
+    },
+    ["Vyskudra the Ancient"] = {
+        "a lonely drakeen"
+    },
+    ["Zeixshi'Kar the Ancient"] = {
+        "a forgotten drakeen"
     },
 
     --The Temple of Veeshan
-    ["the_temple_of_veeshan_1"] = {
-        "the_temple_of_veeshan_1"
+    ["Dozekar the Cursed"] = {
+        "a shimmering priest"
+    },
+    ["Feshlak"] = {
+        "a scarlet sycophant"
+    },
+    ["Gozzrem"] = {
+        "a pious martyr"
+    },
+    ["Ikatiar the Venom"] = {
+        "a wyvern scholar"
+    },
+    ["Jorlleag"] = {
+        "a distrusting devout"
+    },
+    ["Ktheek the Ripper"] = {
+        "a sapphire devotee"
+    },
+    ["Lady Mirenilla"] = {
+        "a shard hatchling"
+    },
+    ["Lord Vyemm"] = {
+        "Cycle through all of the following",
+        "a vile defender",
+        "a viscious defender",
+        "a vicious scholar",
+        "a vicious warrior",
+        "a vicious leader",
     },
 
     --The Western Wastes
-    ["the_western_wastes_1"] = {
-        "the_western_wastes_1"
+    ["a restless behemoth"] = {
+        "a restless wurm"
+    },
+    ["Blasphemous Steel"] = {
+        "an exiled efreeti"
+    },
+    ["Bliddlethliclaus"] = {
+        "an exiled kedge"
+    },
+    ["Feltinth the Caring"] = {
+        "a brood caretaker"
+    },
+    ["Miscreation the Timeless"] = {
+        "a frosted dracholiche"
+    },
+    ["Pastletlith the Temperate"] = {
+        "a brood hatchling"
+    },
+    ["Rildar Blackstone"] = {
+        "a forgotten vanguard"
+    },
+    ["Shrapnel"] = {
+        "a velious hound"
     },
 
     ---------Beginning of ToV PH list---------
@@ -806,8 +933,35 @@ local ph_list = {
     },
 
     --Kael Drakkel
-    ["kael_drakkel_1"] = {
-        "kael_drakkel_1"
+    ["Black Fang"] = {
+        "a frost giant gladiator"
+    },
+    ["Direfang"] = {
+        "a restless direwolf"
+    },
+    ["Drendar Blackblade"] = {
+        "a storm giant soldier"
+    },
+    ["Fjokar Frozenshard"] = {
+        "a storm giant soldier"
+    },
+    ["Irrek Bloodfist"] = {
+        "a storm giant soldier"
+    },
+    ["Kallis Stormcaller"] = {
+        "a storm giant soldier"
+    },
+    ["Keldor Dek`Torek"] = {
+        "a storm giant soldier"
+    },
+    ["Klraggek the Slayer"] = {
+        "a storm giant soldier"
+    },
+    ["Velden Dragonbane"] = {
+        "a storm giant soldier"
+    },
+    ["Vkjen Thunderslayer"] = {
+        "a storm giant soldier"
     },
 
     --Eastern Wastes
@@ -892,16 +1046,208 @@ local ph_list = {
     },
 
     --The Tower of Frozen Shadow
-    ["tower_of_frozen_shadow_1"] = {
-        "tower_of_frozen_shadow_1"
+    ["a shrouded bat"] = {
+        "a shrouded bat(labeled as rare)"
+    },
+    ["a skeleton sleeper"] = {
+        "a shadowbone"
+    },
+    ["Amontehepna the Second"] = {
+        "a frost mummy"
+    },
+    [" Ascendant Svartmane"] = {
+        "a restless tutor"
+    },
+    ["Cara Omica"] = {
+        "a zombie maid"
+    },
+    ["Dark Huntress"] = {
+        "an undead dancer",
+        "an undead musician"
+    },
+    ["D`dee the Chilled"] = {
+        "a restless mummy"
+    },
+    ["Deacon Foels Tomorin"] = {
+        "a drolvarg guard"
+    },
+    ["Malvus Darque"] = {
+        "Spawns on death of the named:",
+        "a shrouded bat"
+    },
+    ["Narmak Berreka"] = {
+        "a possessed armor"
+    },
+    ["Vhal`Sera"] = {
+        "a restless spectre"
+    },
+    ["Xalgoti"] = {
+        "a returned shadow beast"
+    },
+    ["Zorglim the Dead"] = {
+        "a disturbed student"
     },
 
     --Velketor's Labyrinth
-    ["velketor_s_labyrinth_1"] = {
-        "velketor_s_labyrinth_1"
+    ["a restless devourer"] = {
+        "a restless spider"
+    },
+    ["a restless tarantula"] = {
+        "a wandering arachnid"
+    },
+    ["a velium horror"] = {
+        "a glaring gargoyle"
+    },
+    ["an icy torment"] = {
+        "a living spire"
+    },
+    ["Bledrek"] = {
+        "a living ice construct"
+    },
+    ["Kerdelb"] = {
+        "a restless ice construct"
+    },
+    [" Marlek Icepaw"] = {
+        "an undying kobold"
+    },
+    ["Neemzaq"] = {
+        "a freezing shade"
+    },
+    ["Qabruh"] = {
+        "an icy gargoyle"
+    },
+    ["Vorgak"] = {
+        "a mindless orc"
+    },
+    ["Zarhbub Icepaw"] = {
+        "a wandering icepaw"
     },
 
     ---------Beginning of TBL PH list---------\
+    --Aalishai: Palace of Embers
+    ["Evasion Understanding Flow"] = {
+        "an elemental of purest flame"
+    },
+    ["Final Blade Lord"] = {
+        "a scoria golem"
+    },
+    ["Ghost Glass Bitter"] = {
+        "a djinn scholar"
+    },
+    ["Ruby Icefall Blossom"] = {
+        "a surf armor"
+    },
+    ["Shield Spirit`s Laugh"] = {
+        "a flashfire phoenix"
+    },
+    ["Sixth Consuming Master"] = {
+        "a vergerog soldier"
+    },
+    ["Steam Wave Slicer"] = {
+        "a fire giant commander"
+    },
+    ["Stout Stone Beaten"] = {
+        "a vekerchiki soldier"
+    },
+    ["Unconquering Sand Dirge"] = {
+        "a duende emissary"
+    },
+    ["Venom of the Fallen Star"] = {
+        "a flurry mephit"
+    },
+    ["Whispering Depths Sigh"] = {
+        "a hraquis surgelord"
+    },
+    [" White Iron Rainbow"] = {
+        "a brumeflight armor"
+    },
+
+    --Empyr: Realms of Ash
+    ["Ashes"] = {
+        "a sputtering flameling"
+    },
+    ["Assassin of the Perfect Dusk"] = {
+        "a fire giant knight"
+    },
+    ["Final Rainbow"] = {
+        "a breeze mephit"
+    },
+    ["Flail"] = {
+        "a fire snail"
+    },
+    ["Fluttering Ruby Prince"] = {
+        "an efreeti soldier"
+    },
+    ["Iron Heart"] = {
+        "an efreeti sodlier"
+    },
+    ["Mischief Darkheart"] = {
+        "a jopal mercenary"
+    },
+    ["Shockstone"] = {
+        "a butte armor"
+    },
+    ["Sister of the Invisible Heart"] = {
+        "an ondine ambassador"
+    },
+    ["Stalwart Flicker"] = {
+        "a pyrite armor"
+    },
+    ["The Burning Mist"] = {
+        "an elemental of purest flame",
+    },
+    ["Wilting Flames"] = {
+        "an aging lapillus lava spider"
+    },
+
+    --Esianti: Palace of the Winds
+    ["Blessed Wind"] = {
+        "a djinn teacher"
+    },
+    ["Copper Star"] = {
+        "a jopal warder"
+    },
+    [" Depth of Iron"] = {
+        "a vekerchiki warder"
+    },
+    ["Iron Lance"] = {
+        "a pyratic armor"
+    },
+    ["Jericog Merkin"] = {
+        "a norrathian mage"
+    },
+    ["Leaping Eyes"] = {
+        "an efreeti noble"
+    },
+    ["Rusted Stalactite"] = {
+        "a cliff armor"
+    },
+    ["Sapphire Hammer"] = {
+        "a breeze armor"
+    },
+    ["Seeping Gladness"] = {
+        "a crest armor"
+    },
+    ["Sky Blade"] = {
+        "a gusting mephit"
+    },
+    ["Veiled Sage"] = {
+        "a djinn teacher"
+    },
+    ["Warrior`s Cleft"] = {
+        "a triloun warder"
+    },
+
+    --Mearatas: The Stone Demesne
+    ["Mearatas_1"] = {
+        "Mearatas_1"
+    },
+
+    --Plane of Smoke
+    ["Plane_of_Smoke1"] = {
+        "Plane_of_Smoke1"
+    },
+
     --Stratos: Zephyr's Flight
     ["Cloud_Iron_Lance"] = {
         "an abundant gale"
@@ -938,6 +1284,13 @@ local ph_list = {
     },
     ["Wild Blossom Star's_Flight"] = {
         "an easterly mephit's_Flight"
+    },
+
+    --Chamber of Tears--No Achievements for this zone
+
+    --Gnome Memorial Mountain
+    ["Gnome_Memorial_Mountain_1"] = {
+        "Gnome_Memorial_Mountain_1"
     },
     
     ---------Beginning of RoS PH list---------
