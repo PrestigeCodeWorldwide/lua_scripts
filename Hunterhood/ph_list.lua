@@ -1239,13 +1239,62 @@ local ph_list = {
     },
 
     --Mearatas: The Stone Demesne
-    ["Mearatas_1"] = {
-        "Mearatas_1"
+    ["an ancient air warden"] = {
+        "a breeze warden"
+    },
+    ["an ancient fire warden"] = {
+        "a flame warden"
+    },
+    ["an ancient stone warden"] = {
+        "a rock warden"
+    },
+    [" an ancient water warden"] = {
+        "a wave warden"
+    },
+    [" Flowing Horizon Halo"] = {
+        "	a duende messenger"
+    },
+    ["Forsaken Cloud Sapphire"] = {
+        "Spawns in the center of the zone. No PH"
+    },
+    ["Glaring Moon Void"] = {
+        "Spawns in the center of the zone. No PH"
+    },
+    ["Platinum Rainbow Spire"] = {
+        "Spawns in the center of the zone. No PH"
+    },
+    ["Radiant Amber Lotus"] = {
+        "a lord of flame"
+    },
+    ["Tsunami Sol Blood"] = {
+        "Spawns in the center of the zone. No PH"
+    },
+    ["Whispering Frost"] = {
+        "an ondine servant"
+    },
+    ["Blistering Star"] = {
+        "a wind lady",
+        "a wind lord"
     },
 
     --Plane of Smoke
-    ["Plane_of_Smoke1"] = {
-        "Plane_of_Smoke1"
+    ["Dirge of Lost Horizons"] = {
+        "a fading lord"
+    },
+    ["Savage Irony of Will"] = {
+        "a true flame"
+    },
+    ["Silent Silken Song"] = {
+        "a wasting breezewing"
+    },
+    ["Soothing Wings of Mist"] = {
+        "a true wind"
+    },
+    ["Strength of Undefeated Starfall"] = {
+        "a soot steed"
+    },
+    ["Wandering Spring Soul"] = {
+        "a dispersing windlord"
     },
 
     --Stratos: Zephyr's Flight
@@ -1289,10 +1338,51 @@ local ph_list = {
     --Chamber of Tears--No Achievements for this zone
 
     --Gnome Memorial Mountain
-    ["Gnome_Memorial_Mountain_1"] = {
-        "Gnome_Memorial_Mountain_1"
+    ["A Non-Standard Deviation"] = {
+        "an iron legion climber"
     },
-    
+    ["Ambassador of Loving"] = {
+        "a clockwork guardian"
+    },
+    ["Best Museum Security"] = {
+        "a Security Officer"
+    },
+    ["Bloodmoon Chief Eclipse"] = {
+        "a Bloodmoon darkheart"
+    },
+    ["Bloodmoon Howler Trolog"] = {
+        "a Bloodmoon howler"
+    },
+    ["Breaker"] = {
+        "a clockwork captain"
+    },
+    ["Consul of Cooperation"] = {
+        "Heroic Adventure: Ironing out the Legion",
+        "a lookout"
+    },
+    ["Fractured Sweeper"] = {
+        "clockwork companion"
+    },
+    ["Grash, Bloodmoon Growler"] = {
+        "Heroic Adventure: The Darkness Howls",
+        "a Bloodmoon scrabbler"
+    },
+    ["Healer Prime"] = {
+        "a clockwork healer"
+    },
+    ["Malfunctioning Iron Legion Hug"] = {
+        "a gnomelike friend"
+    },
+    ["Master Mechanic"] = {
+        "a clockwork lifter"
+    },
+    ["Repair for Pieces"] = {
+        "an Iron Legion helper"
+    },
+    ["Tatters"] = {
+        "a brave rat"
+    },
+
     ---------Beginning of RoS PH list---------
     --Sathir's Tomb
     ["a Kar`zok grave robber"] = {
@@ -1362,13 +1452,108 @@ local ph_list = {
     },
 
     --Howling Stones
-    ["Howling_Stones"] = {
-        "howling_stones"
+    ["Deka the Reaper"] = {
+        "a specter of the Arisen"
+    },
+    ["Embalming Goo"] = {
+        "Arisen bones"
+    },
+    ["General V`Deers, the Arisen"] = {
+        "an Arisen officer"
+    },
+    ["Nureya Arisen"] = {
+        "a specter of the Arisen"
+    },
+    ["Shandral Arisen"] = {
+        "an arisen convert"
+    },
+    ["The Arisen Admiral Tylix"] = {
+        "a specter of the Arisen"
+    },
+    ["The Arisen Dragoon T`Vem"] = {
+        "a specter of the Arisen"
+    },
+    ["The Arisen Dragoon T`Vex"] = {
+        "Arisen bones"
+    },
+    ["The Great Sentinel"] = {
+        "a specter of the Arisen"
+    },
+    ["The Underlord"] = {
+        "a bottomless gnawer"
+    },
+    [" Tormented Adalora"] = {
+        "a specter of the Arisen"
+    },
+    ["Vermistipus"] = {
+        "a specter of the Arisen"
+    },
+    ["Arisen Fenistra"] = {
+        "an Arisen ghost"
+    },
+    ["Arisen Mentor Sishallan"] = {
+        "an Arisen mentor"
     },
 
     --The Skyfire Mountains
-    ["The_Skyfire_Mountains"] = {
-        "the_skyfire_mountains"
+    ["a feverish marauder"] = {
+        "a zealot"
+    },
+    ["a rabid reveler"] = {
+        "a brazen Chetari",
+        "a drunken Chetari"
+    },
+    ["a scree-borne magmite"] = {
+        "wrathful rubble",
+        "a blackened tyro"
+    },
+    ["a supercharged tyro"] = {
+        "a volatile effusion",
+        "a stubborn magmite"
+    },
+    ["an Arcron researcher"] = {
+        "a Krellnakor scout"
+    },
+    ["Ash Guardian Tolemak"] = {
+        "a guardian wurm"
+    },
+    ["Chirurgeon Hemofax"] = {
+        "an ashen scalpel",
+        "an ashen cutter"
+    },
+    ["Dragoflux"] = {
+        "a raging vortex"
+    },
+    ["Mawmun"] = {
+        "a greedy gnawer"
+    },
+    ["Old Raspy"] = {
+        "an old wurm"
+    },
+    ["Radiant Overseer Triluan"] = {
+        "a radiant drake"
+    },
+    ["Rirwech the Fink"] = {
+        "a suspicious Chetari",
+        "a furtive Chetari"
+    },
+    ["Ritualist Bomoda"] = {
+        "a grim cultist",
+        "a grim chanter"
+    },
+    ["Shardstubble"] = {
+        "a fractured magmite",
+        "a fragile tyro"
+    },
+    ["Skrizix"] = {
+        "an exotic chromedrac"
+    },
+    ["The Crimson Sentinel"] = {
+        "an angry Arcron",
+    },
+    ["The Gatekeeper"] = {
+        "a Krellnakor bodyguard",
+        "a Krellnakor doorman"
     },
 
     --The Overthere
@@ -1425,8 +1610,32 @@ local ph_list = {
     },
 
     --Veeshan's Peak
-    ["Veeshan_s_Peak"] = {
-        "veeshan_s_peak"
+    ["Blood-Thirsty Racnar"] = {
+        "a frenetic racnar"
+    },
+    ["Elder Azeron"] = {
+        "an ancient flame protector"
+    },
+    ["Elder Ekron"] = {
+        "1 hour and 45 minute timer"
+    },
+    ["Ellarr Stormcloud"] = {
+        "1 hour and 45 minute timer"
+    },
+    ["Kluzen the Protector"] = {
+        "1 hour and 45 minute timer"
+    },
+    ["Magma Basilisk"] = {
+        "a magma basilisk"
+    },
+    ["Milyex Vioren"] = {
+        "1 hour and 45 minute timer"
+    },
+    ["Qunard Ashenclaw"] = {
+        "a primeval cinder skyclaw"
+    },
+    ["Travenro the Skygazer"] = {
+        "1 hour and 45 minute timer"
     },
     
     ---------Beginning of EoK PH list---------
@@ -1542,13 +1751,72 @@ local ph_list = {
     },
 
     --Gates of Kor-Sha
-    ["korsha_ext_1"] = {
-        "korsha_ext_1"
+    ["Chokidai Wardog"] = {
+        "a chokidai mangler"
+    },
+    ["Corpsestalker"] = {
+        "a mature stalker"
+    },
+    ["Hunter Gwalnex IV"] = {
+        "a Sarnak trapper"
+    },
+    ["Overboss Kaznak"] = {
+        "a Sarnak warlord"
+    },
+    ["Spiritmaster Tala'Tak"] = {
+        "a Sarnak sage"
     },
 
     --Korsha Labratory
-    ["korsha_ext_two_1"] = {
-        "korsha_ext_two_1"
+    ["Bonescale"] = {
+        "a lurking stalker"
+    },
+    ["Cutter"] = {
+        "a chokidai elder"
+    },
+    ["Darkness"] = {
+        "an ectopic amygdalan"
+    },
+    ["Deathgazer"] = {
+        "a lurking beetle"
+    },
+    ["Firedowser Uglabarg"] = {
+        "a conscripted dirtcaster"
+    },
+    ["Glart Fink"] = {
+        "a conscripted warrior"
+    },
+    ["Kar`zok Overlord"] = {
+        "a Kar`zok warrior"
+    },
+    ["Mad Researcher"] = {
+        "Heroic Adventure: Infiltration of Kor-Sha",
+        "a dazed researcher"
+    },
+    ["Okara Klyseer"] = {
+        "a Di`zok adherent"
+    },
+    [" Overlord Dralgan"] = {
+        "a Di`zok myrmidon"
+    },
+    ["Rogue Monstrosity"] = {
+        "Heroic Adventure: Mysteries of Kor-Sha",
+        "a golem"
+    },
+    ["Screaming Tormentor"] = {
+        "a luxated terror"
+    },
+    ["Sepulcher Curator"] = {
+        "a crypt guard"
+    },
+    ["Stonespiked Guardian"] = {
+        "a wary guard"
+    },
+    ["The Possessed"] = {
+        "a conscripted spiritist"
+    },
+    ["Vakazon Viz`Daron"] = {
+        "a Di`zok aruspex"
     },
 
     --Lceanium
@@ -1599,8 +1867,103 @@ local ph_list = {
     },
 
     --Scorched Woods
-    ["scorched_woods_1"] = {
-        "scorched_woods_1"
+    ["Caradawg Gwyn"] = {
+        "a majestic sureshot"
+    },
+    ["Carpenter Adomnan"] = {
+        "a forest giant carpenter"
+    },
+    ["Cathal Paclock"] = {
+        "a forest giant fury"
+    },
+    ["Gullerback Undying"] = {
+        "an ancient tatterback"
+    },
+    ["Plaguebringer"] = {
+        "an ancient plaguebone"
+    },
+    ["Searstinger"] = {
+        "an immolator hornet"
+    },
+    ["Sovarak Klyseer"] = {
+        "a Sarnak shadowknight"
+    },
+    ["Spirit of Incineration"] = {
+        "a spirit of flame"
+    },
+    ["The Ore-mad Prophet"] = {
+        "a burynai prophet"
+    },
+    ["Zakija"] = {
+        "a wurm-scorched skeleton"
+    },
+
+    --Temple of Droga
+    ["Black Spot"] = {
+        "a goblin slave"
+    },
+    ["Blood of Droga"] = {
+        "a blightcaller bloodtender",
+        "a blightcaller bloodtoiler"
+    },
+    ["Bore"] = {
+        "mudman dredger"
+    },
+    ["Chief Dronan"] = {
+        "Dronan bodyguard",
+        "Dronan bodyshield"
+    },
+    ["Cook Eepvibles"] = {
+        "a goblin cook"
+    },
+    ["Cook Jexnait"] = {
+        "a devout goblin cook"
+    },
+    ["Home Master Kaziql"] = {
+        "a homesafe goblin sentry"
+    },
+    ["Izisyl Peppershiv"] = {
+        "a goblin caveshadow"
+    },
+    ["Jailor Muxfan"] = {
+        "a goblin jailor",
+        "a stalwart goblin jailor"
+    },
+    ["Master Kizzixik"] = {
+        "a goblin slave master",
+        "a goblin slave dealer"
+    },
+    ["Merchant Triala"] = {
+        "Heroic Adventure: Goblins and Fools",
+        "a goblin slinker"
+    },
+    ["Miner Groundfuse"] = {
+        "a goblin dredger",
+        "a stalwart goblin dredger"
+    },
+    ["Most Devout Sentry"] = {
+        "a devout goblin sentry"
+    },
+    ["Overseer Vakov"] = {
+        "a goblin taskmaster",
+        "a hearty goblin taskmaster"
+    },
+    ["Sentry Rixzeel"] = {
+        "a expert goblin sentry",
+        "a tenacious goblin sentry"
+    },
+    ["Spirit Master Wigaue"] = {
+        "a goblin fanatic"
+    },
+    ["Spiritwatcher Scrollhallow"] = {
+        "a goblin mystic",
+        "a goblin adept mystic"
+    },
+    ["War Leader Callex"] = {
+        "a goblin forerunner sentry"
+    },
+    ["Whip Cracker Krassex"] = {
+        "a goblin whip lord"
     },
 
 ---------Beginning of TBM PH list---------
@@ -1630,6 +1993,183 @@ local ph_list = {
         "a skeletal sentinel"
     },
 
+    --Crypt of Decay
+    ["Abroan Drian"] = {
+        "a corruptor knight"
+    },
+    ["Akkapan Adan"] = {
+        "a bubonian warmaster"
+    },
+    ["Brightfire"] = {
+        "a wary unicorn"
+    },
+    ["Feig Adan"] = {
+        "a foulest pusling"
+    },
+    ["Fountainhead"] = {
+        "a wellspring construct"
+    },
+    ["Grublus"] = {
+        "Heroic Adventure: Lxavnom Labors",
+        "a grumling"
+    },
+    ["Rusank"] = {
+        "Heroic Adventure: Decay Decreased",
+        "a pusling"
+    },
+    ["Seraphina"] = {
+        "Heroic Adventure: Force the Forceful",
+        "a seraph"
+    },
+    ["Xhut Adan"] = {
+        "a dreadbone sage"
+    },
+
+--Sul Vius: Demiplane of Life
+    ["Arsin the Blaze"] = {
+        "Heroic Adventure: Under the Robe",
+        "a ravenous citizen"
+    },
+    ["Commissioner Edrun"] = {
+        "an overworked functionary"
+    },
+    ["Exalted Dromond"] = {
+        "an honorable citizen"
+    },
+    ["Glorious Cistina"] = {
+        "a gleeful citizen"
+    },
+    ["Guardian Jenat"] = {
+        "a diligent guard"
+    },
+    ["Gurndal the Graceful"] = {
+        "Heroic Adventure: We Make Our Own Rewards",
+        "a venerated guard"
+    },
+    ["Mad Merchant Marv"] = {
+        "a retired merchant"
+    },
+    ["Render"] = {
+        "Heroic Adventure: The Handmaiden",
+        "an enraged follower"
+    },
+    ["Terrance the Admired"] = {
+        "a delighted citizen"
+    },
+    ["The Darkseer"] = {
+        "an aloof bokon"
+    },
+    ["Vizier Albert"] = {
+        "a doubtful functionary"
+    },
+
+--Sul Vius: Demiplane of Decay
+    ["Emma, a True Believer"] = {
+        "a worn administrator"
+    },
+    ["Eunice, Well-Wisher"] = {
+        "a mournful peasant",
+        "a burly cultist"
+    },
+    ["High Bokon Cleret"] = {
+        "Heroic Adventure: Fate Rewards the Bold",
+        "a grand bokon"
+    },
+    ["Master of the House"] = {
+        "a retired salesperson"
+    },
+    ["Svea Haire"] = {
+        "an impatient wanderer"
+    },
+    ["Tarris Ellarn"] = {
+        "Heroic Adventure: Undead Underground",
+        "a wandering official"
+    },
+    ["The Curator"] = {
+        "a tireless sentinel"
+    },
+    ["The Perforator"] = {
+        "Heroic Adventure: Deadline",
+        "a mute citizen"
+    },
+    ["The Remnants of The Darkseer"] = {
+        "an assistant to Darkseer"
+    },
+    ["The Sleepbringer"] = {
+        "a tsetse eater",
+        "a tsetse swarmborn"
+    },
+    ["Zikursch the Corrupt"] = {
+        "an unpleasant bureaucrat"
+    },
+
+--Plane of Health
+    ["Bhaly Adan"] = {
+        "Heroic Adventure: Bane of Decay",
+        "Unknown"
+    },
+    ["Bilemonger"] = {
+        "Heroic Adventure: In Defense of Health",
+        "a bubonian wartail"
+    },
+    ["Pestilent Warmaster"] = {
+        "Heroic Adventure: In Defense of Health",
+        "Unknown"
+    },
+    ["Prepusterous"] = {
+        "Heroic Adventure: Defenders of the Faith",
+        "a bubonian terror"
+    },
+    ["Putrid Brute"] = {
+        "Heroic Adventure: In Defense of Health",
+        "Unknown"
+    },
+    ["Vomitous"] = {
+        "Heroic Adventure: In Defense of Health",
+        "a bubonian wartai"
+    },
+
+-------------Beginning of TDS PH list-------------
+---Arx Mentis
+    ["Arx_Mentis"] = {
+        "Unknown"
+    },
+
+    --Brother Island
+    ["Brother_Island"] = {
+        "Unknown"
+    },
+
+    --Caverns of Endless Song
+    ["Caverns_of_Endless_Song"] = {
+        "Unknown"
+    },
+
+    --Combine Dredge
+    ["Combine_Dredge"] = {
+        "Unknown"
+    },
+    
+    --Degmar, the Lost Castle
+    ["Degmar_the_Lost_Castle"] = {
+        "Unknown"
+    },
+    
+    --Katta Castrum: Deluge
+    ["Katta_Castrum_Deluge"] = {
+        "Unknown"
+    },
+    
+    --Tempest Temple
+    ["Tempest_Temple"] = {
+        "Unknown"
+    },
+    
+    --Thuliasaur Island
+    ["Thuliasaur_Island"] = {
+        "Unknown"
+    },
+    
     ---------Beggining of SoF PH list---------
     --Dragonscale Hills
     ["Arachnotron"] = {
