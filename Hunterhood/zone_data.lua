@@ -1,3 +1,4 @@
+-- v1.1
 -- Zone data for Hunterhood
 local function createZoneData(mq)
     local zoneMap = {

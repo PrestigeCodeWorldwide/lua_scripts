@@ -6,7 +6,7 @@ local BL = require("biggerlib")
 --local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
 
-BL.info('HunterHood v2.07 loaded')
+BL.info('HunterHood v2.1 loaded')
 
 -- Load and initialize zone data
 local currentNavTarget = nil
@@ -26,19 +26,21 @@ currentNavTarget = nil  -- Add this line to clear the target
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
     return coroutine.create(function()
-        local phList = require("Hunterhood.ph_list").ph_list
+        local phList = require("Hunterhood.ph_list") -- Load the module (not .ph_list)
+        local currentZoneID = mq.TLO.Zone.ID() -- Get current zone ID
         local currentTarget = nil
         local navComplete = true
-        local engagedTarget = nil -- Track if we're already engaged with a target
+        local engagedTarget = nil
 
         while navActive do
+            -- Update zone ID each iteration in case of zone change
+            currentZoneID = mq.TLO.Zone.ID()
+            
             -- If we have an engaged target that's still valid, skip target selection
             if engagedTarget and engagedTarget() and not engagedTarget.Dead() and
                 mq.TLO.Me.Combat() and mq.TLO.Target.ID() == engagedTarget.ID() then
-                -- Still fighting the same target, just yield and continue
                 coroutine.yield()
             else
-                -- Reset engaged target if combat ended or target changed
                 if not mq.TLO.Me.Combat() or
                     (mq.TLO.Target() and mq.TLO.Target.ID() ~= (engagedTarget and engagedTarget.ID() or 0)) then
                     engagedTarget = nil
@@ -46,10 +48,9 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
                 local shouldContinue = false
 
-                -- Check for non-PH mobs on extended target
-                local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch)
+                -- Check for non-PH mobs on extended target (UPDATED)
+                local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
                 if hasAdd and addSpawn then
-                    -- Only switch to add if not already engaged with something
                     if not engagedTarget or engagedTarget.Dead() or not mq.TLO.Me.Combat() then
                         printf("\arAdd detected: \ay%s\ar - Engaging first", addSpawn.CleanName())
                         mq.cmdf("/nav id %d log=error", addSpawn.ID())
@@ -61,12 +62,10 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                 end
 
                 if not shouldContinue and navComplete then
-                    -- Reset variables for this iteration
                     local closestSpawn = nil
                     local closestDistance = math.huge
                     local checkedMobs = {}
 
-                    -- Get all checked mobs
                     for _, spawn in ipairs(hoodAch.Spawns) do
                         if mobCheckboxes[spawn.name] then
                             table.insert(checkedMobs, spawn)
@@ -74,7 +73,6 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     end
 
                     if #checkedMobs > 0 then
-                        -- Find closest spawn (check both named mobs and their PHs)
                         for _, mob in ipairs(checkedMobs) do
                             -- Check named mob first
                             local spawnID = mq.TLO.Spawn("npc " .. mob.name).ID()
@@ -89,31 +87,30 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                 end
                             end
 
-                            -- Check placeholders for this mob
-                            local placeholders = phList[mob.name] or {}
-                            for _, phName in ipairs(placeholders) do
-                                local phID = mq.TLO.Spawn("npc " .. phName).ID()
-                                if phID ~= nil and phID > 0 then
-                                    local phSpawn = mq.TLO.Spawn(phID)
-                                    if phSpawn() and not phSpawn.Dead() then
-                                        local distance = phSpawn.Distance3D() or math.huge
-                                        if distance < closestDistance then
-                                            closestDistance = distance
-                                            closestSpawn = phSpawn
+                            -- Check placeholders for this mob (UPDATED)
+                            local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
+                            if placeholders and type(placeholders) == "table" then
+                                for _, phName in ipairs(placeholders) do
+                                    local phID = mq.TLO.Spawn("npc " .. phName).ID()
+                                    if phID ~= nil and phID > 0 then
+                                        local phSpawn = mq.TLO.Spawn(phID)
+                                        if phSpawn() and not phSpawn.Dead() then
+                                            local distance = phSpawn.Distance3D() or math.huge
+                                            if distance < closestDistance then
+                                                closestDistance = distance
+                                                closestSpawn = phSpawn
+                                            end
                                         end
                                     end
                                 end
                             end
                         end
 
-                        -- Only navigate if we found a valid target and not engaged in combat
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
-                            -- Check if we need to cast invisibility
                             if helpers.groupNeedsInvis() then
                                 printf("\ayGroup needs invisibility - casting...")
                                 mq.cmd("/noparse /docommand /dgga /alt act 231")
                                 mq.cmd("/alt act 231")
-                                -- Wait for cast to complete
                                 for i = 1, 20 do
                                     if not navActive then break end
                                     coroutine.yield()
@@ -133,21 +130,17 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                 end
             end
 
-            -- Check if we've reached our current target
             if currentTarget and currentTarget() and not currentTarget.Dead() then
                 if currentTarget.Distance3D() <= 25 then
                     printf("\ayDEBUG: In range, setting up combat...")
 
-                    -- Only target if not already targeting this mob
                     if mq.TLO.Target.ID() ~= currentTarget.ID() then
                         mq.cmdf("/target id %d", currentTarget.ID())
-                        -- Small delay to allow target to be acquired
                         for i = 1, 5 do
                             coroutine.yield()
                         end
                     end
 
-                    -- Only attack if we have the correct target
                     if mq.TLO.Target.ID() == currentTarget.ID() then
                         if not mq.TLO.Me.Combat() then
                             printf("\ayDEBUG: Enabling attack mode (in range)")
@@ -155,15 +148,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             engagedTarget = currentTarget
                         end
 
-                        -- Always maintain stick and face while in combat
                         if mq.TLO.Me.Combat() then
                             mq.cmd("/stick 10 front moveback")
                             mq.cmd("/face")
                         end
                     end
 
-                    -- Wait at the target for a bit
-                    for i = 1, 5 do -- Reduced from 10 to make it more responsive
+                    for i = 1, 5 do
                         if not navActive then break end
                         coroutine.yield()
                     end
@@ -469,19 +460,16 @@ local function RenderHunter()
 end
 
 local function updateHoodAchievement(zoneID)
-    -- Reset the achievement data
-    hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {} }
-    mobCheckboxes = mobCheckboxes or {} -- Initialize if nil, keep existing if not
+    hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {}, zoneID = zoneID } -- Add zoneID here
+    mobCheckboxes = mobCheckboxes or {}
 
     if not zoneID then return false end
 
     local achID = helpers.getHoodAchID(zoneID, zoneMap) or 0
 
-    -- Try to find achievement by name as fallback if no direct mapping exists
     if achID == 0 then
         local zoneName = mq.TLO.Zone(zoneID) and mq.TLO.Zone(zoneID).Name() or ("Zone %d"):format(zoneID)
 
-        -- Try different naming patterns
         local patterns = {
             "Hunter of the " .. zoneName,
             "Hunter of " .. zoneName,
@@ -497,7 +485,6 @@ local function updateHoodAchievement(zoneID)
         end
 
         if achID == 0 then
-            --printf("No hunter achievement found for zone ID: %d (%s)", zoneID, zoneName) --debug
             return false
         end
     end
@@ -508,21 +495,19 @@ local function updateHoodAchievement(zoneID)
         return false
     end
 
-    -- Get achievement details
     local achName = ach.Name() or "Hunter Achievement"
     local achCount = ach.ObjectiveCount() or 0
 
-    -- Update hoodAch with the new achievement data
     hoodAch.ID = achID
     hoodAch.Name = achName
     hoodAch.Count = achCount
     hoodAch.Spawns = {}
+    hoodAch.zoneID = zoneID -- Store zone ID
 
-    -- Populate spawns
     for i = 0, achCount do
         local objective = ach.ObjectiveByIndex(i)
         if not objective or not objective() then
-            objective = ach.Objective(i) -- Fallback to Objective if ObjectiveByIndex fails
+            objective = ach.Objective(i)
         end
 
         if objective and objective() ~= nil then
@@ -540,7 +525,6 @@ local function updateHoodAchievement(zoneID)
         end
     end
 
-    --printf("Loaded achievement '%s' with %d objectives", achName, #hoodAch.Spawns)  --Uncomment for debug
     return true
 end
 
@@ -814,26 +798,45 @@ local function renderHoodTab()
 
             -- Tooltip for PH info (unchanged)
             if ImGui.IsItemHovered() then
-                local phList = require("Hunterhood.ph_list").ph_list
+                local phList = require("Hunterhood.ph_list")
                 local normalizedSpawnName = helpers.normalizeName(spawn.name)
-                local placeholders = phList[spawn.name] or {}
+                
+                -- Get placeholders for this spawn in the current zone
+                local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
+                
+                -- Ensure placeholders is a table
+                if not placeholders or type(placeholders) ~= "table" then
+                    placeholders = {}
+                end
+                
+                -- If no direct match, try fuzzy matching (keep your existing logic)
                 if #placeholders == 0 then
-                    for mobName, phs in pairs(phList) do
-                        if helpers.normalizeName(mobName):find(helpers.normalizeName(normalizedSpawnName), 1, true)
-                            or helpers.normalizeName(normalizedSpawnName):find(helpers.normalizeName(mobName), 1, true) then
-                            placeholders = phs
-                            break
+                    local allZoneMobs = phList.getNamedMobsInZone(hoodAch.zoneID)
+                    if allZoneMobs and type(allZoneMobs) == "table" then
+                        for _, mobName in ipairs(allZoneMobs) do
+                            if helpers.normalizeName(mobName):find(helpers.normalizeName(normalizedSpawnName), 1, true)
+                                or helpers.normalizeName(normalizedSpawnName):find(helpers.normalizeName(mobName), 1, true) then
+                                placeholders = phList.getPlaceholders(mobName, hoodAch.zoneID)
+                                if type(placeholders) ~= "table" then
+                                    placeholders = {}
+                                end
+                                break
+                            end
                         end
                     end
                 end
+                
                 local spawnedPHs, totalSpawned = {}, 0
                 for _, phName in ipairs(placeholders) do
-                    local count = mq.TLO.SpawnCount("npc " .. phName)() or 0
-                    if count > 0 then
-                        table.insert(spawnedPHs, { name = phName, count = count })
-                        totalSpawned = totalSpawned + count
+                    if type(phName) == "string" then
+                        local count = mq.TLO.SpawnCount("npc " .. phName)() or 0
+                        if count > 0 then
+                            table.insert(spawnedPHs, { name = phName, count = count })
+                            totalSpawned = totalSpawned + count
+                        end
                     end
                 end
+                
                 if #placeholders > 0 or #spawnedPHs > 0 then
                     ImGui.BeginTooltip()
                     ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
@@ -847,7 +850,9 @@ local function renderHoodTab()
                     if #placeholders > 0 then
                         ImGui.Text("\nPossible placeholders:")
                         for _, ph in ipairs(placeholders) do
-                            ImGui.BulletText(ph)
+                            if type(ph) == "string" then
+                                ImGui.BulletText(ph)
+                            end
                         end
                     end
                     ImGui.PopStyleColor()

@@ -1,3 +1,4 @@
+-- v1.1
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -11,8 +12,9 @@ local function new(myAch)
     end
 
     function helpers.setUseInvis(value)
-    useInvis = value
-end
+        useInvis = value
+    end
+    
     -- Find spawn by name
     function helpers.findSpawn(spawn, nameMap)
         if not spawn then return 0 end
@@ -28,11 +30,15 @@ end
     function helpers.normalizeName(name)
         if not name then return "" end
         return name:lower():gsub(" ", "_")
-        --return name:lower():gsub(" ", "_"):gsub("'", ""):gsub("-", "") -- more aggressive stripping if needed later
     end
 
-    -- Check for non-PH mobs on extended target
-    function helpers.hasNonPHTargets(phList, hoodAch)
+    -- Check for non-PH mobs on extended target (UPDATED FOR ZONE CONTEXT)
+    function helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
+        -- Get current zone if not provided
+        if not currentZoneID then
+            currentZoneID = mq.TLO.Zone.ID()
+        end
+        
         -- Only check XTargets, ignore current target
         local xtargetCount = mq.TLO.Me.XTarget() or 0
         for i = 1, xtargetCount do
@@ -43,7 +49,8 @@ end
                     -- Make sure this isn't a PH
                     local isPH = false
                     for _, mob in ipairs(hoodAch.Spawns) do
-                        local placeholders = phList[mob.name] or {}
+                        -- Get placeholders for this zone
+                        local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
                         for _, phName in ipairs(placeholders) do
                             if helpers.normalizeName(spawn.Name()) == helpers.normalizeName(phName) then
                                 isPH = true
@@ -157,65 +164,60 @@ end
     end
 
     -- Check if group needs invisibility
-    -- Check if group needs invisibility
-function helpers.groupNeedsInvis()
-    -- First check if invis is disabled
-    if not useInvis then
-        return false
-    end
-    
-    -- Check for any active targets
-    local xtargetCount = mq.TLO.Me.XTarget() or 0
-    if xtargetCount > 0 then
-        printf("\\arCannot check invis - mobs on extended target!")
-        return false
-    end
-    
-    local groupSize = mq.TLO.Group.GroupSize() or 0
-    --printf("\\ayDEBUG: Checking group invis - Group size: %d", groupSize)
-    
-    local membersNeedingInvis = 0
-    local totalMembersChecked = 0
-    
-    -- First check the script runner
-    local myInvis = mq.TLO.Me.Invis()
-    --printf("\\ayDEBUG: Checking self (%s) - Invis: %s", mq.TLO.Me.Name() or "Unknown", tostring(myInvis))
-    
-    if myInvis ~= nil then
-        totalMembersChecked = totalMembersChecked + 1
-        if myInvis == false then
-            printf("\\ayDEBUG: I am not invisible")
-            membersNeedingInvis = membersNeedingInvis + 1
+    function helpers.groupNeedsInvis()
+        -- First check if invis is disabled
+        if not useInvis then
+            return false
         end
-    else
-        printf("\\ayDEBUG: Can't see my own invis status")
-    end
-    
-    -- Then check other group members if in a group
-    if groupSize > 1 then
-        for i = 1, groupSize - 1 do
-            local member = mq.TLO.Group.Member(i)
-            if member() then
-                local spawn = member.Spawn
-                if spawn() and not spawn.Mercenary() then
-                    local memberInvis = spawn.Invis()
-                    --printf("\\ayDEBUG: Checking %s - Invis: %s", spawn.CleanName() or "Unknown", tostring(memberInvis))
-                    
-                    if memberInvis ~= nil then
-                        totalMembersChecked = totalMembersChecked + 1
-                        if memberInvis == false then
-                            printf("\\ayDEBUG: %s is not invisible", spawn.CleanName() or "Unknown")
-                            membersNeedingInvis = membersNeedingInvis + 1
+        
+        -- Check for any active targets
+        local xtargetCount = mq.TLO.Me.XTarget() or 0
+        if xtargetCount > 0 then
+            printf("\\arCannot check invis - mobs on extended target!")
+            return false
+        end
+        
+        local groupSize = mq.TLO.Group.GroupSize() or 0
+        
+        local membersNeedingInvis = 0
+        local totalMembersChecked = 0
+        
+        -- First check the script runner
+        local myInvis = mq.TLO.Me.Invis()
+        
+        if myInvis ~= nil then
+            totalMembersChecked = totalMembersChecked + 1
+            if myInvis == false then
+                printf("\\ayDEBUG: I am not invisible")
+                membersNeedingInvis = membersNeedingInvis + 1
+            end
+        else
+            printf("\\ayDEBUG: Can't see my own invis status")
+        end
+        
+        -- Then check other group members if in a group
+        if groupSize > 1 then
+            for i = 1, groupSize - 1 do
+                local member = mq.TLO.Group.Member(i)
+                if member() then
+                    local spawn = member.Spawn
+                    if spawn() and not spawn.Mercenary() then
+                        local memberInvis = spawn.Invis()
+                        
+                        if memberInvis ~= nil then
+                            totalMembersChecked = totalMembersChecked + 1
+                            if memberInvis == false then
+                                printf("\\ayDEBUG: %s is not invisible", spawn.CleanName() or "Unknown")
+                                membersNeedingInvis = membersNeedingInvis + 1
+                            end
                         end
                     end
                 end
             end
         end
+        
+        return membersNeedingInvis > 0
     end
-    
-    --printf("\\ayDEBUG: %d of %d members need invis", membersNeedingInvis, totalMembersChecked)
-    return membersNeedingInvis > 0
-end
 
     return helpers
 end
