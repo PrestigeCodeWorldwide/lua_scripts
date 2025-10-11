@@ -1,6 +1,7 @@
 local mq = require 'mq'
 local BL = require("biggerlib")
 
+local useInvis = true
 local function new(myAch)
     local helpers = {}
 
@@ -9,6 +10,9 @@ local function new(myAch)
         BL.info(string.format(...))
     end
 
+    function helpers.setUseInvis(value)
+    useInvis = value
+end
     -- Find spawn by name
     function helpers.findSpawn(spawn, nameMap)
         if not spawn then return 0 end
@@ -153,60 +157,65 @@ local function new(myAch)
     end
 
     -- Check if group needs invisibility
-    function helpers.groupNeedsInvis()
-        -- First check for any active targets
-        local xtargetCount = mq.TLO.Me.XTarget() or 0
-        if xtargetCount > 0 then
-            printf("\\arCannot check invis - mobs on extended target!")
-            return false
+    -- Check if group needs invisibility
+function helpers.groupNeedsInvis()
+    -- First check if invis is disabled
+    if not useInvis then
+        return false
+    end
+    
+    -- Check for any active targets
+    local xtargetCount = mq.TLO.Me.XTarget() or 0
+    if xtargetCount > 0 then
+        printf("\\arCannot check invis - mobs on extended target!")
+        return false
+    end
+    
+    local groupSize = mq.TLO.Group.GroupSize() or 0
+    --printf("\\ayDEBUG: Checking group invis - Group size: %d", groupSize)
+    
+    local membersNeedingInvis = 0
+    local totalMembersChecked = 0
+    
+    -- First check the script runner
+    local myInvis = mq.TLO.Me.Invis()
+    --printf("\\ayDEBUG: Checking self (%s) - Invis: %s", mq.TLO.Me.Name() or "Unknown", tostring(myInvis))
+    
+    if myInvis ~= nil then
+        totalMembersChecked = totalMembersChecked + 1
+        if myInvis == false then
+            printf("\\ayDEBUG: I am not invisible")
+            membersNeedingInvis = membersNeedingInvis + 1
         end
-        local groupSize = mq.TLO.Group.GroupSize() or 0
-        --printf("\\ayDEBUG: Checking group invis - Group size: %d", groupSize)
-        
-        local membersNeedingInvis = 0
-        local totalMembersChecked = 0
-        
-        -- First check the script runner
-        local myInvis = mq.TLO.Me.Invis()
-        --printf("\\ayDEBUG: Checking self (%s) - Invis: %s", mq.TLO.Me.Name() or "Unknown", tostring(myInvis))
-        
-        if myInvis ~= nil then
-            totalMembersChecked = totalMembersChecked + 1
-            if myInvis == false then
-                printf("\\ayDEBUG: I am not invisible")
-                membersNeedingInvis = membersNeedingInvis + 1
-            end
-        else
-            printf("\\ayDEBUG: Can't see my own invis status")
-        end
-        
-        -- Then check other group members if in a group
-        if groupSize > 1 then
-            for i = 1, groupSize do
-                local member = mq.TLO.Group.Member(i)
-                if member() and member.ID() ~= mq.TLO.Me.ID() then  -- Skip self
-                    local memberName = member.Name() or "Unknown"
-                    --printf("\\ayDEBUG: Checking member %s", memberName)
+    else
+        printf("\\ayDEBUG: Can't see my own invis status")
+    end
+    
+    -- Then check other group members if in a group
+    if groupSize > 1 then
+        for i = 1, groupSize - 1 do
+            local member = mq.TLO.Group.Member(i)
+            if member() then
+                local spawn = member.Spawn
+                if spawn() and not spawn.Mercenary() then
+                    local memberInvis = spawn.Invis()
+                    --printf("\\ayDEBUG: Checking %s - Invis: %s", spawn.CleanName() or "Unknown", tostring(memberInvis))
                     
-                    local isInvis = member.Invis()
-                    if isInvis ~= nil then
+                    if memberInvis ~= nil then
                         totalMembersChecked = totalMembersChecked + 1
-                        --printf("\\ayDEBUG: Member %s - Invis: %s", memberName, tostring(isInvis))
-                        
-                        if isInvis == false then
-                            printf("\\ayDEBUG: Member %s is not invisible", memberName)
+                        if memberInvis == false then
+                            printf("\\ayDEBUG: %s is not invisible", spawn.CleanName() or "Unknown")
                             membersNeedingInvis = membersNeedingInvis + 1
                         end
-                    else
-                        printf("\\ayDEBUG: Skipping %s - can't see invis status", memberName)
                     end
                 end
             end
         end
-        
-        --printf("\\ayDEBUG: %d of %d checked members need invisibility", membersNeedingInvis, totalMembersChecked)
-        return membersNeedingInvis > 0
     end
+    
+    --printf("\\ayDEBUG: %d of %d members need invis", membersNeedingInvis, totalMembersChecked)
+    return membersNeedingInvis > 0
+end
 
     return helpers
 end

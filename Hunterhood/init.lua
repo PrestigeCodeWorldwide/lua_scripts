@@ -6,20 +6,22 @@ local BL = require("biggerlib")
 --local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
 
-BL.info('HunterHood v2.05 loaded')
+BL.info('HunterHood v2.07 loaded')
 
 -- Load and initialize zone data
+local currentNavTarget = nil
+local useInvis = true -- Default to using invisibility
 local zoneMap = zoneData.zoneMap
 local zone_lists = zoneData.zone_lists
 local combo_items = zoneData.combo_items
 local getZoneDisplayName = zoneData.getZoneDisplayName
 -- shortening the mq bind for achievements
 local myAch = mq.TLO.Achievement
-local helpers = require("Hunterhood.helpers").new(myAch)  -- Pass myAch to helpers
+local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
 -- Navigation coroutine
 local navCoroutine = nil
 local navActive = false
-
+currentNavTarget = nil  -- Add this line to clear the target
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
@@ -27,23 +29,23 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
         local phList = require("Hunterhood.ph_list").ph_list
         local currentTarget = nil
         local navComplete = true
-        local engagedTarget = nil  -- Track if we're already engaged with a target
+        local engagedTarget = nil -- Track if we're already engaged with a target
 
         while navActive do
             -- If we have an engaged target that's still valid, skip target selection
-            if engagedTarget and engagedTarget() and not engagedTarget.Dead() and 
-               mq.TLO.Me.Combat() and mq.TLO.Target.ID() == engagedTarget.ID() then
+            if engagedTarget and engagedTarget() and not engagedTarget.Dead() and
+                mq.TLO.Me.Combat() and mq.TLO.Target.ID() == engagedTarget.ID() then
                 -- Still fighting the same target, just yield and continue
                 coroutine.yield()
             else
                 -- Reset engaged target if combat ended or target changed
-                if not mq.TLO.Me.Combat() or 
-                   (mq.TLO.Target() and mq.TLO.Target.ID() ~= (engagedTarget and engagedTarget.ID() or 0)) then
+                if not mq.TLO.Me.Combat() or
+                    (mq.TLO.Target() and mq.TLO.Target.ID() ~= (engagedTarget and engagedTarget.ID() or 0)) then
                     engagedTarget = nil
                 end
 
                 local shouldContinue = false
-                
+
                 -- Check for non-PH mobs on extended target
                 local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch)
                 if hasAdd and addSpawn then
@@ -86,7 +88,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                     end
                                 end
                             end
-                
+
                             -- Check placeholders for this mob
                             local placeholders = phList[mob.name] or {}
                             for _, phName in ipairs(placeholders) do
@@ -103,7 +105,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                 end
                             end
                         end
-                
+
                         -- Only navigate if we found a valid target and not engaged in combat
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
                             -- Check if we need to cast invisibility
@@ -117,7 +119,8 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                     coroutine.yield()
                                 end
                             end
-                
+
+                            currentNavTarget = closestSpawn
                             printf("\ayNavigating to \ag%s\ay (%.1f away)",
                                 closestSpawn.CleanName(),
                                 closestSpawn.Distance3D() or 0)
@@ -134,7 +137,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
             if currentTarget and currentTarget() and not currentTarget.Dead() then
                 if currentTarget.Distance3D() <= 25 then
                     printf("\ayDEBUG: In range, setting up combat...")
-                    
+
                     -- Only target if not already targeting this mob
                     if mq.TLO.Target.ID() ~= currentTarget.ID() then
                         mq.cmdf("/target id %d", currentTarget.ID())
@@ -143,7 +146,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             coroutine.yield()
                         end
                     end
-                    
+
                     -- Only attack if we have the correct target
                     if mq.TLO.Target.ID() == currentTarget.ID() then
                         if not mq.TLO.Me.Combat() then
@@ -151,16 +154,16 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             mq.cmd("/attack on")
                             engagedTarget = currentTarget
                         end
-                        
+
                         -- Always maintain stick and face while in combat
                         if mq.TLO.Me.Combat() then
                             mq.cmd("/stick 10 front moveback")
                             mq.cmd("/face")
                         end
                     end
-                    
+
                     -- Wait at the target for a bit
-                    for i = 1, 5 do  -- Reduced from 10 to make it more responsive
+                    for i = 1, 5 do -- Reduced from 10 to make it more responsive
                         if not navActive then break end
                         coroutine.yield()
                     end
@@ -199,12 +202,12 @@ local onlySpawned = false
 local spawnUp = 0
 local totalDone = ''
 local currentTab = "Hunter"                          -- Track which tab is active
-local hoodWindowSize = { width = 275, height = 350 } -- Saved size for Hood tab
+local hoodWindowSize = { width = 280, height = 350 } -- Saved size for Hood tab
 local lastTab = "Hunter"                             -- Track the last active tab
 
 -- shortening the mq bind for achievements
 local myAch = mq.TLO.Achievement
-local helpers = require("Hunterhood.helpers").new(myAch)  -- Pass myAch to helpers
+local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
 
 -- Current Achievement information for Hunter tab
 local curHunterAch = {}
@@ -241,11 +244,11 @@ local function updateHunterTab()
             printf('Error: Achievement ID %d not found', achID)
             return
         end
-        
+
         local achName = ach.Name() or "Unknown Achievement"
         local objCount = ach.ObjectiveCount() or 0
         printf('Debug: Found achievement "%s" with %d objectives', achName, objCount)
-        
+
         curHunterAch = {
             ID = achID,
             Name = achName,
@@ -290,21 +293,21 @@ local function textEnabled(spawn)
     -- Check if the spawn is up
     local spawnID = helpers.findSpawn(spawn, nameMap)
     local isUp = spawnID ~= 0 and mq.TLO.Spawn(spawnID).ID() ~= nil
-    
+
     -- Set text color based on spawn status
     if isUp then
-        ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)  -- Gold for up
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold for up
     else
-        ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1)  -- Grey for down
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1)       -- Grey for down
     end
-    
+
     ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.33, 0.33, 0.33, 0.5)
     ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
-    
+
     local selSpawn = ImGui.Selectable(spawn, false, ImGuiSelectableFlags.AllowDoubleClick)
-    
-    ImGui.PopStyleColor(3)  -- Pop all three style colors
-    
+
+    ImGui.PopStyleColor(3) -- Pop all three style colors
+
     if selSpawn and ImGui.IsMouseDoubleClicked(0) then
         mq.cmdf('/nav id %d log=error', spawnID)
         printf('\ayMoving to \ag%s', spawn)
@@ -313,14 +316,14 @@ end
 
 local function hunterProgress()
     local pct, doneText = helpers.getPctCompleted(curHunterAch.ID, myHunterSpawn, curHunterAch)
-    totalDone = doneText  -- Keep the global variable updated
+    totalDone = doneText -- Keep the global variable updated
     local x, y = ImGui.GetContentRegionAvail()
     ImGui.PushStyleColor(ImGuiCol.PlotHistogram, 0.690, 0.553, 0.259, 0.5)
     ImGui.PushStyleColor(ImGuiCol.FrameBg, 0.33, 0.33, 0.33, 0.5)
-    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)  -- Text color (white)
+    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0) -- Text color (white)
     ImGui.SetWindowFontScale(0.85)
     ImGui.Indent(2)
-    ImGui.ProgressBar(pct, x - 4, 16, totalDone)  -- Changed from getPctCompleted() to pct
+    ImGui.ProgressBar(pct, x - 4, 16, totalDone) -- Changed from getPctCompleted() to pct
     ImGui.PopStyleColor(3)
     ImGui.SetWindowFontScale(1)
 end
@@ -331,10 +334,10 @@ local function createLines(spawn)
         local spawnID = helpers.findSpawn(spawn, nameMap)
         local isUp = spawnID ~= 0 and mq.TLO.Spawn(spawnID).ID() ~= nil
         if not isUp then
-            return  -- Skip this spawn if it's not up and we're only showing spawned
+            return -- Skip this spawn if it's not up and we're only showing spawned
         end
     end
-    
+
     -- Draw the checkbox and text for the spawn
     drawCheckBox(spawn)
     textEnabled(spawn)
@@ -554,8 +557,8 @@ local function renderHoodTab()
 
 
     -- Expansion selector combo
-    ImGui.SetNextItemWidth(190)
-    if ImGui.BeginCombo("Expansion", combo_items[selected_index]) then
+    ImGui.SetNextItemWidth(160)
+    if ImGui.BeginCombo(":", combo_items[selected_index]) then
         for i, item in ipairs(combo_items) do
             if ImGui.Selectable(item, i == selected_index) then
                 selected_index = i
@@ -571,7 +574,44 @@ local function renderHoodTab()
         end
         ImGui.EndCombo()
     end
+    ImGui.SameLine(0, 2)
+    local newUseInvis = ImGui.Checkbox("Invis##InvisCheckbox", useInvis)
+    if newUseInvis ~= useInvis then
+        useInvis = newUseInvis
+        helpers.setUseInvis(useInvis)
+    end
+    if ImGui.IsItemHovered() then
+        ImGui.SetTooltip("Use Invis while navigating between mobs")
+    end
 
+    ImGui.SameLine(0, 10) -- Add space after text
+    ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
+    ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
+    if ImGui.Button("GO##ExecuteAction") then
+        if not navActive then
+            -- Check if group needs invisibility before starting navigation
+            if useInvis and helpers.groupNeedsInvis() then
+                printf("\ayGroup members need invisibility, casting...")
+                mq.cmd("/noparse /docommand /dgga /alt act 231")
+                -- Add your invisibility spell/ability here
+                -- For example: mq.cmd("/cast " .. yourInvisSpell)
+                -- or use a helper function if you have one
+                -- helpers.castInvis()
+            end
+            navActive = true
+            navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
+            printf("\ayStarted navigation to selected mobs")
+        else
+            navActive = false
+            navCoroutine = nil
+            mq.cmd("/nav stop")
+            printf("\ayStopped navigation")
+        end
+    end
+    if ImGui.IsItemHovered() then
+        ImGui.SetTooltip("Start/Stop navigation to selected mobs")
+    end
+    ImGui.PopStyleColor(2)
     -- Zone selector combo
     local currentZoneName = "Select a zone"
     local zones = zone_lists[combo_items[selected_index] or ""] or {}
@@ -592,36 +632,65 @@ local function renderHoodTab()
     end
     -- Save the current style colors
     ImGui.SameLine(0, 4)
-local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
-local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
+    local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
+    local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
 
--- Set the button colors
-ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)        -- Black background
-ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
-ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555)  -- Lighter gray when pressed
-ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)          -- Green text
+    -- Set the button colors
+    ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)        -- Black background
+    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
+    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555)  -- Lighter gray when pressed
+    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)          -- Green text
 
-if ImGui.Button("Zone") then
+    if ImGui.Button("Nav") then
+        local zones = zone_lists[combo_items[selected_index] or ""] or {}
+        if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
+            local zone = zones[selected_zone_index]
+            printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
+            mq.cmdf("/travelto %s", zone.shortname)
+        end
+    end
+
+    -- Move the tooltip inside the same scope where zone is defined
     local zones = zone_lists[combo_items[selected_index] or ""] or {}
     if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
         local zone = zones[selected_zone_index]
-        printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
-        mq.cmdf("/travelto %s", zone.shortname)
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("Click to /travelto %s", zone.shortname)
+            ImGui.EndTooltip()
+        end
     end
-end
-
--- Move the tooltip inside the same scope where zone is defined
-local zones = zone_lists[combo_items[selected_index] or ""] or {}
-if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
-    local zone = zones[selected_zone_index]
+    -- Current Zone button
+    ImGui.SameLine()
+    ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
+    ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Cyan color
+    if ImGui.Button("CZ##CurrentZone") then
+        local exp, zone = helpers.getCurrentZoneData(zoneMap, zone_lists)
+        if exp and zone then
+            for i, item in ipairs(combo_items) do
+                if item == exp then
+                    selected_index = i
+                    local zones = zone_lists[exp] or {}
+                    for j, z in ipairs(zones) do
+                        if z.id == zone.id then
+                            selected_zone_index = j
+                            break
+                        end
+                    end
+                    updateHoodAchievement(zone.id)
+                    break
+                end
+            end
+        else
+            printf("\\ayCurrent zone not found in HunterHood database.")
+        end
+    end
     if ImGui.IsItemHovered() then
-        ImGui.BeginTooltip()
-        ImGui.Text("Click to /travelto %s", zone.shortname)
-        ImGui.EndTooltip()
+        ImGui.SetTooltip("Click to select your current zone in the drop down")
     end
-end
--- Restore the original style colors
-ImGui.PopStyleColor(4)
+    ImGui.PopStyleColor(2)
+    -- Restore the original style colors
+    ImGui.PopStyleColor(4)
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
@@ -654,65 +723,17 @@ ImGui.PopStyleColor(4)
                 end
             end
         end
-        ImGui.Text(string.format("Completed ( %d/%d )", completed, total))
-ImGui.SameLine(0, 10)  -- Add space after text
-ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
-ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
-if ImGui.SmallButton("GO##ExecuteAction") then
-    if not navActive then
-        -- Check if group needs invisibility before starting navigation
-        if helpers.groupNeedsInvis() then
-            printf("\ayGroup members need invisibility, casting...")
-            mq.cmd("/noparse /docommand /dgga /alt act 231")
-            -- Add your invisibility spell/ability here
-            -- For example: mq.cmd("/cast " .. yourInvisSpell)
-            -- or use a helper function if you have one
-            -- helpers.castInvis()
+        local completedText = string.format("Completed ( %d/%d )", completed, total)
+
+        -- Add distance to target if navigating
+        if navActive and currentNavTarget then
+            local distance = currentNavTarget.Distance3D() or 0
+            completedText = completedText .. string.format("  [%.1f]", distance)
         end
-        navActive = true
-        navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
-        printf("\ayStarted navigation to selected mobs")
-    else
-        navActive = false
-        navCoroutine = nil
-        mq.cmd("/nav stop")
-        printf("\ayStopped navigation")
-    end
-end
-if ImGui.IsItemHovered() then
-    ImGui.SetTooltip("Start/Stop navigation to selected mobs")
-end
-ImGui.PopStyleColor(2)
--- Current Zone button
-ImGui.SameLine()
-ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
-ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 1, 1)  -- Cyan color
-if ImGui.SmallButton("CZ##CurrentZone") then
-    local exp, zone = helpers.getCurrentZoneData(zoneMap, zone_lists)
-    if exp and zone then
-        for i, item in ipairs(combo_items) do
-            if item == exp then
-                selected_index = i
-                local zones = zone_lists[exp] or {}
-                for j, z in ipairs(zones) do
-                    if z.id == zone.id then
-                        selected_zone_index = j
-                        break
-                    end
-                end
-                updateHoodAchievement(zone.id)
-                break
-            end
-        end
-    else
-        printf("\\ayCurrent zone not found in HunterHood database.")
-    end
-end
-if ImGui.IsItemHovered() then
-    ImGui.SetTooltip("Click to select your Current Zone")
-end
-ImGui.PopStyleColor(2)
-ImGui.NextColumn()
+
+        ImGui.Text(completedText)
+
+        ImGui.NextColumn()
 
         -- Header col 2: Check All
         local allChecked = true
@@ -762,7 +783,7 @@ ImGui.NextColumn()
                     end
                 end
             end
-            
+
             if isCompleted then
                 ImGui.DrawTextureAnimation(done, 15, 15)
             else
@@ -799,7 +820,7 @@ ImGui.NextColumn()
                 if #placeholders == 0 then
                     for mobName, phs in pairs(phList) do
                         if helpers.normalizeName(mobName):find(helpers.normalizeName(normalizedSpawnName), 1, true)
-    or helpers.normalizeName(normalizedSpawnName):find(helpers.normalizeName(mobName), 1, true) then
+                            or helpers.normalizeName(normalizedSpawnName):find(helpers.normalizeName(mobName), 1, true) then
                             placeholders = phs
                             break
                         end
