@@ -22,48 +22,40 @@ local function new(myAch)
 
     -- Normalize mob names for comparison
     function helpers.normalizeName(name)
-        return name:lower():gsub(" ", "_"):gsub("'", ""):gsub("-", "")
+        if not name then return "" end
+        return name:lower():gsub(" ", "_")
+        --return name:lower():gsub(" ", "_"):gsub("'", ""):gsub("-", "") -- more aggressive stripping if needed later
     end
 
     -- Check for non-PH mobs on extended target
     function helpers.hasNonPHTargets(phList, hoodAch)
+        -- Only check XTargets, ignore current target
         local xtargetCount = mq.TLO.Me.XTarget() or 0
         for i = 1, xtargetCount do
             local target = mq.TLO.Me.XTarget(i)
             if target() and target.ID() > 0 then
                 local spawn = mq.TLO.Spawn(target.ID())
                 if spawn() and not spawn.Dead() then
-                    local isPHorNamed = false
-                    local spawnName = spawn.CleanName()
-
-                    -- Check if it's one of our named mobs
+                    -- Make sure this isn't a PH
+                    local isPH = false
                     for _, mob in ipairs(hoodAch.Spawns) do
-                        if mob.name == spawnName then
-                            isPHorNamed = true
-                            break
-                        end
-                    end
-
-                    -- Check if it's a PH for any of our mobs
-                    if not isPHorNamed then
-                        for _, phs in pairs(phList) do
-                            for _, ph in ipairs(phs) do
-                                if ph == spawnName then
-                                    isPHorNamed = true
-                                    break
-                                end
+                        local placeholders = phList[mob.name] or {}
+                        for _, phName in ipairs(placeholders) do
+                            if helpers.normalizeName(spawn.Name()) == helpers.normalizeName(phName) then
+                                isPH = true
+                                break
                             end
-                            if isPHorNamed then break end
                         end
+                        if isPH then break end
                     end
-
-                    -- If we found a non-PH, non-named mob on extended target
-                    if not isPHorNamed then
+                    
+                    if not isPH then
                         return true, spawn
                     end
                 end
             end
         end
+        
         return false, nil
     end
 
@@ -162,15 +154,21 @@ local function new(myAch)
 
     -- Check if group needs invisibility
     function helpers.groupNeedsInvis()
+        -- First check for any active targets
+        local xtargetCount = mq.TLO.Me.XTarget() or 0
+        if xtargetCount > 0 then
+            printf("\\arCannot check invis - mobs on extended target!")
+            return false
+        end
         local groupSize = mq.TLO.Group.GroupSize() or 0
-        printf("\\ayDEBUG: Checking group invis - Group size: %d", groupSize)
+        --printf("\\ayDEBUG: Checking group invis - Group size: %d", groupSize)
         
         local membersNeedingInvis = 0
         local totalMembersChecked = 0
         
         -- First check the script runner
         local myInvis = mq.TLO.Me.Invis()
-        printf("\\ayDEBUG: Checking self (%s) - Invis: %s", mq.TLO.Me.Name() or "Unknown", tostring(myInvis))
+        --printf("\\ayDEBUG: Checking self (%s) - Invis: %s", mq.TLO.Me.Name() or "Unknown", tostring(myInvis))
         
         if myInvis ~= nil then
             totalMembersChecked = totalMembersChecked + 1
@@ -188,12 +186,12 @@ local function new(myAch)
                 local member = mq.TLO.Group.Member(i)
                 if member() and member.ID() ~= mq.TLO.Me.ID() then  -- Skip self
                     local memberName = member.Name() or "Unknown"
-                    printf("\\ayDEBUG: Checking member %s", memberName)
+                    --printf("\\ayDEBUG: Checking member %s", memberName)
                     
                     local isInvis = member.Invis()
                     if isInvis ~= nil then
                         totalMembersChecked = totalMembersChecked + 1
-                        printf("\\ayDEBUG: Member %s - Invis: %s", memberName, tostring(isInvis))
+                        --printf("\\ayDEBUG: Member %s - Invis: %s", memberName, tostring(isInvis))
                         
                         if isInvis == false then
                             printf("\\ayDEBUG: Member %s is not invisible", memberName)
@@ -206,7 +204,7 @@ local function new(myAch)
             end
         end
         
-        printf("\\ayDEBUG: %d of %d checked members need invisibility", membersNeedingInvis, totalMembersChecked)
+        --printf("\\ayDEBUG: %d of %d checked members need invisibility", membersNeedingInvis, totalMembersChecked)
         return membersNeedingInvis > 0
     end
 

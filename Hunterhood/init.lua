@@ -3,7 +3,7 @@ require 'ImGui'
 local bit = require 'bit'
 local Open, ShowUI = true, true
 local BL = require("biggerlib")
-local helpers = require("Hunterhood.helpers")
+--local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
 
 BL.info('HunterHood v2.05 loaded')
@@ -27,142 +27,140 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
         local phList = require("Hunterhood.ph_list").ph_list
         local currentTarget = nil
         local navComplete = true
+        local engagedTarget = nil  -- Track if we're already engaged with a target
 
         while navActive do
-            -- Check for non-PH mobs on extended target
-            local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch)
-            if hasAdd then
-                -- If we're currently navigating to a target, stop that navigation
-                if mq.TLO.Navigation.Active() then
-                    mq.cmd("/nav stop")
-                    navComplete = true
-                end
-
-                if addSpawn then
-                    printf("\arAdd detected: \ay%s\ar - Engaging first", addSpawn.CleanName())
-                    mq.cmdf("/nav id %d log=error", addSpawn.ID())
-                    mq.cmdf("/tar id %d", addSpawn.ID())
-                    --mq.cmd("/docommand /${Me.Class.ShortName} resetcamp")
-                    --mq.cmd("/attack on")
-                    navComplete = false
-                    currentTarget = addSpawn
-
-                    -- Wait for add to die
-                    while navActive and addSpawn() and not addSpawn.Dead() do
-                        if addSpawn.Distance() < 20 then  -- Check if target is in range (adjust 100 as needed)
-                            mq.cmd("/attack on")
-                            break
-                        end
-                        coroutine.yield()
-                    end
-                end
+            -- If we have an engaged target that's still valid, skip target selection
+            if engagedTarget and engagedTarget() and not engagedTarget.Dead() and 
+               mq.TLO.Me.Combat() and mq.TLO.Target.ID() == engagedTarget.ID() then
+                -- Still fighting the same target, just yield and continue
+                coroutine.yield()
             else
+                -- Reset engaged target if combat ended or target changed
+                if not mq.TLO.Me.Combat() or 
+                   (mq.TLO.Target() and mq.TLO.Target.ID() ~= (engagedTarget and engagedTarget.ID() or 0)) then
+                    engagedTarget = nil
+                end
 
-                -- Short delay after killing add
-                if helpers.groupNeedsInvis() then
-                    printf("\\ayGroup needs invisibility - casting...")
-                    mq.cmd("/docommand /dgga /alt act 231")
-                    mq.cmd("/alt act 231")
-                    -- Wait a moment for cast to complete
-                    for i = 1, 20 do
-                        if not navActive then break end
-                        coroutine.yield()
+                local shouldContinue = false
+                
+                -- Check for non-PH mobs on extended target
+                local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch)
+                if hasAdd and addSpawn then
+                    -- Only switch to add if not already engaged with something
+                    if not engagedTarget or engagedTarget.Dead() or not mq.TLO.Me.Combat() then
+                        printf("\arAdd detected: \ay%s\ar - Engaging first", addSpawn.CleanName())
+                        mq.cmdf("/nav id %d log=error", addSpawn.ID())
+                        currentTarget = addSpawn
+                        engagedTarget = addSpawn
+                        navComplete = false
+                        shouldContinue = true
                     end
                 end
 
-            end
+                if not shouldContinue and navComplete then
+                    -- Reset variables for this iteration
+                    local closestSpawn = nil
+                    local closestDistance = math.huge
+                    local checkedMobs = {}
 
-            -- If we get here, no adds are present, proceed with normal targeting
-            if navComplete then
-                -- Reset variables for this iteration
-                local closestSpawn = nil
-                local closestDistance = math.huge
-                local checkedMobs = {}
-
-                -- Get all checked mobs
-                for _, spawn in ipairs(hoodAch.Spawns) do
-                    if mobCheckboxes[spawn.name] then
-                        table.insert(checkedMobs, spawn)
-                    end
-                end
-
-                if #checkedMobs > 0 then
-                    -- Find closest spawn
-                    for _, mob in ipairs(checkedMobs) do
-                        -- Check named mob
-                        local spawnID = mq.TLO.Spawn("npc " .. mob.name).ID()
-                        if spawnID ~= nil and spawnID > 0 then
-                            local spawn = mq.TLO.Spawn(spawnID)
-                            if spawn() and not spawn.Dead() then
-                                local distance = spawn.Distance3D() or math.huge
-                                if distance < closestDistance then
-                                    closestDistance = distance
-                                    closestSpawn = spawn
-                                end
-                            end
+                    -- Get all checked mobs
+                    for _, spawn in ipairs(hoodAch.Spawns) do
+                        if mobCheckboxes[spawn.name] then
+                            table.insert(checkedMobs, spawn)
                         end
+                    end
 
-                        -- Check placeholders
-                        local placeholders = phList[mob.name] or {}
-                        for _, phName in ipairs(placeholders) do
-                            local phID = mq.TLO.Spawn("npc " .. phName).ID()
-                            if phID ~= nil and phID > 0 then
-                                local phSpawn = mq.TLO.Spawn(phID)
-                                if phSpawn() and not phSpawn.Dead() then
-                                    local distance = phSpawn.Distance3D() or math.huge
+                    if #checkedMobs > 0 then
+                        -- Find closest spawn (check both named mobs and their PHs)
+                        for _, mob in ipairs(checkedMobs) do
+                            -- Check named mob first
+                            local spawnID = mq.TLO.Spawn("npc " .. mob.name).ID()
+                            if spawnID ~= nil and spawnID > 0 then
+                                local spawn = mq.TLO.Spawn(spawnID)
+                                if spawn() and not spawn.Dead() then
+                                    local distance = spawn.Distance3D() or math.huge
                                     if distance < closestDistance then
                                         closestDistance = distance
-                                        closestSpawn = phSpawn
+                                        closestSpawn = spawn
+                                    end
+                                end
+                            end
+                
+                            -- Check placeholders for this mob
+                            local placeholders = phList[mob.name] or {}
+                            for _, phName in ipairs(placeholders) do
+                                local phID = mq.TLO.Spawn("npc " .. phName).ID()
+                                if phID ~= nil and phID > 0 then
+                                    local phSpawn = mq.TLO.Spawn(phID)
+                                    if phSpawn() and not phSpawn.Dead() then
+                                        local distance = phSpawn.Distance3D() or math.huge
+                                        if distance < closestDistance then
+                                            closestDistance = distance
+                                            closestSpawn = phSpawn
+                                        end
                                     end
                                 end
                             end
                         end
-                    end
-
-                    -- If we found a valid target, navigate to it
-                    if closestSpawn and (not currentTarget or currentTarget.ID() ~= closestSpawn.ID()) then
-                        -- Check if group needs invisibility before moving to next target
-                        printf("\\ayDEBUG: About to check if group needs invisibility")
-                        if helpers.groupNeedsInvis() then
-                            printf("\\ayGroup needs invisibility - casting before moving to next target...")
-                            mq.cmd("/noparse /docommand /dgga /alt act 231")
-                            printf("\\ayDEBUG: Sent invis command, waiting...")
-                            -- Wait a moment for cast to complete
-                            for i = 1, 20 do
-                                if not navActive then break end
-                                coroutine.yield()
+                
+                        -- Only navigate if we found a valid target and not engaged in combat
+                        if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
+                            -- Check if we need to cast invisibility
+                            if helpers.groupNeedsInvis() then
+                                printf("\ayGroup needs invisibility - casting...")
+                                mq.cmd("/noparse /docommand /dgga /alt act 231")
+                                mq.cmd("/alt act 231")
+                                -- Wait for cast to complete
+                                for i = 1, 20 do
+                                    if not navActive then break end
+                                    coroutine.yield()
+                                end
                             end
-                            printf("\\ayDEBUG: Done waiting for invis")
-                        else
-                            printf("\\ayDEBUG: Group does not need invisibility")
+                
+                            printf("\ayNavigating to \ag%s\ay (%.1f away)",
+                                closestSpawn.CleanName(),
+                                closestSpawn.Distance3D() or 0)
+                            mq.cmdf("/nav id %d log=error", closestSpawn.ID())
+                            currentTarget = closestSpawn
+                            engagedTarget = closestSpawn
+                            navComplete = false
                         end
-                        
-                        printf("\ayNavigating to \ag%s\ay (%.1f away)",
-                            closestSpawn.CleanName(),
-                            closestSpawn.Distance3D() or 0)
-                        mq.cmdf("/nav id %d log=error", closestSpawn.ID())
-                        mq.cmdf("/tar id %d", closestSpawn.ID())
-                        
-                        currentTarget = closestSpawn
-                        navComplete = false
                     end
                 end
             end
 
             -- Check if we've reached our current target
             if currentTarget and currentTarget() and not currentTarget.Dead() then
-                printf("\ayDEBUG: Target %s is alive at distance %.1f", currentTarget.CleanName(), currentTarget.Distance3D() or 0)
-                if currentTarget.Distance3D() <= 15 then
+                if currentTarget.Distance3D() <= 25 then
                     printf("\ayDEBUG: In range, setting up combat...")
-                    --mq.cmd("/docommand /${Me.Class.ShortName} mode 4")
-                    --mq.cmd("/docommand /${Me.Class.ShortName} pause off")
-                    --mq.cmd("/docommand /${Me.Class.ShortName} resetcamp")
-                    if not mq.TLO.Me.Combat() then
-                        printf("\ayDEBUG: Enabling attack mode (in range)")
-                        mq.cmd("/attack on")
+                    
+                    -- Only target if not already targeting this mob
+                    if mq.TLO.Target.ID() ~= currentTarget.ID() then
+                        mq.cmdf("/target id %d", currentTarget.ID())
+                        -- Small delay to allow target to be acquired
+                        for i = 1, 5 do
+                            coroutine.yield()
+                        end
                     end
+                    
+                    -- Only attack if we have the correct target
+                    if mq.TLO.Target.ID() == currentTarget.ID() then
+                        if not mq.TLO.Me.Combat() then
+                            printf("\ayDEBUG: Enabling attack mode (in range)")
+                            mq.cmd("/attack on")
+                            engagedTarget = currentTarget
+                        end
+                        
+                        -- Always maintain stick and face while in combat
+                        if mq.TLO.Me.Combat() then
+                            mq.cmd("/stick 10 front moveback")
+                            mq.cmd("/face")
+                        end
+                    end
+                    
                     -- Wait at the target for a bit
-                    for i = 1, 10 do
+                    for i = 1, 5 do  -- Reduced from 10 to make it more responsive
                         if not navActive then break end
                         coroutine.yield()
                     end
@@ -171,9 +169,9 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
             else
                 printf("\ayDEBUG: No valid target or target is dead")
                 navComplete = true
+                engagedTarget = nil
             end
 
-            ::continue::
             coroutine.yield()
         end
     end)
@@ -228,6 +226,8 @@ local hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {} }
 local mobCheckboxes = {}
 local selectedZoneID = nil
 local hasInitialized = false
+local lastHoodUpdate = 0
+local HOOD_UPDATE_INTERVAL = 1000 -- Update every second
 
 local function updateHunterTab()
     myHunterSpawn = {}
@@ -641,10 +641,18 @@ ImGui.PopStyleColor(4)
         ImGui.SetColumnWidth(1, col2Width)
         ImGui.SetColumnWidth(2, col3Width)
 
-        -- Header col 1: Completed
+        -- Header col 1: Completed (check status dynamically)
         local completed, total = 0, #hoodAch.Spawns
-        for _, spawn in ipairs(hoodAch.Spawns) do
-            if spawn.done then completed = completed + 1 end
+        if hoodAch.ID > 0 then
+            local ach = myAch(hoodAch.ID)
+            if ach and ach() then
+                for _, spawn in ipairs(hoodAch.Spawns) do
+                    local objective = ach.Objective(spawn.name)
+                    if objective and objective() and objective.Completed() then
+                        completed = completed + 1
+                    end
+                end
+            end
         end
         ImGui.Text(string.format("Completed ( %d/%d )", completed, total))
 ImGui.SameLine(0, 10)  -- Add space after text
@@ -743,8 +751,19 @@ ImGui.NextColumn()
 
         -- Mob rows
         for _, spawn in ipairs(hoodAch.Spawns) do
-            -- Column 1: completion + name
-            if spawn.done then
+            -- Column 1: completion + name (check status dynamically)
+            local isCompleted = false
+            if hoodAch.ID > 0 then
+                local ach = myAch(hoodAch.ID)
+                if ach and ach() then
+                    local objective = ach.Objective(spawn.name)
+                    if objective and objective() then
+                        isCompleted = objective.Completed() or false
+                    end
+                end
+            end
+            
+            if isCompleted then
                 ImGui.DrawTextureAnimation(done, 15, 15)
             else
                 ImGui.DrawTextureAnimation(notDone, 15, 15)

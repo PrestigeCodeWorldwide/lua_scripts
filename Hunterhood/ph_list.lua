@@ -2131,42 +2131,559 @@ local ph_list = {
 
 -------------Beginning of TDS PH list-------------
 ---Arx Mentis
-    ["Arx_Mentis"] = {
-        "Unknown"
+    ["Bonemaw"] = {
+        "a fearful scavenger magicae"
+    },
+    ["Caldarius"] = {
+        "a worn arc worker"
+    },
+    ["Mayor Praetor Livio"] = {
+        "a spent praetor noctis"
+    },
+    ["Mother Virgia"] = {
+        "a frayed virga vitala"
+    },
+    ["Praetor Loricas the Hollow"] = {
+        "Heroic Adventure: Shake the Citadel",
+        "a fading steel worker"
+    },
+    ["Principal Indagator Gordianus"] = {
+        "	a bored indagatrix materia"
+    },
+    ["Principal Indagatrix Lucia"] = {
+        "an irked indagator"
+    },
+    ["Principal Quastori Numicia"] = {
+        "a tired praetor ledalus"
+    },
+    ["Principal Vicarum Nonia"] = {
+        "Una jaded vicarum vitaiknown"
+    },
+    ["The Codex Libre"] = {
+        "a torn libre vitala"
     },
 
     --Brother Island
-    ["Brother_Island"] = {
-        "Unknown"
+    ["Angry Alfred"] = {
+        "an angry squawker",
+        "a bothered squawker"
     },
-
+    ["Lidia the Castaway"] = {
+        "a regretful wanderer",
+        "a vengeful wanderer"
+    },
+    ["Mulchmother"] = {
+        "a voracious tasselvine"
+    },
+    ["Redstreak"] = {
+        "an angry furthick",
+        "a furthick charger"
+    },
+    ["South Point Latcher"] = {
+        "a clipping razorlatch",
+        "a snipping razorlatch"
+    },
+  
     --Caverns of Endless Song
-    ["Caverns_of_Endless_Song"] = {
-        "Unknown"
+    ["Crista Faelorin"] = {
+        "an enamored evoker"
+    },
+    ["Elera Shelwin"] = {
+        "a razored temptress"
+    },
+    ["Elizabeth Ruffleberg"] = {
+        "Heroic Adventure: Seductive Subterfuge",
+        "a voiceless temptress"
+    },
+    ["Fire Eyes"] = {
+        "a blazing evoker"
+    },
+    ["Kaevon Maelora"] = {
+        "an enamored warden"
+    },
+    [" Katelyn Grubson"] = {
+        "a singing banshee"
+    },
+    ["Neplin the Oceanlord"] = {
+        "an ocean elemental"
+    },
+    ["Old Spirespine"] = {
+        "an aged spirespine"
+    },
+    ["Whitebelly"] = {
+        "a scarred hammerhead"
     },
 
     --Combine Dredge
-    ["Combine_Dredge"] = {
-        "Unknown"
+    ["Frachessa the Feared"] = {
+        "a hateful Doomscale wrathforged"
+    },
+    ["Fractureshell"] = {
+        "a fractured regrua"
+    },
+    ["High Guard Vnayyanye"] = {
+        "Heroic Adventure: Kedge Counterblow",
+        "a restive guard"
+    },
+    ["Indagator Mortem Livianus"] = {
+        "a timid indagator vocantem"
+    },
+    ["Necromaticus Abominatio"] = {
+        "an abominatio elementaribus"
+    },
+    ["Praetor Ledalus Thaddaeus"] = {
+        "a supurbus praetor lucem"
+    },
+    ["Pria the Penitent"] = {
+        "a penitent Doomscale cultist"
+    },
+    ["Saevus Lapis Operarius"] = {
+        "an inconstans lapis operarius"
+    },
+    ["Vicarum Spiritus Psyche"] = {
+        "an inanimatum vicarum spiritus",
+        "an inanimatum vicarum vitai"
+    },
+    [" Warleader Jocelyn"] = {
+        "a warleader follower"
     },
     
     --Degmar, the Lost Castle
-    ["Degmar_the_Lost_Castle"] = {
-        "Unknown"
+    ["Commander Alast Degmar"] = {
+        "Sub Commander Hob Stetson"
+    },
+    ["Enraged Spectral Reveler"] = {
+        "an angry spectral reveler"
+    },
+    ["Frantic Smith"] = {
+        "a confused smith"
+    },
+    ["Ghostly Guard"] = {
+        "Heroic Adventure: Castle Relic",
+        "a haunted Degmar guardian"
+    },
+    ["Horthin Blackbook"] = {
+        "a dirty digger"
+    },
+    ["Psychotic Prisoner"] = {
+        "a crazed prisoner"
     },
     
     --Katta Castrum: Deluge
-    ["Katta_Castrum_Deluge"] = {
-        "Unknown"
+    ["Chief Librarian Lars"] = {
+        "a shissar arbiter",
+        "a shissar defiler"
+    },
+    ["Darkmud Keeper"] = {
+        "a darkmud keeper",
+        "a darkmud watcher"
+    },
+    ["Essence of the Deep"] = {
+        "an essence vortex"
+    },
+    ["Thallus the Whip"] = {
+        "a shissar taskmaster"
+    },
+    ["Vizat the Defiled"] = {
+        "a shissar revenant"
+    },
+    [" Yulin the Flameweaver"] = {
+        "a shissar flameweaver"
     },
     
     --Tempest Temple
-    ["Tempest_Temple"] = {
-        "Unknown"
+    ["Aquinus"] = {
+        "an ocean caller"
+    },
+    ["Captain Johan"] = {
+        "First Mate Parsons"
+    },
+    ["Nulian the Stormwarden"] = {
+        "a storm champion"
+    },
+    ["Reefmaw"] = {
+        "an enraged reef crawler"
+    },
+    ["Scalithid the Deepwalker"] = {
+        "a deepwalker naga"
+    },
+    ["Serisaria"] = {
+        "Heroic Adventure: Storm of Sorts",
+        "a lost siren"
+    },
+    ["Serpentil"] = {
+        "a coral serpent"
+    },
+    ["Stormrock"] = {
+        "a tempest dervish"
+    },
+    ["Strangacul"] = {
+        "an enraged rocksnapper"
     },
     
     --Thuliasaur Island
-    ["Thuliasaur_Island"] = {
+    ["Blacksmith Thassis"] = {
+        "a Thaell Ew master smith"
+    },
+    ["Cuisinier Sraskus"] = {
+        "a tired Thaell Ew cook"
+    },
+    ["Deicoraxius"] = {
+        "Heroic Adventure: A Fateful Arrival",
+        "a bloodtear ebonwing"
+    },
+    ["Hemocoraxius"] = {
+        "a bloodtear Ebonwing"
+    },
+    ["Plexipharia"] = {
+        "an elder glistenwing"
+    },
+    ["Reginasaur"] = {
+        "a tyrannosaurus matriarch"
+    },
+    ["Rexsaurkarus"] = {
+        "Heroic Adventure: A Fateful Arrival",
+        "an old tyrannosaurus"
+    },
+    ["Serthuliakar"] = {
+        "Heroic Adventure: A Fateful Arrival",
+        "a tired Thaell Ew hunter"
+    },
+    ["Tricerasaur"] = {
+        "an old triceratops"
+    },
+    ["Visoracius"] = {
+        "an elder raptor"
+    },
+    
+    ---------Beginning of CoTF PH list---------
+    --Argin Hiz
+    ["Ancient Corpse"] = {
+        "a worn singedbones skeleton"
+    },
+    ["Captain Dalyn"] = {
+        "an alert soldier"
+    },
+    ["Captain Nalia"] = {
+        "an alert ember trooper"
+    },
+    ["Chamberlain Celain"] = {
+        "a weary steward"
+    },
+    ["Chief Warden Varken"] = {
+        "a gruff warden"
+    },
+    ["Councilor Grael"] = {
+        "Mission: Rings of Fire",
+        "a bored councilor"
+    },
+    ["Guardian Harell"] = {
+        "a keeper of the hearth"
+    },
+    ["Inferno Vortex"] = {
+        "Heroic Adventure: A Posthumous Proposition",
+        "a trooper"
+    },
+    ["Magma Behemoth"] = {
+        "a worn slag golem"
+    },
+    ["Master Sage Lowenn"] = {
+        "a weary ember sage"
+    },
+    
+    --Bixie Warfront-- TODO: Add Bixie Warfront II
+    ["Arachnox, the Dread Widow"] = {
+        "Heroic Adventure: The Great Hunt",
+        "an agitated widow"
+    },
+    ["a Bixie Guardian"] = {
+        "Heroic Adventure: Assault the Main Hive",
+        "a Bixie impaler"
+    },
+    ["Dreadmole"] = {
+        "Heroic Adventure: Always Follow the Money",
+        "a burrowing mole"
+    },
+    ["an Enraged Bixie Drone"] = {
+        "Heroic Adventure: Espionage Starts at Home",
+        "a wandering drone"
+    },
+    ["Monarch Deathwing"] = {
+        "Heroic Adventure: Working Overtime",
+        "a fluttering reaver"
+    },
+    ["Pollenix"] = {
+        "Heroic Adventure: They're Everywhere",
+        "a Bixie enforcer"
+    },
+    ["Princess Honeywing"] = {
+        "Heroic Adventure: Jacyll's Jailbreak",
+        "Unknown"
+    },
+    ["Tleroth, Mistress of the Web"] = {
+        "Heroic Adventure: They've Gone Too Far This Time",
+        "an arachnid harrower"
+    },
+    
+    --Ethernere Tainted West Karana-- TODO: Add Ethernere Tainted West Karana II
+    ["Brodhas"] = {
+        "a bandit foecrusher"
+    },
+    ["Crazed Scarecrow"] = {
+        "an insane scarecrow"
+    },
+    ["Drezdal"] = {
+        "an undead soldier"
+    },
+    ["Ethilen"] = {
+        "a baneful soul"
+    },
+    ["Gelden"] = {
+        "a gehien fleshcutter"
+    },
+    ["Grawrarawr"] = {
+        "a lurking ursarachnid"
+    },
+    ["Guard Donlan"] = {
+        "a traitorous guard"
+    },
+    [" Lava Mantle"] = {
+        "a lavacrust strider"
+    },
+    ["Oklaric"] = {
+        "an oragic mindpiercer"
+    },
+    ["Roon"] = {
+        "Unknown-Timer?"
+    },
+    ["Shoon"] = {
+        "Unknown-Timer?"
+    },
+    ["Skretch"] = {
+        "a skirth boneshredder"
+    },
+    ["Soul Sifter"] = {
+        "a soul taker"
+    },
+    ["Stix"] = {
+        "a bandit gutpiercer"
+    },
+    ["The Requiest"] = {
+        "a ritual executioner"
+    },
+    ["Torishal"] = {
+        "a tirun overlord"
+    },
+    ["Wenteras the Ancient"] = {
+        "a forest elder"
+    },
+
+    --Neriak Fourth Gate-- TODO: Add Neriak Fourth Gate II
+    ["Arch Lich Lyra D`Croix"] = {
+        "a dark defiler"
+    },
+    ["Arch Mage X`Cubus"] = {
+        "a diplomat"
+    },
+    ["Archon Kela G`Noir"] = {
+        "a dark mender"
+    },
+    ["Dread Lord Javis Tolax"] = {
+        "a dark reaver"
+    },
+    ["Entrancer R`Ker"] = {
+        "an important guest"
+    },
+    ["Fleshweaver D`Syss"] = {
+        "Isvan L`Dor"
+    },
+    ["Mass of Spite"] = {
+        "a stonetalon"
+    },
+    ["Ryzok D`Tol`s Remains"] = {
+        "an enraged skeleton"
+    },
+    ["Violet, Soul Drinker"] = {
+        "a Darklight bat"
+    },
+    ["Xam, Koada`Dal Slayer"] = {
+        "an off duty guard"
+    },
+
+    --The Dead Hills --  TODO: Add Dead Hills II
+    ["A Xulous Invader"] = {
+        "Heroic Adventure: Artifacts of Great Importance",
+        "a xulous scout"
+    },
+    ["Bloodsucker"] = {
+        "Heroic Adventure: Into the Hills",
+        "a large mosquito"
+    },
+    ["Dark Infector"] = {
+        "Heroic Adventure: The Hills Are Alive",
+        "an unrestful soul"
+    },
+    ["Deathcaller Xylok"] = {
+        "Heroic Adventure: Scouting Ahead",
+        "a xulous elite"
+    },
+    ["Dread Ghoul"] = {
+        "Heroic Adventure: The Hills Are Alive",
+        "an aggressive corpse"
+    },
+    ["Jattius Rattican"] = {
+        "Heroic Adventure: Excavating an Answer",
+        "Unknown"
+    },
+    [" Lieutenant Robert Ward"] = {
+        "Heroic Adventure: Clearing a Path",
+        "a skeletal myrmidon"
+    },
+    ["Marcelyn Sjobern"] = {
+        "Heroic Adventure: Excavating an Answer",
+        "a tireless crusader"
+    },
+    ["The Monstrous Minnow"] = {
+        "Heroic Adventure: Death Peace",
+        "a decaying minnow"
+    },
+    ["Oozoroze"] = {
+        "Heroic Adventure: Clearing a Path",
+        "Unknown"
+    },
+    ["Rat Packleader"] = {
+        "Heroic Adventure: The Hills Are Alive",
+        "a gangrenous rat"
+    },
+    ["Spirit of the Hills"] = {
+        "Heroic Adventure: Excavating an Answer",
+        "a lingering templar"
+    },
+    ["Squire Alan Wells"] = {
+        "Heroic Adventure: The Descending Tower",
+        "Unknown"
+    },
+    ["Squire Gordon Flock"] = {
+        "Heroic Adventure: The Descending Tower",
+        "Unknown"
+    },
+    ["Squire Thomas Olson"] = {
+        "Heroic Adventure: The Descending Tower",
+        "Unknown"
+    },
+    ["Vorovelze"] = {
+        "Heroic Adventure: Clearing a Path",
+        "A ghastly ivymaw"
+    },
+    ["Warpriest Poxxil"] = {
+        "Heroic Adventure: Disrupting the Ritual",
+        "a xulous elite"
+    },
+
+    --The Void --No achievements
+
+    --Tower of Rot
+    ["Brexx Darkpaw"] = {
+        "a frenzied gnoll"
+    },
+    ["Captain Nathan Flock"] = {
+        "a cavalier of life"
+    },
+    ["Commander Kurt Ellis"] = {
+        "a restless deceiver"
+    },
+    ["Corpseflower"] = {
+        "a noxious deathcap"
+    },
+    ["Garath Sulfada"] = {
+        "a hand of Sulfada"
+    },
+    ["Guardian Roger Macholeth"] = {
+        "Heroic Adventure: Brendaleen's Scheme",
+        "Macholeth's squire Sairia"
+    },
+    ["Mad Martyr"] = {
+        "Mission: A Rotten Heart",
+        "a scion of the tower"
+    },
+    ["The Forgotten Sapper"] = {
+        "a furious miner"
+    },
+    ["The Lost Devourer"] = {
+        "a bloated devourer"
+    },
+    ["Vicar Lucilia Belyea"] = {
+        "a vicar of life"
+    },
+
+    ---------Beginning of RoF PH list---------
+    --Chapterhouse of the Fallen
+    ["Chapterhouse_of_the_Fallen"] = {
+        "Unknown"
+    },
+
+    --Chelsith Reborn
+    ["Chelsith_Reborn"] = {
+        "Unknown"
+    },
+
+    --East Wastes: Zeixshi-Kar's Awakening
+    ["East_Wastes_Zeixshi_Kar_s_Awakening"] = {
+        "Unknown"
+    },
+
+    --Evantil, the Vile Oak
+    ["Evantil_the_Vile_Oak"] = {
+        "Unknown"
+    },
+
+    --Grelleth's Palace
+    ["Grelleth_s_Palace"] = {
+        "Unknown"
+    },
+
+    --The Threshold
+    ["The_Threshold"] = {
+        "Unknown"
+    },
+
+    --The Rebirth
+    ["The_Rebirth"] = {
+        "Unknown"
+    },
+
+    --The Epicenter
+    ["The_Epicenter"] = {
+        "Unknown"
+    },
+
+    --Kael Drakkel: The King's Madness
+    ["Kael_Drakkel_The_King_s_Madness"] = {
+        "Unknown"
+    },
+
+    --Plane of Shadow
+    ["Plane_of_Shadow"] = {
+        "Unknown"
+    },
+
+    --Shard's Landing
+    ["Shard_s_Landing"] = {
+        "Unknown"
+    },
+
+    --The Breeding Grounds
+    ["The_Breeding_Grounds"] = {
+        "Unknown"
+    },
+
+    --The Crystal Caverns: Fragment of Fear
+    ["The_Crystal_Caverns_Fragment_of_Fear"] = {
+        "Unknown"
+    },
+
+    --Valley of King Xorbb
+    ["Valley_of_King_Xorbb"] = {
         "Unknown"
     },
     

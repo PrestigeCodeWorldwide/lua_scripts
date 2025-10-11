@@ -22,6 +22,7 @@ local function createZoneData(mq)
         [700] = 1870060, --Hunter of The Feerrott               The Feerrott=Feerrott2
         [772] = 2177270, --Hunter of West Karana (Ethernere)    Ethernere Tainted West Karana=ethernere
         [76]  = 2320180, --Hunter of the Plane of Hate: Broken Mirror  Plane of hate Revisited=hateplane
+        --[770] = 2177071, --Hunter of Bixie Warfront II          Bixie Warfront=bixiewarfront
         [788] = 2478880, --Hunter of The Temple of Droga        Temple of Droga=drogab
         [791] = 2479180, --Hunter of Frontier Mountains         Frontier Mountains=frontiermtnsb
         [796] = 2379680, --Hunter of the Crypt of Decay         Crypt of Decay=codecayb
