@@ -1,4 +1,4 @@
--- v1.1
+-- v1.13
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -744,7 +744,7 @@ local ph_list = {
         ["Vakazon Viz`Daron"] = { "a Di`zok aruspex" },
     },
 
-    [794] = {  -- Lceanium
+    [794] = { -- Lceanium
         ["A Drolvarg Captain"] = { "a drolvarg gnasher" },
         ["A Drolvarg Lord"] = { "a drolvarg ravisher" },
         ["Darg Hillock"] = { "a mountain giant brae" },
@@ -798,7 +798,7 @@ local ph_list = {
     },
 
     ---------Beginning of TBM PH list---------
-    [795] = {     -- Crypt of Sul
+    [795] = { -- Crypt of Sul
         ["Bokon Revel the Reborn"] = { "an unliving hulk" },
         ["Citizen Pain"] = { "Heroic Adventure: To The Brave, Go The Spoils!", "a reserved worshiper" },
         ["Devourer of All"] = { "an insatiable fiend" },
@@ -1046,74 +1046,709 @@ local ph_list = {
     },
 
     ---------Beginning of RoF PH list---------
-    --Chapterhouse of the Fallen
-    ["Chapterhouse_of_the_Fallen"] = {
-        "Unknown"
+    [760] = { --Chapterhouse of the Fallen
+        ["A Lost Soul"] = { "a lost willow wisp", "an enraged willow wisp" },
+        ["A Mournful Spirit"] = { "a lost soul" },
+        ["Braintaster"] = { "a brain eating beetle" },
+        ["Falhotep the Cursed"] = { "a brittle mummy" },
+        ["Halstor Bonewalker"] = { "a necromancer initiate", "a necromancer neophyte" },
+        ["Kaficus the Undying"] = { "a shambling zombie" },
+        ["Plaguetooth"] = { "any type of rat" },
+        ["Ralstok Plaguebone"] = { "a forgotten prisoner" },
+        ["Sergeant Malorin"] = { "a defiled paladin of Marr" },
+        ["Sir Raint"] = { "a defiled paladin of Marr", "a disgraced paladin of Marr" },
+        ["The Flesheater"] = { "a hungry ghoul" },
     },
 
-    --Chelsith Reborn
-    ["Chelsith_Reborn"] = {
-        "Unknown"
+    [763] = { --Chelsith Reborn
+        ["A Huge Mistake"] = { "a mistake" },
+        ["The Undefeated Blade"] = { "Ring Event starting with:", "a worthy contender" },
+        ["A Possessed Farseer"] = { "a visionary pupil" },
+        ["A Successful Mistwielder"] = { "an experimenter" },
+        ["Floppy Flick"] = { "a frustrated fisherman" },
+        ["Glorig the Underdog"] = { "a defeated gladiator" },
+        ["Gora The Gourdsmasher"] = { "a farm slave" },
+        ["High Diabolist Dynengo"] = { "a willing sacrifice" },
+        ["Silvi the Mistress"] = { "a groomed slave" },
+        ["Sliggles the Sneak"] = { "an informant" },
+        ["Swordmaster Karla"] = { "a sword tester" },
+        ["The Hundred Hands of Blood"] = { "a tired torturer" },
     },
 
-    --East Wastes: Zeixshi-Kar's Awakening
-    ["East_Wastes_Zeixshi_Kar_s_Awakening"] = {
-        "Unknown"
+    [755] = { --East Wastes: Zeixshi-Kar's Awakening
+        ["Boradain Glacierbane"] = { "a coldain skinner" },
+        ["Chief Ry`Gorr"] = { "a Ry`Gorr centurion" },
+        ["Corbin Blackwell"] = { "a coldain hunter" },
+        ["Drummon Coldshanks"] = { "a coldain lookout" },
+        ["Ekelng Thunderstone"] = { "a frost giant savage" },
+        ["Firband the Black"] = { "a Ry`Gorr centurion" },
+        ["Fjloaren Icebane"] = { "a frost giant savage" },
+        ["Galrok the Cold"] = { "a coldain warrior" },
+        ["Ghrek Squatnot"] = { "a frost giant captain" },
+        ["Kurlok the Mad"] = { "a Ry`Gorr centurion" },
+        ["Nightmane"] = { "a nightmare" },
+        ["Tain Hammerfrost"] = { "a coldain missionary" },
+        ["Tungo"] = { "a tundra mammoth" },
+        ["Warden Bruke"] = { "a frost giant captain" },
+        ["Yngaln the Frozen"] = { "a frost giant captain" },
     },
 
-    --Evantil, the Vile Oak
-    ["Evantil_the_Vile_Oak"] = {
-        "Unknown"
+    [758] = { --Evantil, the Vile Oak
+        ["A Bloated Toad"] = { "a poisonous frog", "a tree frog" },
+        ["A Blob of Sap"] = { "vile sap" },
+        ["Burntbark"] = { "a wandering sapling" },
+        ["Clizik"] = { "a soldier ant", "a diligent ant" },
+        ["Ruaabri"] = { "a fear howler" },
+        ["Seedspitter"] = { "a fear blossom" },
+        ["The Ant Queen"] = { "a filigent ant" },
+        ["Thornmaw"] = { "a vine maw" },
+        ["Uzrinar the Damned"] = { "a fruit hoarding ape", "an ape lookout", "an elder ape" },
+        ["Yunaizarn"] = { "a famished goral" },
     },
 
-    --Grelleth's Palace
-    ["Grelleth_s_Palace"] = {
-        "Unknown"
+    [759] = { --Grelleth's Palace
+        ["Beast Caller Plakt"] = { "a creature keeper" },
+        ["Cook Mul"] = { "a kitchen assistant" },
+        ["Dark Ritualist Kopp"] = { "a Chateau bloodcaster" },
+        ["Grelleth`s War Machine"] = { "a junkcrafter scavenger" },
+        ["Junkcrafter Nint"] = { "a junkcrafter apprentice" },
+        ["Palace Commander Eroll"] = { "an elite soldier" },
+        ["Penkal the Filth Master"] = { "a sewer mage" },
+        ["Polluter Slaunk"] = { "a rot shaman" },
+        ["Rotblade Klonda"] = { "a Chateau defender" },
+        ["Stitches"] = { "a grizzled tamed selyrah" },
+        ["The Forgotten Murderer"] = { "a Chateau gravedigger" },
     },
 
-    --The Threshold
-    ["The_Threshold"] = {
-        "Unknown"
+    -- Fix all 3 Heart of Fear zones. They are combined into one big achievement ID.
+    [765] = { --The Threshold
+        ["Alsecht the Believer"] = { "an enraged believer" },
+        ["Deathfist"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Harbinger Krask"] = { "an enraged harbinger" },
+        ["Ocululor"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Ulzschanoth"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Ythan the Gutripper"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
     },
 
-    --The Rebirth
-    ["The_Rebirth"] = {
-        "Unknown"
+    [768] = { --The Rebirth
+        ["A Hoary Gargoyle"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Enasni the Demented"] = { "an enraged mephit" },
+        ["Glubbus the Fleshmelter"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Ixmilsh the Terrortangler"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Silandra the Cruel"] = { "an enraged harbinger" },
+        ["Torflog the Impaler"] = { "an enraged harbinger" },
+        ["Vizlix the Deceiver"] = { "an enraged shiverback" },
+        ["Zixial the Scaremonger"] = { "an enraged harbinger" },
     },
 
-    --The Epicenter
-    ["The_Epicenter"] = {
-        "Unknown"
+    [769] = { --The Epicenter
+        ["A Herald of Fear"] = { "an enraged spectre" },
+        ["A Vision of Fear"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Grizelna the Mad"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Simira the Dreadwidow"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Soulhollow"] = { "an enraged" }, --any mob that starts with enraged.Goes by model type. Fix later
+        ["Yilsme the Harbinger of Death"] = { "an enraged widow" },
     },
 
-    --Kael Drakkel: The King's Madness
-    ["Kael_Drakkel_The_King_s_Madness"] = {
-        "Unknown"
+    [754] = { --Kael Drakkel: The King's Madness
+        ["a diminutive kromrif"] = { "an upright kromrif" },
+        ["a fey swarm"] = { "a fey delerium", "a fey uniter" },
+        ["Derakor the Vindicator"] = { "a gaurdian of war" },
+        ["Doljek the Insane"] = { "an unbalanced kromzek" },
+        ["Evanescent Coronach"] = { "a fading dirge" },
+        ["Fjeka"] = { "a Drakkel dire wolf" },
+        ["Fjokar Frozenshard"] = { "a storm giant of nobility" },
+        ["Gkrean Prophet of Tallon"] = { "High Priest of Tallon Zek" },
+        ["Grungol the Eclipse"] = { "a penumbral coldain" },
+        ["Kallis Stormcaller"] = { "a Protector of War" },
+        ["Keldor Dek`Torek"] = { "a noble storm giant" },
+        ["Kyenka"] = { "a visiting noble" },
+        ["Pakjol the Hungry"] = { "a Drakkel dire wolf pup" },
+        ["Reivaj the Battlerager"] = { "a frost giant berserker" },
+        ["Semkak Prophet of Vallon"] = { "High Priest of Vallon Zek" },
+        ["Slagheart"] = { "a scalding mistdragon" },
+        ["The Avatar of War"] = { "3 mob ring event:", "Armor of War", "The Statue of Rallos Zek", "The Idol of Rallos Zek" },
+        ["The Idol of Rallos Zek"] = { "3 mob ring event:", "Armor of War", "The Statue of Rallos Zek" },
+        ["The Statue of Rallos Zek"] = { "3 mob ring event:", "Armor of War" },
+        ["Yetarr"] = { "a visiting noble" },
     },
 
-    --Plane of Shadow
-    ["Plane_of_Shadow"] = {
-        "Unknown"
+    [764] = { --Plane of Shadow
+        ["A Thundering Tempest"] = { "a raging storm" },
+        ["An Astral Wanderer"] = { "a wandering soul" },
+        ["Darkstone"] = { "a grinning gargoyle" },
+        ["Gloomshell"] = { "a shadowed seed beetle" },
+        ["Kaas Thox"] = { "a pile of shadow" },
+        ["Kela Rentha Xakra"] = { "a servant of shadow" },
+        ["Nightwing"] = { "a bat" },
+        ["Shakra Za"] = { "a shadowy lurker" },
+        ["The Dark Lady"] = { "a mournful specter" },
+        ["Volx Xi Xakra"] = { "corrupted akhevan" },
+        ["Xal Zeth"] = { "an Akhevan vagabond" },
+        ["Xi Dyn"] = { "an ancient construct" },
+        ["Xorla Vor"] = { "a Senshali shadowblade" },
+        ["Xundraux Xakra"] = { "Unknown" },
+        ["Zel Kaxri"] = { "a corrupted akhevan" },
     },
 
-    --Shard's Landing
-    ["Shard_s_Landing"] = {
-        "Unknown"
+    [752] = { --Shard's Landing
+        ["Alpha Naeya"] = { "an elder naeya" },
+        ["Banescale Serpent"] = { "a greater slatescale", "a greater ivyscale" },
+        ["Cobalt"] = { "a plainsdweller guardian" },
+        ["Cragbeak"] = { "a kangon verdantbeak" },
+        ["Elsrop the Crazed"] = { "a forsaken speaker", "a forsaken overseer" },
+        ["Iremaw"] = { "an elder prowler" },
+        ["Pincerpest"] = { "a venomshell scarab" },
+        ["Plaguespine"] = { "a corrupted coralspine" },
+        ["Pyrebeak"] = { "an icebeak matriarch" },
+        ["Rockspine"] = { "a worntooth matron" },
+        ["Stonecoat"] = { "a frostcoat patriarch" },
+        ["Vilefeaster"] = { "a dire plainskeeper" },
     },
 
-    --The Breeding Grounds
-    ["The_Breeding_Grounds"] = {
-        "Unknown"
+    [757] = { --The Breeding Grounds
+        ["A Vicious Hatchling"] = { "any egg in zone can spawn it", "a dragon egg" },
+        ["Akyail"] = { "a fearwing watcher" },
+        ["Charra"] = { "a magma fiend" },
+        ["Edoth the Ancient"] = { "an ancient icewing" },
+        ["Gosik"] = { "a flamewing guardian" },
+        ["Iciclane"] = { "a frostwing" },
+        ["King Itkari"] = { "a chetari defender" },
+        ["Nefori"] = { "a flamewing protector" },
+        ["Osalur"] = { "a flamewing defender" },
+        ["Seros"] = { "a mature icewing" },
+        ["Velishan"] = { "a terrorwing" },
+        ["Zalifur"] = { "an ancient dracolich" },
     },
 
-    --The Crystal Caverns: Fragment of Fear
-    ["The_Crystal_Caverns_Fragment_of_Fear"] = {
-        "Unknown"
+    [756] = { --The Crystal Caverns: Fragment of Fear
+        ["A Crystal Lurker"] = { "a crystal webmaster" },
+        ["A Dracnid Retainer"] = { "a crystal webspinner" },
+        ["A Focus Gem"] = { "a geonid" },
+        ["A Gem Collector"] = { "a geonid" },
+        ["A Hollow Crystal"] = { "a hollow terror" },
+        ["A Life Leech"] = { "an icy leech" },
+        ["A Ry`Gorr Enforcer"] = { "a Ry`Gorr guard" },
+        ["A Ry`Gorr Herbalist"] = { "a Ry`Gorr shaman" },
+        ["A Ry`Gorr Inspector"] = { "a Ry`Gorr scout" },
+        ["A Stalag Purifier"] = { "a pure terror" },
+        ["A Terror Carver"] = { "an icy terror" },
+        ["Fear Tainted Tentacle"] = { "a tentacle tormentor" },
+        ["Foreman Rixact"] = { "a Ry`Gorr excavator" },
+        ["Foreman Smason"] = { "a Ry`Gorr prospector" },
+        ["Kreztik"] = { "a velium crawler" },
+        ["Overseer Grydon"] = { "a Ry`Gorr overseer" },
+        ["Pit Boss Torgud"] = { "a lazy orc" },
+        ["Prospector Wersan"] = { "a Ry`Gorr digger" },
+        ["Queen Dracnia"] = { "a regal crawler" },
     },
 
-    --Valley of King Xorbb
-    ["Valley_of_King_Xorbb"] = {
-        "Unknown"
+    [753] = { --Valley of King Xorbb
+        ["Body of the Many"] = { "a darkbody golem" },
+        ["Companion of the Dead"] = { "a deadfiend goblin" },
+        ["Corpsehide"] = { "a thickhide crocodile" },
+        ["Deepcore"] = { "a core elemental" },
+        ["Facenibbler"] = { "a longfang rat" },
+        ["Facet of Fear"] = { "a multifacet hydra" },
+        ["Frothtooth"] = { "a rabid bear" },
+        ["Gruden the Pulverizer"] = { "a bruiser minotaur" },
+        ["Ixyl the Claymaster"] = { "a clayborn muddite" },
+        ["Kalken`s Bloody Bones"] = { "a scarred skeleton" },
+        ["Krondal"] = { "a warrior minotaur" },
+        ["Living Shard"] = { "a lifeshard hydra" },
+        ["Mindseep"] = { "a nullmind mephit" },
+        ["Ritualist Blezon"] = { "a ritualtalker goblin" },
+        ["Shroomdeath"] = { "a deadcaller sporali" },
+        ["Stormwheel"] = { "a cloudburst whirlwind" },
+        ["Terrorfist"] = { "a terror golem" },
+        ["The Visionary"] = { "a farsighted eye" },
+        ["Tunnel Slither"] = { "a tunnel snake" },
+        ["Worker`s Champion"] = { "a subservient goblin" },
+        ["Xolok the Blind"] = { "a clouded eye" },
+        ["Xorlex the Seer"] = { "a focused eye" },
+    },
+
+    ---------Beginning of VoA PH list---------
+    [724] = { -- Argath
+        ["Armor of the Dead"] = { "a steel hurricane" },
+        ["Bane of Argath"] = { "a plated slaughterer" },
+        ["Breath of Ryken"] = { "an exhalation" },
+        ["Blades of Forgotten Heroes"] = { "living blades" },
+        ["Blademaster of the Order"] = { "a Blade Regulant of Erillion" },
+        ["Burnmaster of the Pillars"] = { "a dark deathcaller" },
+        ["Core of the Mountain"] = { "molten steel" },
+        ["Emissary Drucifel"] = { "a footsoldier of erillion" },
+        ["Felsalath"] = { "a wind tamer" },
+        ["Gravemaster of the Pillars"] = { "a dark spellrazer" },
+        ["Husk of Starvation"] = { "a hungry thief" },
+        ["Illdaeras Tear"] = { "molten steel", "a steel cyclone" },
+        ["Interrogator Galectes"] = { "a Blade Guide of Erillion" },
+        ["Kaledor the Tide Turner"] = { "a Blade Regulant of Erillion" },
+        ["Kalkek"] = { "a wind tamer" },
+        ["Keramar the Naeya"] = { "an abandoned naeya" },
+        ["Legendary Swords"] = { "empowered blades" },
+        ["Reviler of Argath"] = { "an Argathian defector" },
+        ["Seed of Battle"] = { "living steel" },
+        ["Shards of Battle"] = { "a steel hurricane" },
+        ["Shieldbearer of the Gods"] = { "a plated soldier" },
+        ["Tactician Krucidon"] = { "a Blade Overseer of Erillion" },
+        ["The Collector"] = { "a greedy looter" },
+        ["Vigorous Turncoat"] = { "an Argathian traitor" },
+    },
+
+    [728] = { -- Beast Domain
+        ["A Twisted Strangler"] = { "an okiina vinethrasher" },
+        ["An Ancient Selyrah"] = { "a braxi fungus seeker" },
+        ["Blightwing"] = { "a ravenous wyvern" },
+        ["Bonecracker"] = { "a goral leafstalker" },
+        ["Bonecruncher"] = { "a grendlaen pouncer" },
+        ["Bopo"] = { "a loathsome ape" },
+        ["Deathglider"] = { "a monstrious wyvern" },
+        ["Deathleaper"] = { "a rampaging wyvern" },
+        ["Deathsquirm"] = { "a fierce wyvern" },
+        ["Elder Gotikan"] = { "a domain hunter" },
+        ["Jorth Hunter of Beasts"] = { "a domain hunter" },
+        ["Karn the Hunter"] = { "an alaran wilder" },
+        ["King Rex"] = { "a giant binaesa" },
+        ["Maw Lurker"] = { "a lashtail crocodile" },
+        ["Nighthowl"] = { "a naeya scavenger" },
+        ["Nightleaper"] = { "a goral hunter" },
+        ["Ribcrusher"] = { "a stealthy grendlaen" },
+        ["Slaughter"] = { "an izon" },
+        ["Stonebark"] = { "a braxi swiftrunner" },
+        ["Stranglefang"] = { "a terrible raptor" },
+        ["Swiftwind"] = { "a bloodthirsty wyvern" },
+        ["Tangledeath"] = { "an okiina vinethrasher" },
+        ["Thundercut"] = { "a braxi" },
+        ["Thunderpunch"] = { "a filthy ape" },
+        ["Willowcrush"] = { "an izon rootgrabber" },
+    },
+
+    [732] = { -- Erillion, City of Bronze
+        ["A Rabid Selyrah"] = { "a wild selyrah" },
+        ["A Raging Braxi"] = { "a wild braxi" },
+        ["Archon Kinafu"] = { "an archon" },
+        ["Archon Norandi"] = { "an archon" },
+        ["Blacksmith Julandi"] = { "an industrious blacksmith" },
+        ["Bloodclaw"] = { "a feral grendlaen" },
+        ["Carnifex Korum"] = { "a carnifex" },
+        ["Citizen Jlane"] = { "a citizen" },
+        ["Citizen Julazir"] = { "a faithful citizen" },
+        ["Citizen Silaindi"] = { "an honest citizen" },
+        ["Cook Goranan"] = { "a cook", "a busy cook", "a tired cook" },
+        ["Deathsqueak"] = { "a diseased oashim" },
+        ["Fuandir the Master Potter"] = { "a potter" },
+        ["Guard Horlian"] = { "a guard" },
+        ["Guard Tuankod"] = { "a dutiful guard" },
+        ["Guard Tulzix"] = { "a guard" },
+        ["Guggles"] = { "a diseased oashim" },
+        ["The Record Master"] = { "a record keeper" },
+    },
+    
+    [734] = { -- East Sepulcher
+    --No Achievements for this zone
+    },
+
+    [730] = { -- Pillars of Alra
+        ["an unusual creature"] = { "selyrah's and frog's" }, --TODO: Fix exact names
+        ["Cysivir the Constructor"] = { "an essence keeper" },
+        ["Il`Valrikar the Purifier"] = { "an essence purifier" },
+        ["Ivrikdal the Infuser"] = { "any of the static alaran models" }, --TODO: Fix exact names
+        ["Korellister the Stoic"] = { "ardent scholar", "a student of Erion" },
+        ["Opholonas the Harvester"] = { "a light harvester" },
+        ["Peacekeeper of Anriella"] = { "any mob in the Pillar of Nature" },
+        ["Peacekeeper of Erion"] = { "any mob in the Pillar of Light" },
+        ["Peacekeeper of Fal`Kaa"] = { "any mob in the Pillar of Shadow" },
+        ["Peacekeeper of Melretia"] = { "any mob in the Pillar of Arcane" },
+        ["Soliadal the Timid"] = { "a manatender" },
+        ["The Ut`len Depthkeeper"] = { "an ut`len flaremind" },
+        ["Tonmek the Mind-Drainer"] = { "a mana harvester" },
+        ["Tsianvar the Studious"] = { "a pensive scholar" },
+        ["V`Dralk the Construct of Shade"] = { "a greater blistering shade" },
+        ["Vak`Ridel the Shadowcaller"] = { "any sitting alaran" },
+        ["Varinyr the Construct of Life"] = { "a greater life-essence" },
+        ["Wreliard the Arctender"] = { "an arcane essencegazer" },
+    },
+
+    [729] = { -- Resplendent Temple
+        ["A Prismatic Selyrah"] = { "a colorful selyrah" },
+        ["Advisor Enaris"] = { "a temple aide" },
+        ["Afton the Cleanser"] = { "a nitore cleanser" },
+        ["Ambassador Khorin"] = { "a nitore liason" },
+        ["An Animated Servant"] = { "an animated corpse" },
+        ["An Ivory Serpent"] = { "an albino serpent" },
+        ["Arms Master Hegul"] = { "an armed guard" },
+        ["Chancellor Mardis"] = { "a nitore apprentice" },
+        ["Chief Recruiter Joceil"] = { "a Nitore neophyte" },
+        ["Cijerst, Lord of Decay"] = { "a filthy swinetor" },
+        ["Gisette"] = { "a grazing braxi" },
+        ["Grimlop"] = { "a diseased hopper" },
+        ["Groundskeeper Areut"] = { "a groundskeeper" },
+        ["High Guard Alsera"] = { "a nitore watcher" },
+        ["High Priest Nelori"] = { "a nitore priest" },
+        ["Hiqork the Putrid"] = { "a putrid swinetor" },
+        ["King Piqiorn"] = { "an Ulork noble" },
+        ["King Zarq"] = { "a piq`a noble" },
+        ["Larsena the Lunatic"] = { "a nitore worshipper" },
+        ["Miggles"] = { "a tame goral" },
+        ["Pledgemaster Oeslik"] = { "a devoted pledge" },
+        ["Summoner Sirqo"] = { "a swinetor summoner" },
+        ["The Rat Queen"] = { "a diseased rat" },
+        ["The Slothlord"] = { "a sloth cube" },
+        ["Ungimar"] = { "a hostile goral" },
+    },
+
+    [727] = { -- Rubak Oseka, Temple of the Sea
+        ["Curate Zlinair"] = { "a priest" },
+        ["Evangelizer Runarn"] = { "an acolyte" },
+        ["Holy Ophidian"] = { "a coral snake" },
+        ["Sacred Ophidian"] = { "a coral snake" },
+        ["Slorn the Holy"] = { "a zealot" },
+        ["Templar Razkin"] = { "an acolyte" },
+        ["Tiuanid the Faithful"] = { "a priest" },
+        ["Zealot of Oseka"] = { "a zealot" },
+    },
+
+    [726] = { -- Sarith, City of Tides
+        ["Assassin Thale"] = { "an Orator's army assassin" },
+        ["Battlemage Resk"] = { "an Orator's army archmage" },
+        ["Bishop Kyzer"] = { "an Orator's army bishop" },
+        ["Captain Dahlena"] = { "an Orator's army commander" },
+        ["Dark Mage Naxin"] = { "an Orator's army dark mage" },
+        ["Death Knight Sharris"] = { "an Orator's army death knight" },
+        ["Kaneida"] = { "a grizzled war beast" },
+        ["Lieutenant Vasko"] = { "a Sarith guardsman veteran" },
+        ["Life Knight Jasul"] = { "an Orator's army life knight" },
+        ["Master Trainer Ganelin"] = { "an Orator's master beast trainer" },
+        ["Ocean Mage Rettun"] = { "an Orator's army nature mage" },
+        ["Oseka`s Chosen Ikallis"] = { "an Oseka's Chosen defender" },
+        ["Primal Mage Mollens"] = { "an Orator's army primal mage" },
+        ["Sarith`s Guardian"] = { "a sarith tidal guardian" },
+        ["Sea Ranger Huren"] = { "an Orator's army ranger" },
+        ["Tactician Perak"] = { "an Orator's army strategist" },
+        ["The Giant Crab"] = { "a king crab" },
+        ["The Kraken"] = { "a large squid" },
+        ["The Megaladon"] = { "a great white shark" },
+        ["Tidalmage Narens"] = { "a Sarith tidalmage master" },
+    },
+
+    [733] = { -- Sepulcher of Order
+        ["Agralta"] = { "thelara alsa ril of Alra" },
+        ["Alsara the Ansel Ereth"] = { "a departed thelasa" },
+        ["Bonemeal"] = { "a denuded ser thel" },
+        ["Champion of the Triumvirate"] = { "a protector of alsa thel" },
+        ["Clampgrit"] = { "a starving raptor" },
+        ["Eldanum of the Ser Alsa"] = { "an ereth of law" },
+        ["Excrucidator"] = { "brutalizer of alsa thelara" },
+        ["Gleaming Tricor"] = { "a sublime tricrystal" },
+        ["Paleodontis"] = { "a fortified tideshell" },
+        ["Primordial Steel"] = { "	a zephyr of steel" },
+        ["Spernal"] = { "a wind liege" },
+        ["Tegleth"] = { "a blade mentor of alsa thelara" },
+        ["Tendros"] = { "a dense mound" },
+        ["The Dark"] = { "an aspect of darkness" },
+        ["The Exalted Ser Alsa Thel"] = { "any of the telmiran model mobs" }, --TODO: Fix exact names
+        ["Kelkos the Berserk"] = { "a conqueror of Kolos" },
+        ["Master Arcania"] = { "arcane magic caster" },
+        ["Master Illum"] = { "light magic caster" },
+        ["Ryken's Boast"] = { "a hurricane of truth", "a whirlwind of sophistry" },
+        ["Shadow of the Domain"] = { "a trapper of Kolos" },
+        ["The Vine Tender"] = { "a warden of lunanyn", "a farmer of Lunanyn" },
+        ["Word Lord"] = { "philosopher of Ryken", "sophist of Ryken" },
+        ["Deepblade"] = { "a myrmidon of Oseka" },
+        ["Mindlock"] = { "golem models" }, --TODO: Fix exact names
+        ["The Chosen"] = { "an alsa thelara nonpareil", "an alsa thelara conquerer" },
+        ["The Cleaner"] = { "thelesa of Ladrys", "high thelesa of Ladrys" },
+        ["The Digger"] = { "a worshipper of decay", "a fouled warrior" },
+        ["Wavecrasher"] = { "ser alsa hadal", "ser alsa thel hadal" },
+    },
+
+    [725] = { -- Valley of Lunanyn
+        ["an angry mob leader"] = { "a farmer" },
+        ["Archon Haerin"] = { "a trooper" },
+        ["Enraged Fertility Spirit"] = { "a farmer" },
+        ["Hungry Spirit"] = { "a farmer" },
+        ["Lancer Archon Gaoril"] = { "an impaler" },
+        ["Moonshade"] = { "	a tired farmer" },
+        ["Nareneth, the Heart Tree"] = { "a mosstrooper" },
+        ["Overgrown Dung Beetle"] = { "a farmer" },
+        ["Supply Archon Tergat"] = { "a ranger" }, --TODO: not verified
+        ["The Moonflower"] = { "a farmer" },
+        ["Aethra the Mad"] = { "a mature oashim" },
+        ["Aggrieved Fertility Spirit"] = { "a mature oashim" },
+        ["Arth, Village Guardian"] = { "a wraith of Arelis" },
+        ["Blood-gorged Huntsman"] = { "a huntsman" },
+        ["Bloodborn Spirit"] = { "a mature oashim", "a huntsman" },
+        ["Bloodstalker"] = { "a ferocious grendlaen" },
+        ["Elsha the Mournful"] = { "a lingering shade" },
+        ["Ker Reega"] = { "a vile reega" },
+        ["Krongar the Enrager"] = { "a rallosian defector" },
+        ["Lor Reega"] = { "a nefarious reega" },
+        ["Oashim Progenitor"] = { "a mature oashim" },
+        ["Ranger Archon Daetas"] = { "an impaler", "a soldier", "a trooper" },
+        ["Taer Reega"] = { "a nefarious reega" },
+        ["The Battlesteel Dead"] = { "a mature oashim", "an oashim" },
+        ["Trooper Archon Feht"] = { "a trooper" },
+        ["Urash, Specter of Death"] = { "a mature oashim" },
+    },
+
+    [731] = { -- Windsong Sanctuary
+        ["A Fleetfooted Braxi"] = { "a haze jumper" },
+        ["Breezeglider"] = { "a fluttering kangon" },
+        ["Riffmaz the Flute Master"] = { "a soundless devotee" },
+        ["Saduulj Tsepir"] = { "a soundless devotee" },
+        ["Stormcaller"] = { "a haze jumper" },
+        ["The Conductor"] = { "a soundless devotee" },
+        ["The Forlorn Drummer"] = { "a soundless devotee" },
+        ["The Hornmaster"] = { "a soundless devotee" },
+        ["The Windrunner"] = { "a fluttering kangon" },
+        ["Unvoiced Brute"] = { "a silent guardian" },
+    },
+
+    [735] = { -- West Sepulcher
+    -- No Achievements for this zone
+    },
+
+    ---------Beginning of HoT PH list---------
+    [709] = { -- Al'Kabor's Nightmare
+        ["a berserk mammoth"] = { "an enraged mammoth" },
+        [" a drachnid bloodknight"] = { "a drachnid knight" },
+        ["Drenz"] = { "an ice goblin raider" },
+        ["a drolvarg captain"] = { "a drolvarg lieutenant" },
+        ["Emperor Crush"] = { "a crushbone strategist" },
+        ["General Jyleel"] = { "a high elf sentry" },
+        ["Graster"] = { "a snow orc scout" },
+        ["Heartwood Master"] = { "a wood elf seer" },
+        ["Jenni Hollowfield"] = { "a halfling guard" },
+        ["Mooto"] = { "a Runnyeye thief" },
+        ["a mountain giant patriarch"] = { "an angry mountain giant" },
+        ["Plaguebone Overlord"] = { "a lurid plaguebone" },
+        ["Princess Klaknak"] = { "a klaknak guard" },
+        ["Queen Klaknak"] = { "a klaknak guard" },
+        ["Winfrey the Mad"] = { "a crazed halfling" },
+        ["Zyren Shadowriver"] = { "a wood elf warden" },
+    },
+
+    [706] = { -- Erudin Burning
+        ["Algot the Deathshaper"] = { "a heretic death dabbler" },
+        ["Brutus"] = { "a ravenous dock rat" },
+        ["Damar the Overseer"] = { "a heretic ravager" },
+        ["Femurstack"] = { "a bone golem terrorizer", "a bone golem horror", "a bone golem tormentor" },
+        ["Garnak Pryphan"] = { "a heretic brute", "a heretic fell warden" },
+        ["Handar Prentius"] = { "a Terris Thule apostle" },
+        ["Kanah the Heartslicer"] = { "a heretic brute" },
+        ["Maggotscalp"] = { "a skeleton sentry" },
+        ["The Tome-Eater"] = { "a burning tome whirlwind" },
+        ["Vindel the Ripper"] = { "a Terris-Thule apostle" },
+    },
+
+    [711] = { -- Fear Itself
+        ["Ancient Dracoliche"] = { "a shadowed bleeder", "a shadowed fiend", "a shadowed phantasm", "a shadowed wraith" },
+        ["Argendev"] = { "an amygdalan guard" },
+        ["Decrepit Warder"] = { "a decrepit toad" },
+        ["Deranged Toad"] = { "a decrepit toad" },
+        ["Dread"] = { "a delirious boogeyman", "a delirious samhain" },
+        ["Dyalgem"] = { "an amygdalan guard" },
+        ["Engorged Spinechiller"] = { "a spinechiller widow" },
+        ["Essence of Terror"] = { "a terror wraith" },
+        ["Fright"] = { "an amygdalan soldier" },
+        ["Giant Phoboplasm"] = { "a curious phoboplasm" },
+        ["Irak Altil"] = { "a putrid fiend" },
+        ["Ireblind Imp"] = { "an enraged scareling" },
+        ["Iron Fist"] = { "an enraged frightfinger" },
+        ["Katerra the Anguished"] = { "an anguished fiend" },
+        ["Mastelyn"] = { "an amygdalan guard" },
+        ["Mindleech"] = { "a mindless bleeder" },
+        ["Nightmare of Thule"] = { "a fearful nightmare" },
+        ["Odium"] = { "a boogeyman lurker" },
+        ["Possessed Samhain"] = { "a delirious samhain" },
+        ["Rerekalen"] = { "an amygdalan guard" },
+        ["Shakare"] = { "a bitter gorgon" },
+        ["Tempest Reaver"] = { "a delirious samhain" },
+        ["Terror"] = { "an amygdalan soldier" },
+        ["Twisted Tormentor"] = { "a vile tormentor" },
+        ["Undaleen"] = { "an amygdalan guard" },
+        ["Undead Shiverback"] = { "an enraged shiverback" },
+        ["Wraith of a Shissar"] = { "a bitter gorgon" },
+        ["Zykean"] = { "an enraged glarelord" },
+    },
+
+    [701] = { -- House of Thule
+        ["Bonecracker"] = { "a frightening skeleton" },
+        ["Darnor the Terror Lord"] = { "a vile bone crafter" },
+        ["Dreameater"] = { "a shivering haunt" },
+        ["Dreamslayer"] = { "a dreadful bone golem" },
+        ["The Executioner"] = { "a horror guard" },
+        ["Executioner Brand"] = { "a terror guard" },
+        ["Fearhowler"] = { "a rotdog fearfinder" },
+        ["Fearsniffer"] = { "a rotdog fearstalker" },
+        ["Ganborn"] = { "a frightening skeleton" },
+        ["Gibbering Haunt"] = { "a frightening skeleton" },
+        ["Giblets"] = { "a rotdog fearsniffer" },
+        ["Gristle"] = { "a rotdog fearsmeller" },
+        ["Isabeaux Darkdreamer"] = { "a vile bone crafter" },
+        ["Nightmare Golem"] = { "a frightful bone golem" },
+        ["Nightmare Widow"] = { "a fright spinner" },
+        ["Nightscale"] = { "a worrisome snake" },
+        ["Old Rusty"] = { "a fright guard" },
+        ["Shaman Jorg"] = { "a nightmarish guard" },
+        ["Sleepeater"] = { "a sleepeating cube" },
+    },
+
+    [702] = { -- House of Thule, Upper Floors
+        ["Bloodmane"] = { "a dripping blood elemental" },
+        ["Bodabas"] = { "a bloodthirsty beast" },
+        ["Icefang"] = { "a hungry beast" },
+        ["Icy Devourer"] = { "an icy ooze" },
+        ["Nightfang"] = { "a funnelweb leaper" },
+        ["Rotticus"] = { "a filthy rotdog" },
+        ["Spitecrawler"] = { "a nightmarish centipede" },
+        ["Swirling Fog Elemental"] = { "a drifting fog elemental" },
+    },
+
+    [710] = { -- Miragul's Nightmare
+        ["Bloodfeather"] = { "a darkshadow raven" },
+        ["Fearstalker"] = { "a mournful shade" },
+        ["Foeslicer"] = { "an ancient guardian" },
+        ["Gilibus the Unseen"] = { "an unseen warrior" },
+        ["Iglum the Deformed"] = { "a darkbone golem" },
+        ["Shadowlord Gixblat"] = { "a darkshadow mephit" },
+        ["Sotor the Unmerciful"] = { "a shadowed golem" },
+        ["Soul Taster"] = { "a silent shadow" },
+    },
+
+    [713] = { -- Miragul's Phylactery
+        --No Achievements for this zone
+    },
+
+    [707] = { -- Morell's Castle
+        ["Bielaisk"] = { "a shellscale guard" },
+        ["Bishop the Scorned"] = { "a scorned marauder" },
+        ["Chief Maeder"] = { "a hoofed guardian" },
+        ["The Constructor"] = { "an idle hand" },
+        ["Daelai"] = { "an enchanted mare" },
+        ["Dreamweaver"] = { "a dream drake" },
+        ["Esmeralda the Vengeful"] = { "a vengeful marauder" },
+        ["Feral Jackrabbit"] = { "a rabid rabbit" },
+        ["Forest Phantasm"] = { "a night terror" },
+        ["Gezriela"] = { "a decrepit confectioner" },
+        ["Gnarlvine"] = { "a tangled hedgewalker" },
+        ["Greeta"] = { "a crazed candy hoarder" },
+        ["Guardian Ather"] = { "a dutiful defender" },
+        ["Hans"] = { "a crazed candy hoarder" },
+        ["Nesseun"] = { "a water serpent" },
+        ["Omander the Devoted"] = { "a devoted guard" },
+        ["Oruff the Seer"] = { "a forest protector" },
+        ["The Puppeteer"] = { "a marionette" },
+        ["Redmur the Dreamlancer"] = { "an enraged sandman" },
+        ["Seawitch Persion"] = { "a seawitch" },
+        ["Silbacle"] = { "a shellscale guard" },
+        ["Songstress Laioni"] = { "a singing siren" },
+        ["Speckles"] = { "a speckled hare" },
+        ["Wisp of Hope"] = { "a daydream" },
+        ["Zerkelos the Damned"] = { "a dream devourer" },
+    },
+
+    [708] = { -- Sanctum Somnium
+        ["a bladedancer guardian"] = { "a master guardian" },
+        ["a bright warden"] = { "a tower warden sergeant" },
+        ["a flesheating beetle"] = { "a hungry scavenger beetle" },
+        ["a giant warlord"] = { "a giant warrior veteran" },
+        ["a goblin raid leader"] = { "a goblin raider captain" },
+        ["a lifeweaver servant"] = { "a personal servant" },
+        ["a psychotic leprechaun"] = { "a strange leprechaun" },
+        ["a shadow warden"] = { "a tower warden sergeant" },
+        ["a shieldbearer guardian"] = { "a master guardian" },
+        ["a soulmage servant"] = { "a personal servant" },
+        ["a spellsword guardian"] = { "a master guardian" },
+        ["a spellward servant"] = { "a personal servant" },
+        ["an arcane warden"] = { "a tower warden sergeant" },
+        ["an infected rat"] = { "a filthy rabid rat" },
+        ["Archmagus Erlen"] = { "a royal archmage" },
+        ["Archmagus Nesalie"] = { "a royal archmage" },
+        ["Conjurer Nallen"] = { "a dark ritualist expert" },
+        ["Demonologist Sharra"] = { "a dark occulist researcher" },
+        ["Dream Destroyer"] = { "a dream shade figment" },
+        ["Executor Bashka"] = { "a dark occulist researcher" },
+        ["High Priest Casmion"] = { "a royal high priest" },
+        ["High Priest Darsia"] = { "a royal high priest" },
+        ["Knight Captain Elena"] = { "a royal knight errant" },
+        ["Knight Captain Rosch"] = { "a royal knight errant" },
+        ["Larrow the Demented"] = { "a deranged beggar" },
+        ["Master Thief Quentin"] = { "a strange leprechaun" },
+        ["Rites Master Lorett"] = { "a dark ritualist expert" },
+        ["The Beast King"] = { "a shadowy dark beast" },
+        ["The Dream Collector"] = { "a dream phantom illusion" },
+    },
+
+    [700] = { -- The Feerrott (B)
+        ["Blackbone"] = { "a bloodbathed skeleton", "a bloodbone skeleton" },
+        ["Bouncer Captain Grak"] = { "Bouncer Flerb", "Bouncer Hurd" },
+        ["Diggory the Traveler"] = { "a deceased traveler" },
+        ["Donna the Explorer"] = { "a waterlogged explorer" },
+        ["Enraged Gorilla Patriarch"] = { "an angry gorilla patriarch" },
+        ["Expedition Leader Krupp"] = { "a restless spirit" },
+        ["Fearful Specter"] = { "a bloodbone lich", "a lingering revenant" },
+        ["Festerback"] = { "a decaying gorilla" },
+        ["Huetzin the Brute"] = { "a lizardman thug" },
+        ["The Leaper"] = { "a stalking crawler" },
+        ["Malice"] = { "a corrupt orbweaver" },
+        ["Patches"] = { "a ravenous rotdog" },
+        ["Sable"] = { "a sinuous adder" },
+        ["Sentinel Quilaztli"] = { "a frenzied Tae Ew" },
+        ["Shaman Ixchell"] = { "a lizardman visionary" },
+        ["Tanglewolf Alpha"] = { "a tanglewolf hunter" },
+        ["Temilotzin the Zealot"] = { "a dedicated Tae Ew" },
+        ["Terror Unleashed"] = { "a frightful spirit" },
+        ["Vermilion"] = { "a deadly viper" },
+        ["Voracious Feeder"] = { "a frenzied feeder" },
+        ["Watcher Yaotl"] = { "a lizardman watcher" },
+        ["Whitepaw"] = { "a tanglefang huntress" },
+        ["Xiucozcatl the Feared"] = { "a bloody Tae Ew ritualist" },
+    },
+
+    [703] = { -- The Grounds
+        ["Agraena"] = { "a forlorn bone golem" },
+        ["Andrevas"] = { "an obedient servant" },
+        ["Angry Wasp"] = { "a truculent wasp" },
+        ["Arenrhaed"] = { "a forlorn bone golem" },
+        ["Beget Cube"] = { "a mad mulch cube" },
+        ["Biunahde"] = { "a bitter treant" },
+        ["Chaotic Heap"] = { "a petulant heap" },
+        ["Compost Cube"] = { "a mad mulch cube" },
+        ["Croakem"] = { "a wicked thornfrog" },
+        ["Distraught Heap"] = { "a petulant heap" },
+        ["Grigoran"] = { "an obedient servant" },
+        ["Helias"] = { "a disgruntled aquadervish" },
+        ["Kijaemz"] = { "a bitter treant" },
+        ["Minadra"] = { "a bixie guard" },
+        ["Patch Guardian"] = { "a putrified peponnite" },
+        ["Pelias"] = { "a disgruntled aquadervish" },
+        ["Raze"] = { "a mangy rotdog" },
+        ["Rend"] = { "a mangy rotdog" },
+        ["Riggbit"] = { "a wicked thornfrog" },
+        ["Slynassin"] = { "an aggresive snake" },
+        ["Venilinam"] = { "an aggresive snake" },
+        ["Vile Wasp"] = { "a truculent wasp" },
+        ["Vicious Gourd"] = { "a putrified peponnite" },
+        ["Zonoraz"] = { "a bixie guard" },
+    },
+
+    [704] = { -- The Library
+        ["Archivist Herrdar"] = { "a languid poetry teacher" },
+        ["Ardull the Watcher"] = { "an ethereal watcher" },
+        ["Chronicler Cerro"] = { "a corporeal scholarly researcher" },
+        ["Compendium of Nightmares"] = { "an unusual tome" },
+        ["Curator Majda"] = { "a curious custodian" },
+        ["Head Librarian Matilda"] = { "a dutiful librarian" },
+        ["Professor Glumb"] = { "a lonely librarian" },
+        ["Tome of the Fallen"] = { "a dusty codex" },
+    },
+
+    [705] = { -- The Well
+        ["Death Stinger"] = { "a feldark scorpion" },
+        ["Death Spider"] = { "a feldark spider" },
+        ["Doom Snake"] = { "a bold cave viper" },
     },
 
     ---------Beggining of SoF PH list---------
