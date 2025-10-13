@@ -1,4 +1,4 @@
--- v1.1
+-- v1.11
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -32,7 +32,7 @@ local function new(myAch)
         return name:lower():gsub(" ", "_")
     end
 
-    -- Check for non-PH mobs on extended target (UPDATED FOR ZONE CONTEXT)
+    -- Check for any mobs on extended target (including PHs and named)
     function helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
         -- Get current zone if not provided
         if not currentZoneID then
@@ -41,33 +41,43 @@ local function new(myAch)
         
         -- Only check XTargets, ignore current target
         local xtargetCount = mq.TLO.Me.XTarget() or 0
+        local closestAdd = nil
+        local closestDistance = math.huge
+        
         for i = 1, xtargetCount do
             local target = mq.TLO.Me.XTarget(i)
             if target() and target.ID() > 0 then
                 local spawn = mq.TLO.Spawn(target.ID())
                 if spawn() and not spawn.Dead() then
-                    -- Make sure this isn't a PH
-                    local isPH = false
+                    local spawnName = spawn.CleanName()
+                    local spawnDistance = spawn.Distance3D() or math.huge
+                    
+                    -- Skip if too far away (over 150 range) unless it's a named mob
+                    local isNamed = false
                     for _, mob in ipairs(hoodAch.Spawns) do
-                        -- Get placeholders for this zone
-                        local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
-                        for _, phName in ipairs(placeholders) do
-                            if helpers.normalizeName(spawn.Name()) == helpers.normalizeName(phName) then
-                                isPH = true
-                                break
-                            end
+                        if mob.name == spawnName then
+                            isNamed = true
+                            break
                         end
-                        if isPH then break end
                     end
                     
-                    if not isPH then
-                        return true, spawn
+                    if spawnDistance > 400 and not isNamed then
+                        helpers.printf("\aySkipping add %s - too far away (%.1f)", spawnName, spawnDistance)
+                        goto continue
+                    end
+                    
+                    -- Track the closest mob on extended target
+                    if spawnDistance < closestDistance then
+                        closestDistance = spawnDistance
+                        closestAdd = spawn
+                        helpers.printf("\arEngaging target: %s (%.1f away)", spawnName, spawnDistance)
                     end
                 end
             end
+            ::continue::
         end
         
-        return false, nil
+        return closestAdd ~= nil, closestAdd
     end
 
     -- Get achievement ID for a zone
@@ -201,7 +211,7 @@ local function new(myAch)
                 local member = mq.TLO.Group.Member(i)
                 if member() then
                     local spawn = member.Spawn
-                    if spawn() and not spawn.Mercenary() then
+                    if spawn() and not member.Mercenary() then
                         local memberInvis = spawn.Invis()
                         
                         if memberInvis ~= nil then

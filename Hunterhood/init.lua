@@ -6,22 +6,19 @@ local BL = require("biggerlib")
 --local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
 
-BL.info('HunterHood v2.1 loaded')
+BL.info('HunterHood v2.12 loaded')
 
--- Load and initialize zone data
 local currentNavTarget = nil
 local useInvis = true -- Default to using invisibility
 local zoneMap = zoneData.zoneMap
 local zone_lists = zoneData.zone_lists
 local combo_items = zoneData.combo_items
 local getZoneDisplayName = zoneData.getZoneDisplayName
--- shortening the mq bind for achievements
 local myAch = mq.TLO.Achievement
 local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
--- Navigation coroutine
 local navCoroutine = nil
 local navActive = false
-currentNavTarget = nil  -- Add this line to clear the target
+currentNavTarget = nil  --clear the target
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
@@ -48,7 +45,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
                 local shouldContinue = false
 
-                -- Check for non-PH mobs on extended target (UPDATED)
+                -- Check for non-PH mobs on extended target
                 local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
                 if hasAdd and addSpawn then
                     if not engagedTarget or engagedTarget.Dead() or not mq.TLO.Me.Combat() then
@@ -87,7 +84,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                 end
                             end
 
-                            -- Check placeholders for this mob (UPDATED)
+                            -- Check placeholders for this mob
                             local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
                             if placeholders and type(placeholders) == "table" then
                                 for _, phName in ipairs(placeholders) do
@@ -107,14 +104,45 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                         end
 
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
-                            if helpers.groupNeedsInvis() then
-                                printf("\ayGroup needs invisibility - casting...")
-                                mq.cmd("/noparse /docommand /dgga /alt act 231")
-                                mq.cmd("/alt act 231")
-                                for i = 1, 20 do
-                                    if not navActive then break end
-                                    coroutine.yield()
+                            -- Add a small delay to ensure the mob is fully dead and removed from xtarget
+                            for i = 1, 10 do  -- 10 ticks delay
+                                if not navActive then break end
+                                coroutine.yield()
+                            end
+                            
+                            -- Make sure everyone in the group is invis before proceeding
+                            local needsInvis = true
+                            local attempts = 0
+                            while needsInvis and attempts < 5 do  -- Try up to 5 times
+                                if helpers.groupNeedsInvis() then
+                                    printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", attempts + 1)
+                                    mq.cmd("/noparse /docommand /dgga /alt act 231")
+                                    mq.cmd("/alt act 231")
+                                    -- Wait for cast to complete
+                                    for i = 1, 20 do
+                                        if not navActive then break end
+                                        coroutine.yield()
+                                    end
+                                    -- Check if we're still visible after casting
+                                    if not helpers.groupNeedsInvis() then
+                                        needsInvis = false
+                                        printf("\ayGroup is now invisible, proceeding to next target")
+                                    end
+                                else
+                                    needsInvis = false
                                 end
+                                attempts = attempts + 1
+                                if needsInvis then
+                                    -- Small delay before retry
+                                    for i = 1, 10 do
+                                        if not navActive then break end
+                                        coroutine.yield()
+                                    end
+                                end
+                            end
+                            
+                            if needsInvis then
+                                printf("\arFailed to ensure group is invisible after 5 attempts, proceeding anyway")
                             end
 
                             currentNavTarget = closestSpawn
@@ -125,6 +153,51 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             currentTarget = closestSpawn
                             engagedTarget = closestSpawn
                             navComplete = false
+                            
+                            -- Check invisibility frequently while navigating
+                            local lastInvisCheck = os.clock()
+                            while not navComplete and mq.TLO.Navigation.Active() do
+                                -- Check for adds and invisibility every 0.3 seconds for faster response
+                                if os.clock() - lastInvisCheck >= 0.3 then
+                                    -- First check for adds on extended target
+                                    local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
+                                    if hasAdd and addSpawn and (not engagedTarget or engagedTarget.ID() ~= addSpawn.ID()) then
+                                        printf("\arAdd detected during navigation: \ay%s\ar - Engaging", addSpawn.CleanName())
+                                        mq.cmd("/nav stop")
+                                        mq.cmdf("/target id %d", addSpawn.ID())
+                                        currentTarget = addSpawn
+                                        engagedTarget = addSpawn
+                                        navComplete = false
+                                        break  -- Exit the navigation loop to handle the add
+                                    end
+                                    
+                                    -- Then check invisibility if no add was found
+                                    if helpers.groupNeedsInvis() then
+                                        printf("\ayGroup needs invisibility during navigation - recasting...")
+                                        -- Clear any existing navigation to prevent movement during cast
+                                        mq.cmd("/nav stop")
+                                        -- Cast invisibility on group and self
+                                        mq.cmd("/noparse /docommand /dgga /alt act 231")
+                                        mq.cmd("/alt act 231")
+                                        -- Wait for cast to complete
+                                        for i = 1, 6 do  -- Reduced delay for faster response (0.6s)
+                                            if not navActive then break end
+                                            coroutine.yield()
+                                        end
+                                        -- Resume navigation if we still have a target
+                                        if currentNavTarget and currentNavTarget() and not currentNavTarget.Dead() then
+                                            mq.cmdf("/nav id %d log=error", currentNavTarget.ID())
+                                            -- Small delay after resuming navigation
+                                            for i = 1, 3 do
+                                                if not navActive then break end
+                                                coroutine.yield()
+                                            end
+                                        end
+                                    end
+                                    lastInvisCheck = os.clock()
+                                end
+                                coroutine.yield()
+                            end
                         end
                     end
                 end
@@ -218,10 +291,10 @@ local selected_index = 1 -- default to first expansion
 -- Achievement information for Hood tab
 local hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {} }
 local mobCheckboxes = {}
-local selectedZoneID = nil
+--local selectedZoneID = nil
 local hasInitialized = false
-local lastHoodUpdate = 0
-local HOOD_UPDATE_INTERVAL = 1000 -- Update every second
+--local lastHoodUpdate = 0
+--local HOOD_UPDATE_INTERVAL = 1000 -- Update every second
 
 local function updateHunterTab()
     myHunterSpawn = {}
@@ -297,7 +370,7 @@ local function textEnabled(spawn)
 
     local selSpawn = ImGui.Selectable(spawn, false, ImGuiSelectableFlags.AllowDoubleClick)
 
-    ImGui.PopStyleColor(3) -- Pop all three style colors
+    ImGui.PopStyleColor(3)
 
     if selSpawn and ImGui.IsMouseDoubleClicked(0) then
         mq.cmdf('/nav id %d log=error', spawnID)
@@ -314,7 +387,7 @@ local function hunterProgress()
     ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0) -- Text color (white)
     ImGui.SetWindowFontScale(0.85)
     ImGui.Indent(2)
-    ImGui.ProgressBar(pct, x - 4, 16, totalDone) -- Changed from getPctCompleted() to pct
+    ImGui.ProgressBar(pct, x - 4, 16, totalDone)
     ImGui.PopStyleColor(3)
     ImGui.SetWindowFontScale(1)
 end
@@ -460,7 +533,7 @@ local function RenderHunter()
 end
 
 local function updateHoodAchievement(zoneID)
-    hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {}, zoneID = zoneID } -- Add zoneID here
+    hoodAch = { ID = 0, Name = "", Count = 0, Spawns = {}, zoneID = zoneID }
     mobCheckboxes = mobCheckboxes or {}
 
     if not zoneID then return false end
@@ -502,7 +575,7 @@ local function updateHoodAchievement(zoneID)
     hoodAch.Name = achName
     hoodAch.Count = achCount
     hoodAch.Spawns = {}
-    hoodAch.zoneID = zoneID -- Store zone ID
+    hoodAch.zoneID = zoneID
 
     for i = 0, achCount do
         local objective = ach.ObjectiveByIndex(i)
@@ -568,7 +641,7 @@ local function renderHoodTab()
         ImGui.SetTooltip("Use Invis while navigating between mobs")
     end
 
-    ImGui.SameLine(0, 10) -- Add space after text
+    ImGui.SameLine(0, 10)
     ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
     ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
     if ImGui.Button("GO##ExecuteAction") then
@@ -577,10 +650,6 @@ local function renderHoodTab()
             if useInvis and helpers.groupNeedsInvis() then
                 printf("\ayGroup members need invisibility, casting...")
                 mq.cmd("/noparse /docommand /dgga /alt act 231")
-                -- Add your invisibility spell/ability here
-                -- For example: mq.cmd("/cast " .. yourInvisSpell)
-                -- or use a helper function if you have one
-                -- helpers.castInvis()
             end
             navActive = true
             navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
@@ -634,7 +703,6 @@ local function renderHoodTab()
         end
     end
 
-    -- Move the tooltip inside the same scope where zone is defined
     local zones = zone_lists[combo_items[selected_index] or ""] or {}
     if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
         local zone = zones[selected_zone_index]
@@ -673,16 +741,11 @@ local function renderHoodTab()
         ImGui.SetTooltip("Click to select your current zone in the drop down")
     end
     ImGui.PopStyleColor(2)
-    -- Restore the original style colors
     ImGui.PopStyleColor(4)
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
-        -----------------------------------------------------
-        -- FIXED HEADER SECTION (aligned with body columns)
-        -----------------------------------------------------
         local windowWidth = select(1, ImGui.GetContentRegionAvail())
-
         local col1MinWidth = 200
         local col2Width = 50
         local remainingSpace = windowWidth - col2Width - 20
@@ -728,9 +791,9 @@ local function renderHoodTab()
             end
         end
         local checkPosX = ImGui.GetCursorPosX()
-        ImGui.SetCursorPosX(checkPosX + 8) -- Add 15px offset
+        ImGui.SetCursorPosX(checkPosX + 8)
         local newAllChecked = ImGui.Checkbox("##CheckAll", allChecked)
-        ImGui.SetCursorPosX(checkPosX)     -- Reset cursor position
+        ImGui.SetCursorPosX(checkPosX)
         if newAllChecked ~= allChecked then
             for _, s in ipairs(hoodAch.Spawns) do
                 mobCheckboxes[s.name] = newAllChecked
@@ -742,9 +805,6 @@ local function renderHoodTab()
         ImGui.Columns(1)
         ImGui.Separator()
 
-        -----------------------------------------------------
-        -- SCROLLABLE BODY (same column widths)
-        -----------------------------------------------------
         local availX, availY = ImGui.GetContentRegionAvail()
         ImGui.BeginChild("MobList", 0, availY, ImGuiChildFlags.Border)
 
@@ -796,7 +856,7 @@ local function renderHoodTab()
             ImGui.PopID()
             ImGui.PopStyleColor()
 
-            -- Tooltip for PH info (unchanged)
+            -- Tooltip for PH info
             if ImGui.IsItemHovered() then
                 local phList = require("Hunterhood.ph_list")
                 local normalizedSpawnName = helpers.normalizeName(spawn.name)
@@ -809,7 +869,7 @@ local function renderHoodTab()
                     placeholders = {}
                 end
                 
-                -- If no direct match, try fuzzy matching (keep your existing logic)
+                -- If no direct match, try fuzzy matching
                 if #placeholders == 0 then
                     local allZoneMobs = phList.getNamedMobsInZone(hoodAch.zoneID)
                     if allZoneMobs and type(allZoneMobs) == "table" then
@@ -917,7 +977,6 @@ local function HunterHUD()
         ImGui.PopStyleColor()
 
         if ImGui.BeginTabBar("HunterHUDTabs") then
-            -- push custom colors
             ImGui.PushStyleColor(ImGuiCol.Tab, 0, 0, 0, 1)              -- inactive tab bg
             ImGui.PushStyleColor(ImGuiCol.TabActive, 0, 0, 0, 1)        -- active tab bg
             ImGui.PushStyleColor(ImGuiCol.TabHovered, 0.1, 0.1, 0.1, 1) -- hovered tab bg
@@ -932,8 +991,8 @@ local function HunterHUD()
 
             -- Hunter tab
             if ImGui.BeginTabItem("Hunter") then
-                lastTab = currentTab  -- Save previous tab
-                currentTab = "Hunter" -- Set active tab
+                lastTab = currentTab
+                currentTab = "Hunter"
                 RenderTitle()
                 if curHunterAch.ID then
                     RenderHunter()
@@ -944,9 +1003,8 @@ local function HunterHUD()
 
             -- Hood tab
             if ImGui.BeginTabItem("Hood") then
-                lastTab = currentTab -- Save previous tab
-                currentTab = "Hood"  -- Set active tab
-                -- push custom style
+                lastTab = currentTab
+                currentTab = "Hood"
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1)
                 ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1)
                 ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1)
@@ -957,17 +1015,14 @@ local function HunterHUD()
                 ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
                 ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.5)
 
-                -- Render the Hood tab content
                 renderHoodTab()
 
-                -- pop styles (vars first, then colors)
                 ImGui.PopStyleVar(1)
                 ImGui.PopStyleColor(8)
 
                 ImGui.EndTabItem()
             end
 
-            -- pop tab bar styles (vars first, then colors)
             ImGui.PopStyleVar(1)
             ImGui.PopStyleColor(8)
 
