@@ -52,7 +52,7 @@ local function new(myAch)
                     local spawnName = spawn.CleanName()
                     local spawnDistance = spawn.Distance3D() or math.huge
                     
-                    -- Skip if too far away (over 150 range) unless it's a named mob
+                    -- Skip if too far away (over 400 range) unless it's a named mob
                     local isNamed = false
                     for _, mob in ipairs(hoodAch.Spawns) do
                         if mob.name == spawnName then
@@ -137,6 +137,59 @@ local function new(myAch)
             totalDone = 'Completed!' 
         end
         return tmp / curHunterAch.Count, totalDone
+    end
+
+    -- Check group member status in zone and distance
+    -- Returns: isAllInRange, statusTable
+    -- statusTable is a list of {name, status} where status is either:
+    --   - true if in zone and within maxDistance
+    --   - false if not in zone
+    --   - number (distance) if in zone but beyond maxDistance
+    function helpers.getGroupMemberStatus(maxDistance)
+        maxDistance = maxDistance or 200 -- Default to 200 units if not specified
+        local status = {}
+        local allInRange = true
+        
+        -- If not in a group, return true with empty status
+        if not mq.TLO.Group() or mq.TLO.Group.Members() == 0 then
+            return true, {}
+        end
+        
+        -- Check each group member (note: Group.Members() does not include yourself)
+        for i = 1, mq.TLO.Group.Members() do
+            local member = mq.TLO.Group.Member(i)
+            if member() then
+                local name = member.CleanName()
+                
+                -- Skip if we can't get the member's name (they're not loaded)
+                if not name or name == "" then
+                    goto continue
+                end
+                
+                local spawn = mq.TLO.Spawn(string.format('pc =%s', name))
+                
+                if not spawn() or spawn.ID() == 0 then
+                    -- Member is not in zone - only fail if they're actually online
+                    if member.Level() and member.Level() > 0 then
+                        table.insert(status, {name = name, status = false})
+                        -- Don't set allInRange to false for out of zone members
+                        -- They might be on another task or waiting at zone line
+                    end
+                else
+                    -- Member is in zone, check distance
+                    local distance = spawn.Distance3D() or 0
+                    if distance > maxDistance then
+                        table.insert(status, {name = name, status = distance})
+                        allInRange = false
+                    else
+                        table.insert(status, {name = name, status = true})
+                    end
+                end
+            end
+            ::continue::
+        end
+        
+        return allInRange, status
     end
 
     -- Get the current zone's data
@@ -233,5 +286,11 @@ local function new(myAch)
 end
 
 return {
-    new = new
+    new = new,
+    areAllGroupMembersInZone = function()
+        return new().areAllGroupMembersInZone()
+    end,
+    getGroupMembersNotInZone = function()
+        return new().getGroupMembersNotInZone()
+    end
 }

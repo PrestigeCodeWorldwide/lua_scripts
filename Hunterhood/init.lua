@@ -6,7 +6,7 @@ local BL = require("biggerlib")
 --local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
 
-BL.info('HunterHood v2.12 loaded')
+BL.info('HunterHood v2.14 loaded')
 
 local currentNavTarget = nil
 local useInvis = true -- Default to using invisibility
@@ -18,21 +18,22 @@ local myAch = mq.TLO.Achievement
 local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
 local navCoroutine = nil
 local navActive = false
-currentNavTarget = nil  --clear the target
+currentNavTarget = nil --clear the target
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
     return coroutine.create(function()
-        local phList = require("Hunterhood.ph_list") -- Load the module (not .ph_list)
-        local currentZoneID = mq.TLO.Zone.ID() -- Get current zone ID
+        local phList = require("Hunterhood.ph_list")
+        local currentZoneID = mq.TLO.Zone.ID()
         local currentTarget = nil
         local navComplete = true
         local engagedTarget = nil
+        local currentMobNames = {}
 
         while navActive do
             -- Update zone ID each iteration in case of zone change
             currentZoneID = mq.TLO.Zone.ID()
-            
+
             -- If we have an engaged target that's still valid, skip target selection
             if engagedTarget and engagedTarget() and not engagedTarget.Dead() and
                 mq.TLO.Me.Combat() and mq.TLO.Target.ID() == engagedTarget.ID() then
@@ -63,10 +64,24 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     local closestDistance = math.huge
                     local checkedMobs = {}
 
+                    -- Build list of currently checked mobs
                     for _, spawn in ipairs(hoodAch.Spawns) do
                         if mobCheckboxes[spawn.name] then
                             table.insert(checkedMobs, spawn)
+                            currentMobNames[spawn.name] = true
                         end
+                    end
+
+                    -- If no mobs are checked, stop navigation
+                    if #checkedMobs == 0 then
+                        printf("\ayNo mobs selected - stopping navigation")
+                        navActive = false
+                        return
+                    end
+
+                    -- If current target is no longer checked, clear it
+                    if currentTarget and not currentMobNames[currentTarget.CleanName()] then
+                        currentTarget = nil
                     end
 
                     if #checkedMobs > 0 then
@@ -105,44 +120,51 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
                             -- Add a small delay to ensure the mob is fully dead and removed from xtarget
-                            for i = 1, 10 do  -- 10 ticks delay
+                            for i = 1, 10 do -- 10 ticks delay
                                 if not navActive then break end
                                 coroutine.yield()
                             end
-                            
-                            -- Make sure everyone in the group is invis before proceeding
-                            local needsInvis = true
-                            local attempts = 0
-                            while needsInvis and attempts < 5 do  -- Try up to 5 times
-                                if helpers.groupNeedsInvis() then
-                                    printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", attempts + 1)
-                                    mq.cmd("/noparse /docommand /dgga /alt act 231")
-                                    mq.cmd("/alt act 231")
-                                    -- Wait for cast to complete
-                                    for i = 1, 20 do
-                                        if not navActive then break end
-                                        coroutine.yield()
-                                    end
-                                    -- Check if we're still visible after casting
-                                    if not helpers.groupNeedsInvis() then
+
+                            -- Skip invis check if target is within 100 units
+                            local targetDistance = closestSpawn.Distance3D() or 0
+                            if targetDistance > 100 then
+                                -- Make sure everyone in the group is invis before proceeding
+                                local needsInvis = true
+                                local attempts = 0
+                                while needsInvis and attempts < 5 do -- Try up to 5 times
+                                    if helpers.groupNeedsInvis() then
+                                        printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", attempts + 1)
+                                        mq.cmd("/noparse /docommand /dgga /alt act 231")
+                                        mq.cmd("/alt act 231")
+                                        -- Wait for cast to complete
+                                        for i = 1, 5 do
+                                            if not navActive then break end
+                                            coroutine.yield()
+                                        end
+                                        -- Check if we're still visible after casting
+                                        if not helpers.groupNeedsInvis() then
+                                            needsInvis = false
+                                            printf("\ayGroup is now invisible, proceeding to next target")
+                                        end
+                                    else
                                         needsInvis = false
-                                        printf("\ayGroup is now invisible, proceeding to next target")
                                     end
-                                else
-                                    needsInvis = false
+                                    attempts = attempts + 1
+                                    if needsInvis then
+                                        -- Small delay before retry
+                                        for i = 1, 10 do
+                                            if not navActive then break end
+                                            coroutine.yield()
+                                        end
+                                    end
                                 end
-                                attempts = attempts + 1
+
                                 if needsInvis then
-                                    -- Small delay before retry
-                                    for i = 1, 10 do
-                                        if not navActive then break end
-                                        coroutine.yield()
-                                    end
+                                    printf("\arFailed to ensure group is invisible after 5 attempts, proceeding anyway")
                                 end
-                            end
-                            
-                            if needsInvis then
-                                printf("\arFailed to ensure group is invisible after 5 attempts, proceeding anyway")
+                            else
+                                printf("\ayTarget is within 100 units (%.1f), skipping invisibility check",
+                                    targetDistance)
                             end
 
                             currentNavTarget = closestSpawn
@@ -153,7 +175,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             currentTarget = closestSpawn
                             engagedTarget = closestSpawn
                             navComplete = false
-                            
+
                             -- Check invisibility frequently while navigating
                             local lastInvisCheck = os.clock()
                             while not navComplete and mq.TLO.Navigation.Active() do
@@ -162,30 +184,40 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                     -- First check for adds on extended target
                                     local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
                                     if hasAdd and addSpawn and (not engagedTarget or engagedTarget.ID() ~= addSpawn.ID()) then
-                                        printf("\arAdd detected during navigation: \ay%s\ar - Engaging", addSpawn.CleanName())
+                                        printf("\arAdd detected during navigation: \ay%s\ar - Engaging",
+                                            addSpawn.CleanName())
                                         mq.cmd("/nav stop")
                                         mq.cmdf("/target id %d", addSpawn.ID())
                                         currentTarget = addSpawn
                                         engagedTarget = addSpawn
                                         navComplete = false
-                                        break  -- Exit the navigation loop to handle the add
+                                        break -- Exit the navigation loop to handle the add
                                     end
-                                    
-                                    -- Then check invisibility if no add was found
-                                    if helpers.groupNeedsInvis() then
+
+                                    -- Then check invisibility if no add was found and target is further than 100 units
+                                    local targetDistance = currentNavTarget and currentNavTarget.Distance3D() or 0
+                                    if targetDistance > 100 and helpers.groupNeedsInvis() then
                                         printf("\ayGroup needs invisibility during navigation - recasting...")
                                         -- Clear any existing navigation to prevent movement during cast
                                         mq.cmd("/nav stop")
-                                        -- Cast invisibility on group and self
-                                        mq.cmd("/noparse /docommand /dgga /alt act 231")
-                                        mq.cmd("/alt act 231")
-                                        -- Wait for cast to complete
-                                        for i = 1, 6 do  -- Reduced delay for faster response (0.6s)
-                                            if not navActive then break end
-                                            coroutine.yield()
+
+                                        -- Cast invisibility on group and self until successful or nav is stopped
+                                        while navActive and helpers.groupNeedsInvis() and targetDistance > 100 do
+                                            mq.cmd("/noparse /docommand /dgga /alt act 231")
+                                            mq.cmd("/alt act 231")
+
+                                            -- Update target distance in case we moved during the cast
+                                            targetDistance = currentNavTarget and currentNavTarget.Distance3D() or 0
+
+                                            -- Wait a bit before checking again
+                                            for i = 1, 10 do -- 10 tick delay (1s) between attempts
+                                                if not navActive then break end
+                                                coroutine.yield()
+                                            end
                                         end
-                                        -- Resume navigation if we still have a target
-                                        if currentNavTarget and currentNavTarget() and not currentNavTarget.Dead() then
+
+                                        -- Only resume navigation if we're still active and have a valid target
+                                        if navActive and currentNavTarget and currentNavTarget() and not currentNavTarget.Dead() then
                                             mq.cmdf("/nav id %d log=error", currentNavTarget.ID())
                                             -- Small delay after resuming navigation
                                             for i = 1, 3 do
@@ -205,33 +237,72 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
             if currentTarget and currentTarget() and not currentTarget.Dead() then
                 if currentTarget.Distance3D() <= 25 then
-                    printf("\ayDEBUG: In range, setting up combat...")
+                    printf("\ayDEBUG: In range, checking group distance...")
 
-                    if mq.TLO.Target.ID() ~= currentTarget.ID() then
-                        mq.cmdf("/target id %d", currentTarget.ID())
-                        for i = 1, 5 do
+                    -- Check if we're already in combat or have adds - if so, skip distance check
+                    local inCombat = mq.TLO.Me.Combat()
+                    local hasAdds = (mq.TLO.Me.XTarget() or 0) > 0
+                    local skipDistanceCheck = inCombat or hasAdds
+
+                    if skipDistanceCheck then
+                        printf("\ayDEBUG: %s - skipping group distance check",
+                            inCombat and "Already in combat" or "Adds detected")
+                    end
+
+                    -- Check if all group members are within 200 range (unless we need to skip)
+                    local allInRange = skipDistanceCheck
+                    local memberStatus = {}
+
+                    if not skipDistanceCheck then
+                        allInRange, memberStatus = helpers.getGroupMemberStatus(200)
+                    end
+
+                    if not allInRange then
+                        printf("\ayWaiting for group members to get in range...")
+                        for _, member in ipairs(memberStatus) do
+                            if member.status == false then
+                                printf("\ar%s is not in zone!", member.name)
+                            elseif type(member.status) == "number" then
+                                printf("\ay%s is %.1f units away (waiting...)", member.name, member.status)
+                            end
+                        end
+
+                        -- Wait a bit before checking again
+                        for i = 1, 10 do
+                            if not navActive then break end
                             coroutine.yield()
                         end
-                    end
+                        -- Don't set navComplete yet, will check again next iteration
+                    else
+                        printf("\ayDEBUG: All group members in range, setting up combat...")
 
-                    if mq.TLO.Target.ID() == currentTarget.ID() then
-                        if not mq.TLO.Me.Combat() then
-                            printf("\ayDEBUG: Enabling attack mode (in range)")
-                            mq.cmd("/attack on")
-                            engagedTarget = currentTarget
+                        if mq.TLO.Target.ID() ~= currentTarget.ID() then
+                            mq.cmdf("/target id %d", currentTarget.ID())
+                            for i = 1, 5 do
+                                coroutine.yield()
+                            end
                         end
 
-                        if mq.TLO.Me.Combat() then
-                            mq.cmd("/stick 10 front moveback")
-                            mq.cmd("/face")
-                        end
-                    end
+                        if mq.TLO.Target.ID() == currentTarget.ID() then
+                            if not mq.TLO.Me.Combat() then
+                                printf("\ayDEBUG: Enabling attack mode (in range)")
+                                mq.cmd("/docommand /dgga /makemevisible")
+                                mq.cmd("/attack on")
+                                engagedTarget = currentTarget
+                            end
 
-                    for i = 1, 5 do
-                        if not navActive then break end
-                        coroutine.yield()
+                            if mq.TLO.Me.Combat() then
+                                mq.cmd("/stick 10 front moveback")
+                                mq.cmd("/face")
+                            end
+                        end
+
+                        for i = 1, 5 do
+                            if not navActive then break end
+                            coroutine.yield()
+                        end
+                        navComplete = true
                     end
-                    navComplete = true
                 end
             else
                 printf("\ayDEBUG: No valid target or target is dead")
@@ -266,7 +337,7 @@ local onlySpawned = false
 local spawnUp = 0
 local totalDone = ''
 local currentTab = "Hunter"                          -- Track which tab is active
-local hoodWindowSize = { width = 280, height = 350 } -- Saved size for Hood tab
+local hoodWindowSize = { width = 280, height = 355 } -- Saved size for Hood tab
 local lastTab = "Hunter"                             -- Track the last active tab
 
 -- shortening the mq bind for achievements
@@ -772,14 +843,8 @@ local function renderHoodTab()
         end
         local completedText = string.format("Completed ( %d/%d )", completed, total)
 
-        -- Add distance to target if navigating
-        if navActive and currentNavTarget then
-            local distance = currentNavTarget.Distance3D() or 0
-            completedText = completedText .. string.format("  [%.1f]", distance)
-        end
-
         ImGui.Text(completedText)
-
+        
         ImGui.NextColumn()
 
         -- Header col 2: Check All
@@ -860,15 +925,15 @@ local function renderHoodTab()
             if ImGui.IsItemHovered() then
                 local phList = require("Hunterhood.ph_list")
                 local normalizedSpawnName = helpers.normalizeName(spawn.name)
-                
+
                 -- Get placeholders for this spawn in the current zone
                 local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
-                
+
                 -- Ensure placeholders is a table
                 if not placeholders or type(placeholders) ~= "table" then
                     placeholders = {}
                 end
-                
+
                 -- If no direct match, try fuzzy matching
                 if #placeholders == 0 then
                     local allZoneMobs = phList.getNamedMobsInZone(hoodAch.zoneID)
@@ -885,7 +950,7 @@ local function renderHoodTab()
                         end
                     end
                 end
-                
+
                 local spawnedPHs, totalSpawned = {}, 0
                 for _, phName in ipairs(placeholders) do
                     if type(phName) == "string" then
@@ -896,7 +961,7 @@ local function renderHoodTab()
                         end
                     end
                 end
-                
+
                 if #placeholders > 0 or #spawnedPHs > 0 then
                     ImGui.BeginTooltip()
                     ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
@@ -1019,6 +1084,8 @@ local function HunterHUD()
 
                 ImGui.PopStyleVar(1)
                 ImGui.PopStyleColor(8)
+
+
 
                 ImGui.EndTabItem()
             end
