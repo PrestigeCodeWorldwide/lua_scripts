@@ -685,8 +685,8 @@ local function renderHoodTab()
 
 
     -- Expansion selector combo
-    ImGui.SetNextItemWidth(160)
-    if ImGui.BeginCombo(":", combo_items[selected_index]) then
+    ImGui.SetNextItemWidth(165)
+    if ImGui.BeginCombo("##:", combo_items[selected_index]) then
         for i, item in ipairs(combo_items) do
             if ImGui.Selectable(item, i == selected_index) then
                 selected_index = i
@@ -816,10 +816,14 @@ local function renderHoodTab()
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
+        -- Save current style
+        -- Reduce frame padding to make checkboxes smaller
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4, 2)
+
         local windowWidth = select(1, ImGui.GetContentRegionAvail())
-        local col1MinWidth = 200
-        local col2Width = 50
-        local remainingSpace = windowWidth - col2Width - 20
+        local col1MinWidth = 202
+        local col2Width = 50  -- Increased to ensure enough space for distance display
+        local remainingSpace = windowWidth - col2Width - 30  -- Slightly reduce the padding
         local col1Width = math.max(col1MinWidth, remainingSpace * 0.5)
         local col3Width = remainingSpace - col1Width
 
@@ -828,6 +832,71 @@ local function renderHoodTab()
         ImGui.SetColumnWidth(1, col2Width)
         ImGui.SetColumnWidth(2, col3Width)
 
+
+
+        -- Status bar with slightly reduced spacing
+        ImGui.TextColored(0.690, 0.553, 0.259, 1, '\xee\x9f\xbc')
+        local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
+        ImGui.SameLine(0, 4)  -- Slightly reduced from default
+
+        if pcs > 50 then
+            ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs))
+        elseif pcs > 25 then
+            ImGui.TextColored(0.95, 0.95, 0.05, 1, tostring(pcs))
+        elseif pcs > 0 then
+            ImGui.TextColored(0.05, 0.95, 0.05, 1, tostring(pcs))
+        else
+            ImGui.TextDisabled(tostring(pcs))
+        end
+
+        ImGui.SameLine(0, 4)  -- Slightly reduced from default
+        ImGui.TextDisabled('|')
+
+        -- Add group invis status with slightly reduced spacing
+        if mq.TLO.Group() ~= nil then
+            for i = 0, mq.TLO.Group.Members() do
+                local member = mq.TLO.Group.Member(i)
+                if member.Present() and not member.Mercenary() then
+                    ImGui.SameLine(0, 3)  -- Slightly reduced from default
+                    if not member.Invis() then
+                        ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F' .. (i + 1))
+                    else
+                        ImGui.TextDisabled('F' .. (i + 1))
+                    end
+                end
+            end
+        else
+            if not mq.TLO.Me.Invis() then
+                ImGui.SameLine(0, 4)  -- Slightly reduced from default
+                ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F1')
+            end
+        end
+        
+        -- Add distance to nav target if navigating and we have a current target
+        if mq.TLO.Navigation.Active() and currentNavTarget and currentNavTarget() then
+            local dist = currentNavTarget.Distance3D() or 0
+            if dist > 0 then
+                ImGui.SameLine(0, 4)
+                ImGui.TextColored(0.5, 0.5, 0.5, 0.7, '|')
+                ImGui.SameLine(0, 4)
+                if dist > 500 then
+                    ImGui.TextColored(1.0, 0.2, 0.2, 1, ('%.0f'):format(dist))  -- Red for very far
+                elseif dist > 150 then
+                    ImGui.TextColored(0.95, 0.5, 0.0, 1, ('%.0f'):format(dist))  -- Orange for far
+                else
+                    ImGui.TextColored(0.0, 0.95, 0.0, 1, ('%.0f'):format(dist))  -- Green for close
+                end
+            end
+        end
+
+
+        ImGui.NextColumn()
+
+        ImGui.Columns(1)
+
+        ImGui.Separator()
+
+        local availX, availY = ImGui.GetContentRegionAvail()
         -- Header col 1: Completed (check status dynamically)
         local completed, total = 0, #hoodAch.Spawns
         if hoodAch.ID > 0 then
@@ -841,13 +910,23 @@ local function renderHoodTab()
                 end
             end
         end
+
         local completedText = string.format("Completed ( %d/%d )", completed, total)
+        local availX, availY = ImGui.GetContentRegionAvail()
 
+        -- Start the child window first
+        ImGui.BeginChild("MobList", 0, availY, ImGuiChildFlags.Border)
+
+        -- Create a row for the completed text and check all
+        ImGui.Columns(2, "##header_columns", false)
+        ImGui.SetColumnWidth(0, col1Width)     -- Left side for "Completed" text
+        ImGui.SetColumnWidth(1, col2Width + col3Width) -- Right side for "Check All"
+
+        -- Left column: Completed text
         ImGui.Text(completedText)
-        
-        ImGui.NextColumn()
 
-        -- Header col 2: Check All
+        -- Right column: Check All checkbox
+        ImGui.NextColumn()
         local allChecked = true
         for _, spawn in ipairs(hoodAch.Spawns) do
             if not mobCheckboxes[spawn.name] then
@@ -855,24 +934,20 @@ local function renderHoodTab()
                 break
             end
         end
-        local checkPosX = ImGui.GetCursorPosX()
-        ImGui.SetCursorPosX(checkPosX + 8)
-        local newAllChecked = ImGui.Checkbox("##CheckAll", allChecked)
-        ImGui.SetCursorPosX(checkPosX)
+        local newAllChecked = ImGui.Checkbox("##Check All##" .. hoodAch.Name, allChecked)
         if newAllChecked ~= allChecked then
             for _, s in ipairs(hoodAch.Spawns) do
                 mobCheckboxes[s.name] = newAllChecked
             end
             printf("%s all mobs in zone: %s", newAllChecked and "Checked" or "Unchecked", hoodAch.Name)
         end
-        ImGui.NextColumn()
 
+        -- Reset columns for the mob list
         ImGui.Columns(1)
         ImGui.Separator()
+        ImGui.Spacing()
 
-        local availX, availY = ImGui.GetContentRegionAvail()
-        ImGui.BeginChild("MobList", 0, availY, ImGuiChildFlags.Border)
-
+        -- Set up columns for the mob list
         ImGui.Columns(3, "##mob_columns_body", false)
         ImGui.SetColumnWidth(0, col1Width)
         ImGui.SetColumnWidth(1, col2Width)
@@ -1009,6 +1084,9 @@ local function renderHoodTab()
             ImGui.NextColumn()
         end
 
+        -- Restore original style
+        ImGui.PopStyleVar()
+
         ImGui.Columns(1)
         ImGui.EndChild()
     else
@@ -1067,9 +1145,12 @@ local function HunterHUD()
             end
 
             -- Hood tab
+            -- Hood tab
             if ImGui.BeginTabItem("Hood") then
                 lastTab = currentTab
                 currentTab = "Hood"
+
+                -- Tab styling
                 ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1)
                 ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1)
                 ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1)
@@ -1084,9 +1165,6 @@ local function HunterHUD()
 
                 ImGui.PopStyleVar(1)
                 ImGui.PopStyleColor(8)
-
-
-
                 ImGui.EndTabItem()
             end
 
