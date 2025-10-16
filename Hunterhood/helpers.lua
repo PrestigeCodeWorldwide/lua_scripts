@@ -6,6 +6,7 @@ local useInvis = true
 local function new(myAch)
     local helpers = {}
 
+
     -- Print format function
     function helpers.printf(...)
         BL.info(string.format(...))
@@ -14,7 +15,12 @@ local function new(myAch)
     function helpers.setUseInvis(value)
         useInvis = value
     end
-    
+
+    function helpers.isMouseButtonDown(button)
+    -- 0 = left, 1 = right, 2 = middle
+    return ImGui.IsMouseDown(button)
+end
+
     -- Find spawn by name
     function helpers.findSpawn(spawn, nameMap)
         if not spawn then return 0 end

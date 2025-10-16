@@ -523,9 +523,6 @@ end
 local function InfoLine()
     ImGui.Separator()
     ImGui.TextColored(0.690, 0.553, 0.259, 1, '\xee\x9f\xbc')
-    --[[if ImGui.BeginPopupContextItem('pcpopup') then
-        PCList()
-    end]] --
     ImGui.SameLine()
     local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
 
@@ -754,35 +751,47 @@ local function renderHoodTab()
         end
         ImGui.EndCombo()
     end
-    -- Save the current style colors
-    ImGui.SameLine(0, 4)
-    local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
-    local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
+  -- Save the current style colors
+ImGui.SameLine(0, 4)
+local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
+local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
 
-    -- Set the button colors
-    ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)        -- Black background
-    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
-    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555)  -- Lighter gray when pressed
-    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)          -- Green text
+-- Set the button colors
+ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)        -- Black background
+ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
+ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555)  -- Lighter gray when pressed
+ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)          -- Green text
 
-    if ImGui.Button("Nav") then
-        local zones = zone_lists[combo_items[selected_index] or ""] or {}
-        if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
-            local zone = zones[selected_zone_index]
-            printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
-            mq.cmdf("/travelto %s", zone.shortname)
-        end
-    end
+-- Store the button state
+local buttonClicked = ImGui.Button("Nav")
+local rightClicked = ImGui.IsItemHovered() and ImGui.IsMouseClicked(1)  -- Right mouse button
 
+-- Handle button clicks
+if buttonClicked or rightClicked then
     local zones = zone_lists[combo_items[selected_index] or ""] or {}
     if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
         local zone = zones[selected_zone_index]
-        if ImGui.IsItemHovered() then
-            ImGui.BeginTooltip()
-            ImGui.Text("Click to /travelto %s", zone.shortname)
-            ImGui.EndTooltip()
+        if rightClicked then
+            printf("Telling group to travel to %s (ID: %d)", zone.shortname, zone.id)
+            mq.cmdf("/docommand /dgga /travelto %s", zone.shortname)
+        else
+            printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
+            mq.cmdf("/docommand /travelto %s", zone.shortname)
         end
     end
+end
+
+-- Tooltip
+local zones = zone_lists[combo_items[selected_index] or ""] or {}
+if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
+    local zone = zones[selected_zone_index]
+    if ImGui.IsItemHovered() then
+        ImGui.BeginTooltip()
+        ImGui.Text("Left-click: /travelto %s", zone.shortname)
+        ImGui.Text("Right-click: /dgga /travelto %s", zone.shortname)
+        ImGui.EndTooltip()
+    end
+end
     -- Current Zone button
     ImGui.SameLine()
     ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
@@ -816,14 +825,13 @@ local function renderHoodTab()
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
-        -- Save current style
         -- Reduce frame padding to make checkboxes smaller
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4, 2)
 
         local windowWidth = select(1, ImGui.GetContentRegionAvail())
         local col1MinWidth = 202
-        local col2Width = 50  -- Increased to ensure enough space for distance display
-        local remainingSpace = windowWidth - col2Width - 30  -- Slightly reduce the padding
+        local col2Width = 50                                -- Increased to ensure enough space for distance display
+        local remainingSpace = windowWidth - col2Width - 30 -- Slightly reduce the padding
         local col1Width = math.max(col1MinWidth, remainingSpace * 0.5)
         local col3Width = remainingSpace - col1Width
 
@@ -837,7 +845,7 @@ local function renderHoodTab()
         -- Status bar with slightly reduced spacing
         ImGui.TextColored(0.690, 0.553, 0.259, 1, '\xee\x9f\xbc')
         local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
-        ImGui.SameLine(0, 4)  -- Slightly reduced from default
+        ImGui.SameLine(0, 4) -- Slightly reduced from default
 
         if pcs > 50 then
             ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs))
@@ -849,7 +857,7 @@ local function renderHoodTab()
             ImGui.TextDisabled(tostring(pcs))
         end
 
-        ImGui.SameLine(0, 4)  -- Slightly reduced from default
+        ImGui.SameLine(0, 4) -- Slightly reduced from default
         ImGui.TextDisabled('|')
 
         -- Add group invis status with slightly reduced spacing
@@ -857,7 +865,7 @@ local function renderHoodTab()
             for i = 0, mq.TLO.Group.Members() do
                 local member = mq.TLO.Group.Member(i)
                 if member.Present() and not member.Mercenary() then
-                    ImGui.SameLine(0, 3)  -- Slightly reduced from default
+                    ImGui.SameLine(0, 3) -- Slightly reduced from default
                     if not member.Invis() then
                         ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F' .. (i + 1))
                     else
@@ -867,11 +875,11 @@ local function renderHoodTab()
             end
         else
             if not mq.TLO.Me.Invis() then
-                ImGui.SameLine(0, 4)  -- Slightly reduced from default
+                ImGui.SameLine(0, 4) -- Slightly reduced from default
                 ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F1')
             end
         end
-        
+
         -- Add distance to nav target if navigating and we have a current target
         if mq.TLO.Navigation.Active() and currentNavTarget and currentNavTarget() then
             local dist = currentNavTarget.Distance3D() or 0
@@ -882,18 +890,16 @@ local function renderHoodTab()
                 if dist > 500 then
                     ImGui.TextColored(1.0, 0.2, 0.2, 1, ('%.0f'):format(dist))  -- Red for very far
                 elseif dist > 150 then
-                    ImGui.TextColored(0.95, 0.5, 0.0, 1, ('%.0f'):format(dist))  -- Orange for far
+                    ImGui.TextColored(0.95, 0.5, 0.0, 1, ('%.0f'):format(dist)) -- Orange for far
                 else
-                    ImGui.TextColored(0.0, 0.95, 0.0, 1, ('%.0f'):format(dist))  -- Green for close
+                    ImGui.TextColored(0.0, 0.95, 0.0, 1, ('%.0f'):format(dist)) -- Green for close
                 end
             end
         end
 
 
         ImGui.NextColumn()
-
         ImGui.Columns(1)
-
         ImGui.Separator()
 
         local availX, availY = ImGui.GetContentRegionAvail()
@@ -919,7 +925,7 @@ local function renderHoodTab()
 
         -- Create a row for the completed text and check all
         ImGui.Columns(2, "##header_columns", false)
-        ImGui.SetColumnWidth(0, col1Width)     -- Left side for "Completed" text
+        ImGui.SetColumnWidth(0, col1Width)             -- Left side for "Completed" text
         ImGui.SetColumnWidth(1, col2Width + col3Width) -- Right side for "Check All"
 
         -- Left column: Completed text
