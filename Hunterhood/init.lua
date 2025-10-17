@@ -5,6 +5,7 @@ local Open, ShowUI = true, true
 local BL = require("biggerlib")
 --local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
+local ph_list = require 'Hunterhood.ph_list'
 
 BL.info('HunterHood v2.14 loaded')
 
@@ -236,7 +237,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
             end
 
             if currentTarget and currentTarget() and not currentTarget.Dead() then
-                if currentTarget.Distance3D() <= 25 then
+                if currentTarget.Distance3D() <= 35 then
                     printf("\ayDEBUG: In range, checking group distance...")
 
                     -- Check if we're already in combat or have adds - if so, skip distance check
@@ -427,7 +428,8 @@ end
 local function textEnabled(spawn)
     -- Check if the spawn is up
     local spawnID = helpers.findSpawn(spawn, nameMap)
-    local isUp = spawnID ~= 0 and mq.TLO.Spawn(spawnID).ID() ~= nil
+    local spawnObj = mq.TLO.Spawn(spawnID)
+    local isUp = spawnID ~= 0 and spawnObj.ID() ~= nil
 
     -- Set text color based on spawn status
     if isUp then
@@ -444,8 +446,43 @@ local function textEnabled(spawn)
     ImGui.PopStyleColor(3)
 
     if selSpawn and ImGui.IsMouseDoubleClicked(0) then
-        mq.cmdf('/nav id %d log=error', spawnID)
-        printf('\ayMoving to \ag%s', spawn)
+        if isUp then
+            -- Named is up, navigate to it
+            mq.cmdf('/nav id %d log=error', spawnID)
+            printf('\ayMoving to \ag%s', spawn)
+        else
+            -- Named is not up, find and navigate to nearest PH
+            local zoneID = mq.TLO.Zone.ID()
+            local phs = ph_list.getPlaceholders(spawn, zoneID)
+            
+            if #phs > 0 then
+                -- Find the nearest PH
+                local nearestPh = nil
+                local minDist = math.huge
+                
+                for _, ph in ipairs(phs) do
+                    local phID = helpers.findSpawn(ph, nameMap)
+                    local phSpawn = mq.TLO.Spawn(phID)
+                    
+                    if phSpawn and phSpawn.ID() and phSpawn.ID() > 0 then
+                        local dist = phSpawn.Distance3D() or math.huge
+                        if dist < minDist then
+                            minDist = dist
+                            nearestPh = phSpawn
+                        end
+                    end
+                end
+                
+                if nearestPh then
+                    mq.cmdf('/nav id %d log=error', nearestPh.ID())
+                    printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn, nearestPh.CleanName() or "unknown")
+                else
+                    printf('\arNo placeholders found for \ag%s\ar in zone', spawn)
+                end
+            else
+                printf('\arNo placeholders found for \ag%s\ar in zone', spawn)
+            end
+        end
     end
 end
 
@@ -991,14 +1028,44 @@ end
             ImGui.PushID("mob_" .. tostring(spawn.id or 0) .. "_" .. spawn.name)
             local selected = ImGui.Selectable(spawn.name, false, ImGuiSelectableFlags.AllowDoubleClick)
             if selected and ImGui.IsMouseDoubleClicked(0) then
-                local spawnID = mq.TLO.Spawn("npc " .. spawn.name).ID()
-                if spawnID ~= nil and spawnID > 0 then
-                    mq.cmdf('/nav id %d log=error', spawnID)
-                    printf('\ayMoving to \ag%s', spawn.name)
-                else
-                    printf('\arCould not find spawn ID for %s', spawn.name)
+    -- First check if the named mob is up
+    local spawnID = mq.TLO.Spawn("npc " .. spawn.name).ID()
+    if spawnID ~= nil and spawnID > 0 then
+        mq.cmdf('/nav id %d log=error', spawnID)
+        printf('\ayMoving to \ag%s', spawn.name)
+    else
+        -- Named mob not up, try to find a placeholder
+        local phList = require("Hunterhood.ph_list")
+        local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
+        local nearestPh = nil
+        local minDist = math.huge
+        
+        if placeholders and #placeholders > 0 then
+            for _, phName in ipairs(placeholders) do
+                local phID = mq.TLO.Spawn("npc " .. phName).ID()
+                if phID ~= nil and phID > 0 then
+                    local phSpawn = mq.TLO.Spawn(phID)
+                    if phSpawn() and not phSpawn.Dead() then
+                        local dist = phSpawn.Distance3D() or math.huge
+                        if dist < minDist then
+                            minDist = dist
+                            nearestPh = phSpawn
+                        end
+                    end
                 end
             end
+            
+            if nearestPh then
+                mq.cmdf('/nav id %d log=error', nearestPh.ID())
+                printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name, nearestPh.CleanName() or "unknown")
+            else
+                printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+            end
+        else
+            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+        end
+    end
+end
             ImGui.PopID()
             ImGui.PopStyleColor()
 

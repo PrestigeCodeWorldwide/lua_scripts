@@ -21,6 +21,24 @@ local function new(myAch)
     return ImGui.IsMouseDown(button)
 end
 
+    -- Check if a spawn is within a certain Z-axis distance from the player
+    -- @param spawnID number - The ID of the spawn to check
+    -- @param maxZDistance number - Maximum allowed Z-axis distance
+    -- @return boolean - True if within Z distance, false otherwise
+    -- @return number - The actual Z distance
+    function helpers.checkZDistance(spawnID, maxZDistance)
+        local spawn = mq.TLO.Spawn(spawnID)
+        if not spawn or not spawn.ID() or spawn.ID() == 0 then
+            return false, 0
+        end
+        
+        local myZ = mq.TLO.Me.Z() or 0
+        local spawnZ = spawn.Z() or 0
+        local zDiff = math.abs(myZ - spawnZ)
+        
+        return zDiff <= maxZDistance, zDiff
+    end
+
     -- Find spawn by name
     function helpers.findSpawn(spawn, nameMap)
         if not spawn then return 0 end
