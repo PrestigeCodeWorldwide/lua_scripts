@@ -3,14 +3,10 @@ require 'ImGui'
 local bit = require 'bit'
 local Open, ShowUI = true, true
 local BL = require("biggerlib")
---local helpers = require("Hunterhood.helpers")
 local zoneData = require("Hunterhood.zone_data").create(mq)
 local ph_list = require 'Hunterhood.ph_list'
-
-BL.info('HunterHood v2.14 loaded')
-
 local currentNavTarget = nil
-local useInvis = true -- Default to using invisibility
+local useInvis = true
 local zoneMap = zoneData.zoneMap
 local zone_lists = zoneData.zone_lists
 local combo_items = zoneData.combo_items
@@ -19,7 +15,8 @@ local myAch = mq.TLO.Achievement
 local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
 local navCoroutine = nil
 local navActive = false
-currentNavTarget = nil --clear the target
+
+BL.info('HunterHood v2.15 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
@@ -294,7 +291,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
                             if mq.TLO.Me.Combat() then
                                 mq.cmd("/stick 10 front moveback")
-                                mq.cmd("/face")
+                                mq.cmd("/face fast")
                             end
                         end
 
@@ -445,6 +442,47 @@ local function textEnabled(spawn)
 
     ImGui.PopStyleColor(3)
 
+    -- Show PH info on hover
+    if ImGui.IsItemHovered() then
+        local zoneID = mq.TLO.Zone.ID()
+        local phs = ph_list.getPlaceholders(spawn, zoneID)
+        local spawnedPHs = {}
+        local totalSpawned = 0
+        local phCounts = {}
+
+        -- Check which PHs are currently spawned and count them
+        for _, ph in ipairs(phs) do
+            local count = mq.TLO.SpawnCount("npc " .. ph)() or 0
+            if count > 0 then
+                table.insert(spawnedPHs, { name = ph, count = count })
+                totalSpawned = totalSpawned + count
+            end
+        end
+
+        if #phs > 0 or #spawnedPHs > 0 then
+            ImGui.BeginTooltip()
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
+            ImGui.Text("PH(s) for " .. spawn .. ":")
+
+            if #spawnedPHs > 0 then
+                ImGui.Text(string.format("\nCurrently spawned (%d):", totalSpawned))
+                for _, ph in ipairs(spawnedPHs) do
+                    ImGui.BulletText(string.format("%s (x%d)", ph.name, ph.count))
+                end
+            end
+
+            if #phs > 0 then
+                ImGui.Text("\nPossible Placeholders:")
+                for _, ph in ipairs(phs) do
+                    ImGui.Text("- " .. ph)
+                end
+            end
+
+            ImGui.PopStyleColor()
+            ImGui.EndTooltip()
+        end
+    end
+
     if selSpawn and ImGui.IsMouseDoubleClicked(0) then
         if isUp then
             -- Named is up, navigate to it
@@ -454,16 +492,16 @@ local function textEnabled(spawn)
             -- Named is not up, find and navigate to nearest PH
             local zoneID = mq.TLO.Zone.ID()
             local phs = ph_list.getPlaceholders(spawn, zoneID)
-            
+
             if #phs > 0 then
                 -- Find the nearest PH
                 local nearestPh = nil
                 local minDist = math.huge
-                
+
                 for _, ph in ipairs(phs) do
                     local phID = helpers.findSpawn(ph, nameMap)
                     local phSpawn = mq.TLO.Spawn(phID)
-                    
+
                     if phSpawn and phSpawn.ID() and phSpawn.ID() > 0 then
                         local dist = phSpawn.Distance3D() or math.huge
                         if dist < minDist then
@@ -472,10 +510,11 @@ local function textEnabled(spawn)
                         end
                     end
                 end
-                
+
                 if nearestPh then
                     mq.cmdf('/nav id %d log=error', nearestPh.ID())
-                    printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn, nearestPh.CleanName() or "unknown")
+                    printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn,
+                        nearestPh.CleanName() or "unknown")
                 else
                     printf('\arNo placeholders found for \ag%s\ar in zone', spawn)
                 end
@@ -788,47 +827,47 @@ local function renderHoodTab()
         end
         ImGui.EndCombo()
     end
-  -- Save the current style colors
-ImGui.SameLine(0, 4)
-local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
-local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
+    -- Save the current style colors
+    ImGui.SameLine(0, 4)
+    local buttonTextColor = ImGui.GetStyleColor(ImGuiCol.Text)
+    local buttonBgColor = ImGui.GetStyleColor(ImGuiCol.Button)
 
--- Set the button colors
-ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)        -- Black background
-ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
-ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555)  -- Lighter gray when pressed
-ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)          -- Green text
+    -- Set the button colors
+    ImGui.PushStyleColor(ImGuiCol.Button, 0xFF000000)    -- Black background
+    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0xFF333333) -- Dark gray on hover
+    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0xFF555555) -- Lighter gray when pressed
+    ImGui.PushStyleColor(ImGuiCol.Text, 0xFF00FF00)      -- Green text
 
--- Store the button state
-local buttonClicked = ImGui.Button("Nav")
-local rightClicked = ImGui.IsItemHovered() and ImGui.IsMouseClicked(1)  -- Right mouse button
+    -- Store the button state
+    local buttonClicked = ImGui.Button("Nav")
+    local rightClicked = ImGui.IsItemHovered() and ImGui.IsMouseClicked(1) -- Right mouse button
 
--- Handle button clicks
-if buttonClicked or rightClicked then
+    -- Handle button clicks
+    if buttonClicked or rightClicked then
+        local zones = zone_lists[combo_items[selected_index] or ""] or {}
+        if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
+            local zone = zones[selected_zone_index]
+            if rightClicked then
+                printf("Telling group to travel to %s (ID: %d)", zone.shortname, zone.id)
+                mq.cmdf("/docommand /dgga /travelto %s", zone.shortname)
+            else
+                printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
+                mq.cmdf("/docommand /travelto %s", zone.shortname)
+            end
+        end
+    end
+
+    -- Tooltip
     local zones = zone_lists[combo_items[selected_index] or ""] or {}
     if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
         local zone = zones[selected_zone_index]
-        if rightClicked then
-            printf("Telling group to travel to %s (ID: %d)", zone.shortname, zone.id)
-            mq.cmdf("/docommand /dgga /travelto %s", zone.shortname)
-        else
-            printf("Traveling to %s (ID: %d)", zone.shortname, zone.id)
-            mq.cmdf("/docommand /travelto %s", zone.shortname)
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("Left-click: /travelto %s", zone.shortname)
+            ImGui.Text("Right-click: /dgga /travelto %s", zone.shortname)
+            ImGui.EndTooltip()
         end
     end
-end
-
--- Tooltip
-local zones = zone_lists[combo_items[selected_index] or ""] or {}
-if #zones > 0 and selected_zone_index >= 1 and selected_zone_index <= #zones then
-    local zone = zones[selected_zone_index]
-    if ImGui.IsItemHovered() then
-        ImGui.BeginTooltip()
-        ImGui.Text("Left-click: /travelto %s", zone.shortname)
-        ImGui.Text("Right-click: /dgga /travelto %s", zone.shortname)
-        ImGui.EndTooltip()
-    end
-end
     -- Current Zone button
     ImGui.SameLine()
     ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
@@ -1028,44 +1067,45 @@ end
             ImGui.PushID("mob_" .. tostring(spawn.id or 0) .. "_" .. spawn.name)
             local selected = ImGui.Selectable(spawn.name, false, ImGuiSelectableFlags.AllowDoubleClick)
             if selected and ImGui.IsMouseDoubleClicked(0) then
-    -- First check if the named mob is up
-    local spawnID = mq.TLO.Spawn("npc " .. spawn.name).ID()
-    if spawnID ~= nil and spawnID > 0 then
-        mq.cmdf('/nav id %d log=error', spawnID)
-        printf('\ayMoving to \ag%s', spawn.name)
-    else
-        -- Named mob not up, try to find a placeholder
-        local phList = require("Hunterhood.ph_list")
-        local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
-        local nearestPh = nil
-        local minDist = math.huge
-        
-        if placeholders and #placeholders > 0 then
-            for _, phName in ipairs(placeholders) do
-                local phID = mq.TLO.Spawn("npc " .. phName).ID()
-                if phID ~= nil and phID > 0 then
-                    local phSpawn = mq.TLO.Spawn(phID)
-                    if phSpawn() and not phSpawn.Dead() then
-                        local dist = phSpawn.Distance3D() or math.huge
-                        if dist < minDist then
-                            minDist = dist
-                            nearestPh = phSpawn
+                -- First check if the named mob is up
+                local spawnID = mq.TLO.Spawn("npc " .. spawn.name).ID()
+                if spawnID ~= nil and spawnID > 0 then
+                    mq.cmdf('/nav id %d log=error', spawnID)
+                    printf('\ayMoving to \ag%s', spawn.name)
+                else
+                    -- Named mob not up, try to find a placeholder
+                    local phList = require("Hunterhood.ph_list")
+                    local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
+                    local nearestPh = nil
+                    local minDist = math.huge
+
+                    if placeholders and #placeholders > 0 then
+                        for _, phName in ipairs(placeholders) do
+                            local phID = mq.TLO.Spawn("npc " .. phName).ID()
+                            if phID ~= nil and phID > 0 then
+                                local phSpawn = mq.TLO.Spawn(phID)
+                                if phSpawn() and not phSpawn.Dead() then
+                                    local dist = phSpawn.Distance3D() or math.huge
+                                    if dist < minDist then
+                                        minDist = dist
+                                        nearestPh = phSpawn
+                                    end
+                                end
+                            end
                         end
+
+                        if nearestPh then
+                            mq.cmdf('/nav id %d log=error', nearestPh.ID())
+                            printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name,
+                                nearestPh.CleanName() or "unknown")
+                        else
+                            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+                        end
+                    else
+                        printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
                     end
                 end
             end
-            
-            if nearestPh then
-                mq.cmdf('/nav id %d log=error', nearestPh.ID())
-                printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name, nearestPh.CleanName() or "unknown")
-            else
-                printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
-            end
-        else
-            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
-        end
-    end
-end
             ImGui.PopID()
             ImGui.PopStyleColor()
 
@@ -1121,7 +1161,7 @@ end
                         end
                     end
                     if #placeholders > 0 then
-                        ImGui.Text("\nPossible placeholders:")
+                        ImGui.Text("\nPossible Placeholders:")
                         for _, ph in ipairs(placeholders) do
                             if type(ph) == "string" then
                                 ImGui.BulletText(ph)
