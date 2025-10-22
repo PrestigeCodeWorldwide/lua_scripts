@@ -3,7 +3,20 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToECannons Script v1.0 Started")
+BL.info("ToECannons Script v1.1 Started")
+
+local shouldExit = false
+local function StopCannons()
+    mq.cmd("/plugin dannet load")
+    mq.cmd("/bccmd connect")
+    BL.info("ToE Cannons script stopped by command")
+    return true
+end
+
+mq.bind('/tcstop', function()
+    shouldExit = true
+    StopCannons()
+end)
 
 ---@return boolean
 local function FacingTarget()
@@ -21,14 +34,11 @@ mq.cmdf("/grouproles set %s 2", mq.TLO.Me.CleanName())
 --mq.cmd("/rs Five pattern - 20 percent")
 --mq.cmd("/rs Six pattern - 10 percent")
 
-while true do
+while not shouldExit do
     -- Check if a military chest has spawned and end script
     local chest = mq.TLO.Spawn("a_military_chest")
     if chest() and chest.ID() > 0 then
-        BL.info("A military chest has spawned! Ending script.")
-        mq.cmd("/plugin dannet load")
-        mq.cmd("/bccmd connect")
-        mq.exit()
+        shouldExit = StopCannons()
     end
 
     --Cannoneer Name= a scalewrought cannoneer	
