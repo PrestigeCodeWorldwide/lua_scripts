@@ -10,9 +10,9 @@ local BL = require("biggerlib")
 
 ---@class ScriptState
 local State = {
-	MIN_DIST = 50,
+	MIN_DIST = 15,
 	MAX_DIST = 9999,
-	distance = 150,
+	distance = 60,
 	Paused = false,
 	chosenMode = nil,
 	cwtnModeList = {
