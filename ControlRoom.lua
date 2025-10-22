@@ -3,7 +3,8 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ControlRoom Script v1.41 Started")
+BL.info("ControlRoom Script v1.42 Started")
+BL.info("Type /crstop to stop the script and connect Dannet/BCS")
 
 mq.cmd("/bccmd quit")
 mq.cmd("/plugin dannet unload")
@@ -11,6 +12,20 @@ mq.cmd("/plugin dannet unload")
 --Strategy Info
 mq.cmd("/rs Callouts at: 70%, 63%, 56%, 49%, 35%, 28%, 21%, 7%")
 mq.cmd("/rs Two Adds at 90%, 80%, 71%, 62%, 51%, 44%, 35%, 26%, 17%, 8%. ")
+
+local shouldExit = false
+
+local function StopControlRoom()
+    mq.cmd("/plugin dannet load")
+    mq.cmd("/bccmd connect")
+    BL.info("Control Room script stopped by command")
+    return true
+end
+
+mq.bind('/crstop', function()
+    shouldExit = true
+    StopControlRoom()
+end)
 
 local function DropShield(line, arg1, arg2, arg3, arg4)
     BL.info("Dropping Boss Shield :Summoning Keikolin")
@@ -68,14 +83,12 @@ mq.event("SaySilverwing",
     "#*#The general activates one of the secondary control crystals, bringing the leviathan's magic and pain to bear on his enemies.#*#",
     StopSuffering)
 
-while true do
+
+while not shouldExit do
     -- Check if a gilded chest has spawned and end script
     local chest = mq.TLO.Spawn("a_gilded_chest")
     if chest() and chest.ID() > 0 then
-        BL.info("A gilded chest has spawned! Ending script.")
-        mq.cmd("/plugin dannet load")
-        mq.cmd("/bccmd connect")
-        mq.exit()
+        shouldExit = StopControlRoom()
     end
 
     -- Check if Darta exists before accessing distance and navigating
