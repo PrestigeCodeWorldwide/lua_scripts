@@ -4,6 +4,7 @@ local mq = require('mq')
 local BL = require('biggerlib')
 
 BL.info("ToECannons Script v1.1 Started")
+BL.info("Type /tcstop to stop the script and connect Dannet/BCS")
 
 local shouldExit = false
 local function StopCannons()
@@ -77,3 +78,4 @@ while not shouldExit do
     mq.doevents()
     mq.delay(500)
 end
+
