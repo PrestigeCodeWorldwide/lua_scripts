@@ -94,7 +94,7 @@ end
                     if spawnDistance < closestDistance then
                         closestDistance = spawnDistance
                         closestAdd = spawn
-                        helpers.printf("\arEngaging target: %s (%.1f away)", spawnName, spawnDistance)
+                        --helpers.printf("\arEngaging target: %s (%.1f away)", spawnName, spawnDistance)
                     end
                 end
             end
@@ -275,7 +275,7 @@ end
         if myInvis ~= nil then
             totalMembersChecked = totalMembersChecked + 1
             if myInvis == false then
-                printf("\\ayDEBUG: I am not invisible")
+                --printf("\\ayDEBUG: I am not invisible")
                 membersNeedingInvis = membersNeedingInvis + 1
             end
         else
@@ -294,7 +294,7 @@ end
                         if memberInvis ~= nil then
                             totalMembersChecked = totalMembersChecked + 1
                             if memberInvis == false then
-                                printf("\\ayDEBUG: %s is not invisible", spawn.CleanName() or "Unknown")
+                                --printf("\\ayDEBUG: %s is not invisible", spawn.CleanName() or "Unknown")
                                 membersNeedingInvis = membersNeedingInvis + 1
                             end
                         end
