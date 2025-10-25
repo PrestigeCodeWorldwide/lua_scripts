@@ -8,7 +8,7 @@ local imgui = require("ImGui")
 local ActorsLib = require("actors")
 
 
-BL.info("RaidPrep v1.79 Started")
+BL.info("RaidPrep v1.792 Started")
 
 local lastCleanupTime = 0
 local cleanupInterval = 5   -- how often to clean
@@ -26,14 +26,14 @@ local ChaseDistance = 15
 local AoECount = 2
 local BurnCount = 99
 local StickHow = -1
-local UseAoE = false
+local UseAoE = 0 -- 0=SET, 1=ON, 2=OFF
 local RaidMode = false
-local UseAlliance = false
-local UseMelee = false
-local BYOS = false
+local UseAlliance = 0
+local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
+local BYOS = 0
 local selectedBuffClass = "Cleric"
 local selectedBuffChar = nil
-local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
+--local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
 --local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
 local selectedRaidAssist = "Select RA"
 local AllButSelfBind = "/noparse /dge /docommand /${Me.Class.ShortName}"
@@ -216,8 +216,8 @@ local expansions = {
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "GuildClicky", "HunterHUD", "HunterHood", "Offtank", "OfftankX", "TankBandoSwap" },
-    ["The Outer Brood"] = { "SilenceTheCannons", "LHeartRaid", "HPRaid", "HPMez", "DockoftheBay", "BroodRaid", "ControlRoom", "ToERitual", "ToECannons" },
+    ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "OfftankX", "TankBandoSwap", "TCN" },
+    ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer", "HPMez", "HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
     ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway" },
     ["Terror of Luclin"] = { "FreeTheGoranga", "PH2" },
@@ -231,12 +231,17 @@ local scriptTooltips = {
     ["Bard"] = "Koda's Bard automation lua",
     ["BoxHUD"] = "Heads-up display for boxed characters",
     ["ButtonMaster"] = "Customizable button interface for common commands",
+    ["GoldenPickPL"] = "Uses the Golden Pick to hit each mob once during PL'ing",
     ["GuildClicky"] = "Manages guild hall zone port clickies",
     ["HunterHUD"] = "Tracks hunter achievements",
     ["HunterHood"] = "HunterHUD with added features",
+    ["LEM"] = "lua event manager",
+    ["Magellan"] = "/travelto zones with UI",
+    ["Moblist"] = "Tracks spawns in a zone with UI",
     ["Offtank"] = "Allows selecting specific mobs to offtank automatically",
     ["OfftankX"] = "Allows selecting a specific xtarget # to offtank automatically",
     ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
+    ["TCN"] = "Tradeskill Consturction Next",
 
     -- The Outer Brood scripts
     ["SilenceTheCannons"] =
@@ -246,9 +251,11 @@ local scriptTooltips = {
     ["HPMez"] = "Bard Mez Messengers during the High Priest raid",
     ["DockoftheBay"] = "Runs the 4 toons to safe spots in the East tunnel during the Dock of the Bay raid",
     ["BroodRaid"] = "Runs toons to the south tunnel until debuff is gone during the Brood Architect raid",
-    ["ControlRoom"] = "Will target and /say the correct phrases to the frog during the Control Room raid",
+    ["ControlRoom"] =
+    "(Run only on the toon you want doing the /say) Will target and /say the correct phrases to the frog during the Control Room raid",
     ["ToERitual"] = "Run only on the driver of the group. Does the 4 colored circles thing during the ToE raid",
     ["ToECannons"] = "Run only on the driver of the group. Kills the Cannoneers thing during the ToE raid",
+    ["HHbearer"] = "Handles bearer call out during the Hodstock raid",
 
     -- Add more tooltips for other scripts as needed
     ["AK"] = "Runs toons outside the fort to safe spots during the Ankexfen Keep raid",
@@ -327,7 +334,7 @@ local function drawluaTab()
 
             if imgui.Button("S") then
                 print("Running script on self: " .. script)
-                mq.cmdf("/lua run %s", script)
+                mq.cmdf("/squelch /lua run %s", script)
             end
             if imgui.IsItemHovered() then
                 imgui.BeginTooltip()
@@ -338,7 +345,7 @@ local function drawluaTab()
 
             if imgui.Button("A") then
                 print("Running script on all: " .. script)
-                mq.cmdf("/dga /lua run %s", script)
+                mq.cmdf("/squelch /dga /lua run %s", script)
             end
             if imgui.IsItemHovered() then
                 imgui.BeginTooltip()
@@ -349,7 +356,7 @@ local function drawluaTab()
 
             if imgui.Button("ABS") then
                 print("Running script on all but self: " .. script)
-                mq.cmdf("/dge /lua run %s", script)
+                mq.cmdf("/squelch /dge /lua run %s", script)
             end
             if imgui.IsItemHovered() then
                 imgui.BeginTooltip()
@@ -360,7 +367,7 @@ local function drawluaTab()
 
             if imgui.Button("Stop") then
                 print("Stopping script on all: " .. script)
-                mq.cmdf("/dga /lua stop %s", script)
+                mq.cmdf("/squelch /dga /lua stop %s", script)
             end
             if imgui.IsItemHovered() then
                 imgui.BeginTooltip()
@@ -393,54 +400,54 @@ local function drawClassTab()
 
     local classAbilities = {
         Bard = {
-            { label = "ADT", cmd = "/dga /brd ActiveDownTime on", offcmd = "/dga /brd ActiveDownTime off", tooltip = "ActiveDowntime" },
-            { label = "MST", cmd = "/dga /brd UseMezST on",       offcmd = "/dga /brd UseMezST off",       tooltip = "MezST" },
-            { label = "MAE", cmd = "/dga /brd UseMezAoE on",      offcmd = "/dga /brd UseMezAoE off",      tooltip = "MezAoE" }
+            { label = "ADT", cmd = "/squelch /dga /brd ActiveDownTime on", offcmd = "/squelch /dga /brd ActiveDownTime off", tooltip = "ActiveDowntime" },
+            { label = "MST", cmd = "/squelch /dga /brd UseMezST on",       offcmd = "/squelch /dga /brd UseMezST off",       tooltip = "MezST" },
+            { label = "MAE", cmd = "/squelch /dga /brd UseMezAoE on",      offcmd = "/squelch /dga /brd UseMezAoE off",      tooltip = "MezAoE" }
         },
         Beastlord = {
-            { label = "FEI", cmd = "/dga /bst UseFeign on",  offcmd = "/dga /bst UseFeign off",  tooltip = "Feign" },
-            { label = "SAL", cmd = "/dga /bst SlowAll on",   offcmd = "/dga /bst SlowAll off",   tooltip = "SlowAll" },
-            { label = "SAN", cmd = "/dga /bst SlowNamed on", offcmd = "/dga /bst SlowNamed off", tooltip = "SlowNamed" }
+            { label = "FEI", cmd = "/squelch /dga /bst UseFeign on",  offcmd = "/squelch /dga /bst UseFeign off",  tooltip = "Feign" },
+            { label = "SAL", cmd = "/squelch /dga /bst SlowAll on",   offcmd = "/squelch /dga /bst SlowAll off",   tooltip = "SlowAll" },
+            { label = "SAN", cmd = "/squelch /dga /bst SlowNamed on", offcmd = "/squelch /dga /bst SlowNamed off", tooltip = "SlowNamed" }
         },
         Berserker = {
-            { label = "DEV", cmd = "/dga /ber UseDevAssault on", offcmd = "/dga /ber UseDevAssault off", tooltip = "DevAssault" },
-            { label = "FRZ", cmd = "/dga /ber UseFrenzied on",   offcmd = "/dga /ber UseFrenzied off",   tooltip = "Frenzied" },
-            { label = "CRY", cmd = "/dga /ber UseWarCry on",     offcmd = "/dga /ber UseWarCry off",     tooltip = "WarCry" }
+            { label = "DEV", cmd = "/squelch /dga /ber UseDevAssault on", offcmd = "/squelch /dga /ber UseDevAssault off", tooltip = "DevAssault" },
+            { label = "FRZ", cmd = "/squelch /dga /ber UseFrenzied on",   offcmd = "/squelch /dga /ber UseFrenzied off",   tooltip = "Frenzied" },
+            { label = "CRY", cmd = "/squelch /dga /ber UseWarCry on",     offcmd = "/squelch /dga /ber UseWarCry off",     tooltip = "WarCry" }
         },
         Cleric = {
-            { label = "SPL", cmd = "/dga /clr MemSplash on",      offcmd = "/dga /clr MemSplash off",      tooltip = "MemSplash" },
-            { label = "ANT", cmd = "/dga /clr UseAnticipated on", offcmd = "/dga /clr UseAnticipated off", tooltip = "Anticipated" },
-            { label = "RET", cmd = "/dga /clr UseRetort on",      offcmd = "/dga /clr UseRetort off",      tooltip = "Retort" }
+            { label = "SPL", cmd = "/squelch /dga /clr MemSplash on",      offcmd = "/squelch /dga /clr MemSplash off",      tooltip = "MemSplash" },
+            { label = "ANT", cmd = "/squelch /dga /clr UseAnticipated on", offcmd = "/squelch /dga /clr UseAnticipated off", tooltip = "Anticipated" },
+            { label = "RET", cmd = "/squelch /dga /clr UseRetort on",      offcmd = "/squelch /dga /clr UseRetort off",      tooltip = "Retort" }
         },
         Monk = {
-            { label = "DEV", cmd = "/dga /mnk UseDevAssault on",  offcmd = "/dga /mnk UseDevAssault off",  tooltip = "DevAssault" },
-            { label = "DES", cmd = "/dga /mnk UseDestructive on", offcmd = "/dga /mnk UseDestructive off", tooltip = "Destructive" },
-            { label = "FEI", cmd = "/dga /mnk UseFeign on",       offcmd = "/dga /mnk UseFeign off",       tooltip = "Feign" }
+            { label = "DEV", cmd = "/squelch /dga /mnk UseDevAssault on",  offcmd = "/squelch /dga /mnk UseDevAssault off",  tooltip = "DevAssault" },
+            { label = "DES", cmd = "/squelch /dga /mnk UseDestructive on", offcmd = "/squelch /dga /mnk UseDestructive off", tooltip = "Destructive" },
+            { label = "FEI", cmd = "/squelch /dga /mnk UseFeign on",       offcmd = "/squelch /dga /mnk UseFeign off",       tooltip = "Feign" }
         },
         Paladin = {
-            { label = "SCO", cmd = "/dga /pal SplashCureOnly on", offcmd = "/dga /pal SplashCureOnly off", tooltip = "SplashCureOnly" },
-            { label = "AOV", cmd = "/dga /pal UseActofValor on",  offcmd = "/dga /pal UseActofValor off",  tooltip = "ActofValor" },
-            { label = "CAL", cmd = "/dga /pal UseDivineCall on",  offcmd = "/dga /pal UseDivineCall off",  tooltip = "DivineCall" }
+            { label = "SCO", cmd = "/squelch /dga /pal SplashCureOnly on", offcmd = "/squelch /dga /pal SplashCureOnly off", tooltip = "SplashCureOnly" },
+            { label = "AOV", cmd = "/squelch /dga /pal UseActofValor on",  offcmd = "/squelch /dga /pal UseActofValor off",  tooltip = "ActofValor" },
+            { label = "CAL", cmd = "/squelch /dga /pal UseDivineCall on",  offcmd = "/squelch /dga /pal UseDivineCall off",  tooltip = "DivineCall" }
         },
         Rogue = {
-            { label = "ACG", cmd = "/dga /rog AutoCorpseGrab on",   offcmd = "/dga /rog AutoCorpseGrab off",   tooltip = "AutoCorpseGrab" },
-            { label = "LIG", cmd = "/dga /rog UseLigamentSlice on", offcmd = "/dga /rog UseLigamentSlice off", tooltip = "LigamentSlice" },
-            { label = "PET", cmd = "/dga /rog UsePet on",           offcmd = "/dga /rog UsePet off",           tooltip = "UsePet" }
+            { label = "ACG", cmd = "/squelch /dga /rog AutoCorpseGrab on",   offcmd = "/squelch /dga /rog AutoCorpseGrab off",   tooltip = "AutoCorpseGrab" },
+            { label = "LIG", cmd = "/squelch /dga /rog UseLigamentSlice on", offcmd = "/squelch /dga /rog UseLigamentSlice off", tooltip = "LigamentSlice" },
+            { label = "PET", cmd = "/squelch /dga /rog UsePet on",           offcmd = "/squelch /dga /rog UsePet off",           tooltip = "UsePet" }
         },
         Shadowknight = {
-            { label = "INS", cmd = "/dga /shd UseInsidious on", offcmd = "/dga /shd UseInsidious off", tooltip = "Insidious" },
-            { label = "PET", cmd = "/dga /shd UsePet on",       offcmd = "/dga /shd UsePet off",       tooltip = "Pet" },
-            { label = "FEI", cmd = "/dga /shd UseFeign on",     offcmd = "/dga /shd UseFeign off",     tooltip = "Feign" }
+            { label = "INS", cmd = "/squelch /dga /shd UseInsidious on", offcmd = "/squelch /dga /shd UseInsidious off", tooltip = "Insidious" },
+            { label = "PET", cmd = "/squelch /dga /shd UsePet on",       offcmd = "/squelch /dga /shd UsePet off",       tooltip = "Pet" },
+            { label = "FEI", cmd = "/squelch /dga /shd UseFeign on",     offcmd = "/squelch /dga /shd UseFeign off",     tooltip = "Feign" }
         },
         Shaman = {
-            { label = "CUR", cmd = "/dga /shm MemCureAll on", offcmd = "/dga /shm MemCureAll off", tooltip = "MemCureAll" },
-            { label = "DOT", cmd = "/dga /shm UseDot on",     offcmd = "/dga /shm UseDot off",     tooltip = "Dot" },
-            { label = "PET", cmd = "/dga /shm UsePet on",     offcmd = "/dga /shm UsePet off",     tooltip = "Pet" }
+            { label = "CUR", cmd = "/squelch /dga /shm MemCureAll on", offcmd = "/squelch /dga /shm MemCureAll off", tooltip = "MemCureAll" },
+            { label = "DOT", cmd = "/squelch /dga /shm UseDot on",     offcmd = "/squelch /dga /shm UseDot off",     tooltip = "Dot" },
+            { label = "PET", cmd = "/squelch /dga /shm UsePet on",     offcmd = "/squelch /dga /shm UsePet off",     tooltip = "Pet" }
         },
         Warrior = {
-            { label = "T2D", cmd = "/dga /war T2DefenseOnly on", offcmd = "/dga /war T2DefenseOnly off", tooltip = "T2DefenseOnly" },
-            { label = "FRT", cmd = "/dga /war UseFortitude on",  offcmd = "/dga /war UseFortitude off",  tooltip = "Fortitude" },
-            { label = "PHM", cmd = "/dga /war UsePhantom on",    offcmd = "/dga /war UsePhantom off",    tooltip = "Phantom" }
+            { label = "T2D", cmd = "/squelch /dga /war T2DefenseOnly on", offcmd = "/squelch /dga /war T2DefenseOnly off", tooltip = "T2DefenseOnly" },
+            { label = "FRT", cmd = "/squelch /dga /war UseFortitude on",  offcmd = "/squelch /dga /war UseFortitude off",  tooltip = "Fortitude" },
+            { label = "PHM", cmd = "/squelch /dga /war UsePhantom on",    offcmd = "/squelch /dga /war UsePhantom off",    tooltip = "Phantom" }
         },
     }
 
@@ -521,11 +528,11 @@ local function drawCWTNTab()
         imgui.PushID("top_" .. btn.label)
         if imgui.Button(btn.label, 38, 25) then
             if btn.label == "BOFF" then
-                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
-                mq.cmdf("%s %s", AllIncludingSelfBind, "BurnAllNamed OFF")
+                mq.cmdf("/squelch %s %s", AllIncludingSelfBind, btn.command)
+                mq.cmdf("/squelch %s %s", AllIncludingSelfBind, "BurnAllNamed OFF")
                 print("Issued BurnAlways OFF and BurnAllNamed OFF")
             else
-                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
+                mq.cmdf("/squelch %s %s", AllIncludingSelfBind, btn.command)
                 print("Issued " .. btn.command)
             end
         end
@@ -547,13 +554,12 @@ local function drawCWTNTab()
         --mq.cmdf("%s %s", getCWTNBind(), "UseDevAssault on")
         --mq.cmdf("%s %s", getCWTNBind(), "UseDestructive on")
         --mq.cmdf("%s %s", getCWTNBind(), "UseInsidious on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 2")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
-        mq.cmd(
-        '/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861')
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseAoE on")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} AoECount 2")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
+        mq.cmd("/squelch /noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -568,13 +574,12 @@ local function drawCWTNTab()
         --mq.cmdf("%s %s", getCWTNBind(), "UseDevAssault off")
         --mq.cmdf("%s %s", getCWTNBind(), "UseDestructive off")
         --mq.cmdf("%s %s", getCWTNBind(), "UseInsidious off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 99")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious off")
-        mq.cmd(
-        '/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861')
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseAoE off")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} AoECount 99")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault off")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDestructive off")
+        mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseInsidious off")
+        mq.cmd("/squelch /noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -617,7 +622,7 @@ local function drawCWTNTab()
     if newState ~= applytoallChecked then
         applytoallChecked = newState
         print(applytoallChecked and "Including current character in CWTN commands" or
-        "Excluding current character from CWTN commands")
+            "Excluding current character from CWTN commands")
     end
 
     if imgui.IsItemHovered() then
@@ -647,27 +652,27 @@ local function drawCWTNTab()
     end
 
     autoAssistAt = updateSetting("AutoAssistAt", autoAssistAt, function(val)
-        mq.cmdf("%s autoAssistAt %d", getCWTNBind(), val)
+        mq.cmdf("/squelch %s autoAssistAt %d", getCWTNBind(), val)
         print(string.format("Set AutoAssistAt to %d", val))
     end)
 
     CampRadius = updateSetting("CampRadius", CampRadius, function(val)
-        mq.cmdf("%s CampRadius %d", getCWTNBind(), val)
+        mq.cmdf("/squelch %s CampRadius %d", getCWTNBind(), val)
         print(string.format("Set CampRadius to %d", val))
     end)
 
     ChaseDistance = updateSetting("ChaseDistance", ChaseDistance, function(val)
-        mq.cmdf("%s ChaseDistance %d", getCWTNBind(), val)
+        mq.cmdf("/squelch %s ChaseDistance %d", getCWTNBind(), val)
         print(string.format("Set ChaseDistance to %d", val))
     end)
 
     AoECount = updateSetting("AoECount", AoECount, function(val)
-        mq.cmdf("%s AoECount %d", getCWTNBind(), val)
+        mq.cmdf("/squelch %s AoECount %d", getCWTNBind(), val)
         print(string.format("Set AoECount to %d", val))
     end)
 
     BurnCount = updateSetting("BurnCount", BurnCount, function(val)
-        mq.cmdf("%s BurnCount %d", getCWTNBind(), val)
+        mq.cmdf("/squelch %s BurnCount %d", getCWTNBind(), val)
         print(string.format("Set BurnCount to %d", val))
     end)
 
@@ -692,7 +697,7 @@ local function drawCWTNTab()
             if imgui.Selectable(label, isSelected) then
                 if not isSelected then
                     StickHow = index
-                    mq.cmdf("%s StickHow %d", getCWTNBind(), StickHow)
+                    mq.cmdf("/squelch %s StickHow %d", getCWTNBind(), StickHow)
                     print("Set StickHow to " .. label)
                 end
             end
@@ -712,7 +717,7 @@ local function drawCWTNTab()
     RaidMode = imgui.Checkbox("RaidMode", RaidMode)
     if RaidMode ~= prevRaidMode then
         local toggleCmd = RaidMode and "on" or "off"
-        mq.cmdf("%s RaidMode %s", getCWTNBind(), toggleCmd)
+        mq.cmdf("/squelch %s RaidMode %s", getCWTNBind(), toggleCmd)
         print(string.format("Set RaidMode to %s", toggleCmd))
     end
 
@@ -741,7 +746,7 @@ local function drawCWTNTab()
             local isSelected = (assist == selectedRaidAssist)
             if not isSelected and imgui.Selectable(assist, false) then
                 selectedRaidAssist = assist
-                mq.cmdf("%s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
+                mq.cmdf("/squelch %s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
                 print("Set RaidAssist to " .. selectedRaidAssist)
             end
             if isSelected then
@@ -751,47 +756,182 @@ local function drawCWTNTab()
         imgui.EndCombo()
     end
     imgui.PopItemWidth()
+
+    --[[  -- Comment start
+    imgui.SameLine()
+    local byosText = "BYOS: "
+    local byosStateText = { "SET", "ON", "OFF" }
+    local byosButtonState = BYOS + 1
+
+    -- Set text color based on state
+    local stateColor
+    if BYOS == 0 then
+        stateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif BYOS == 1 then
+        stateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        stateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "BYOS:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(byosText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)        -- No spacing between text elements
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(stateColor))
+    imgui.PushID("byos_button") -- Add this line
+    if imgui.Button(byosStateText[byosButtonState]) then
+        BYOS = (BYOS + 1) % 3
+        if BYOS == 1 then
+            mq.cmdf("/squelch %s byos on", getCWTNBind())
+            print("Set BYOS to ON")
+        elseif BYOS == 2 then
+            mq.cmdf("/squelch %s byos off", getCWTNBind())
+            print("Set BYOS to OFF")
+        end
+    end
+    imgui.PopID() -- Add this line
+    imgui.PopStyleColor()
+--]] -- Comment end
+
     -- UseAoE toggle
-    local prevAoE = UseAoE
-    UseAoE = imgui.Checkbox("UseAoE", UseAoE)
-    if UseAoE ~= prevAoE then
-        local toggleCmd = UseAoE and "on" or "off"
-        mq.cmdf("%s useaoe %s", getCWTNBind(), toggleCmd)
-        print(string.format("Set UseAoE to %s", toggleCmd))
+    local aoeText = "AoE: "
+    local aoeStateText = { "SET", "ON", "OFF" }
+    local aoeButtonState = UseAoE + 1
+
+    -- Set text color based on state
+    local aoeStateColor
+    if UseAoE == 0 then
+        aoeStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseAoE == 1 then
+        aoeStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        aoeStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
     end
 
-    imgui.SameLine()
-    local prevAlliance = UseAlliance
-    UseAlliance = imgui.Checkbox("Alliance", UseAlliance)
-    imgui.SameLine()
-    if UseAlliance ~= prevAlliance then
-        local toggleCmd = UseAlliance and "on" or "off"
-        mq.cmdf("%s usealliance %s", getCWTNBind(), toggleCmd)
-        mq.cmdf("%s forcealliance %s", getCWTNBind(), toggleCmd)
-        print(string.format("Set UseAlliance to %s", toggleCmd))
+    -- Draw "AoE:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(aoeText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(aoeStateColor))
+    imgui.PushID("aoe_button")
+    if imgui.Button(aoeStateText[aoeButtonState]) then
+        UseAoE = (UseAoE + 1) % 3
+        if UseAoE == 1 then
+            mq.cmdf("/squelch %s useaoe on", getCWTNBind())
+            print("Set AoE to ON")
+        elseif UseAoE == 2 then
+            mq.cmdf("/squelch %s useaoe off", getCWTNBind())
+            print("Set AoE to OFF")
+        end
     end
+    imgui.PopID()
+    imgui.PopStyleColor()
 
     imgui.SameLine()
-    local prevMelee = UseMelee
-    UseMelee = imgui.Checkbox("Melee", UseMelee)
-    imgui.SameLine()
-    if UseMelee ~= prevMelee then
-        local toggleCmd = UseMelee and "on" or "off"
-        mq.cmdf("%s usemelee %s", getCWTNBind(), toggleCmd)
-        print(string.format("Set UseMelee to %s", toggleCmd))
+    local allianceText = "Alliance: "
+    local allianceStateText = { "SET", "ON", "OFF" }
+    local allianceButtonState = UseAlliance + 1
+
+    -- Set text color based on state
+    local allianceStateColor
+    if UseAlliance == 0 then
+        allianceStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseAlliance == 1 then
+        allianceStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        allianceStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
     end
 
+    -- Draw "Alliance:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(allianceText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(allianceStateColor))
+    imgui.PushID("alliance_button")
+    if imgui.Button(allianceStateText[allianceButtonState]) then
+        UseAlliance = (UseAlliance + 1) % 3
+        if UseAlliance == 1 then
+            mq.cmdf("/squelch %s usealliance on", getCWTNBind())
+            mq.cmdf("/squelch %s forcealliance on", getCWTNBind())
+            print("Set Alliance to ON")
+        elseif UseAlliance == 2 then
+            mq.cmdf("/squelch %s usealliance off", getCWTNBind())
+            mq.cmdf("/squelch %s forcealliance off", getCWTNBind())
+            print("Set Alliance to OFF")
+        end
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
     imgui.SameLine()
-    local prevBYOS = BYOS
-    BYOS = imgui.Checkbox("BYOS", BYOS)
-    imgui.SameLine()
-    if BYOS ~= prevBYOS then
-        local toggleCmd = BYOS and "on" or "off"
-        mq.cmdf("%s byos %s", getCWTNBind(), toggleCmd)
-        print(string.format("Set BYOS to %s", toggleCmd))
+    local meleeText = "Melee: "
+    local meleeStateText = { "SET", "ALL", "PRIESTS", "CASTERS", "OFF" }
+    local meleeButtonState = UseMelee + 1
+
+    -- Set text color based on state
+    local meleeStateColor
+    if UseMelee == 0 then
+        meleeStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseMelee == 4 then
+        meleeStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    else
+        meleeStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for other states
     end
 
-    imgui.NewLine()
+    -- Draw "Melee:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(meleeText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)         -- No spacing between text elements
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(meleeStateColor))
+    imgui.PushID("melee_button") -- Add this line
+    if imgui.Button(meleeStateText[meleeButtonState]) then
+        UseMelee = (UseMelee + 1) % 5
+        if UseMelee == 1 then -- All ON
+            mq.cmdf("/squelch %s usemelee on", getCWTNBind())
+            print("Set Melee to ON for all")
+        elseif UseMelee == 2 then -- Priests Only
+            -- Turn on for priests
+            mq.cmdf("/squelch %s /clr usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /shm usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /dru usemelee on", getCWTNBind())
+            -- Turn off for casters
+            mq.cmdf("/squelch %s /enc usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /nec usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /wiz usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /mag usemelee off", getCWTNBind())
+            print("Set Melee ON for priests only")
+        elseif UseMelee == 3 then -- Casters Only
+            -- Turn on for casters
+            mq.cmdf("/squelch %s /enc usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /nec usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /wiz usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /mag usemelee on", getCWTNBind())
+            -- Turn off for priests
+            mq.cmdf("/squelch %s /clr usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /shm usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /dru usemelee off", getCWTNBind())
+            print("Set Melee ON for casters only")
+        elseif UseMelee == 4 then -- All OFF
+            mq.cmdf("/squelch %s usemelee off", getCWTNBind())
+            print("Set Melee to OFF for all")
+        end
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
+    --imgui.NewLine()
     imgui.Columns(1)
     if imgui.Button("Save") then
         saveSettings()
@@ -987,12 +1127,12 @@ local function drawGUI()
             -- Add help button after the last tab
             imgui.SameLine()
             imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetContentRegionAvail() - 20) -- Position at far right
-            imgui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 0.0, 1.0)             -- Yellow text
+            imgui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 0.0, 1.0)                         -- Yellow text
             imgui.Text("?")
             imgui.PopStyleColor()
 
             if imgui.IsItemHovered() then
-                imgui.PushStyleVar(ImGuiStyleVar.WindowPadding, 1, 1)  -- Add padding
+                imgui.PushStyleVar(ImGuiStyleVar.WindowPadding, 1, 1) -- Add padding
                 imgui.BeginTooltip()
                 imgui.Text("--- Raid Prep Help ---")
                 imgui.Separator()
