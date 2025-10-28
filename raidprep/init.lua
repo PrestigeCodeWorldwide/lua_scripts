@@ -30,7 +30,7 @@ local UseAoE = 0 -- 0=SET, 1=ON, 2=OFF
 local RaidMode = false
 local UseAlliance = 0
 local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
-local BYOS = 0
+--local BYOS = 0
 local selectedBuffClass = "Cleric"
 local selectedBuffChar = nil
 --local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
@@ -106,7 +106,7 @@ local function applySettings()
     mq.cmdf("%s RaidMode %s", getCWTNBind(), RaidMode and "on" or "off")
     mq.cmdf("%s usealliance %s", getCWTNBind(), UseAlliance and "on" or "off")
     mq.cmdf("%s usemelee %s", getCWTNBind(), UseMelee and "on" or "off")
-    mq.cmdf("%s byos %s", getCWTNBind(), BYOS and "on" or "off")
+    --mq.cmdf("%s byos %s", getCWTNBind(), BYOS and "on" or "off")
 
     if selectedRaidAssist and selectedRaidAssist ~= "Select RA" then
         mq.cmdf("%s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
@@ -138,7 +138,7 @@ local function loadSettings()
             RaidMode = settings.RaidMode or RaidMode
             UseAlliance = settings.UseAlliance or UseAlliance
             UseMelee = settings.UseMelee or UseMelee
-            BYOS = settings.BYOS or BYOS
+            --BYOS = settings.BYOS or BYOS
             selectedRaidAssist = settings.selectedRaidAssist or selectedRaidAssist
             applySettings()
             forceRefresh = 2 -- <-- trigger the UI to update
@@ -171,7 +171,7 @@ local function saveSettings()
         RaidMode = RaidMode,
         UseAlliance = UseAlliance,
         UseMelee = UseMelee,
-        BYOS = BYOS,
+        --BYOS = BYOS,
         selectedRaidAssist = selectedRaidAssist
     }
 
@@ -559,7 +559,8 @@ local function drawCWTNTab()
         mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
         mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
         mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
-        mq.cmd("/squelch /noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
+        mq.cmd(
+            "/squelch /noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -579,7 +580,8 @@ local function drawCWTNTab()
         mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault off")
         mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseDestructive off")
         mq.cmd("/squelch /noparse /dga /docommand /${Me.Class.ShortName} UseInsidious off")
-        mq.cmd("/squelch /noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861")
+        mq.cmd(
+            "/squelch /noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -651,30 +653,55 @@ local function drawCWTNTab()
         return currentValue
     end
 
-    autoAssistAt = updateSetting("AutoAssistAt", autoAssistAt, function(val)
+    -- AutoAssistAt
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
+    autoAssistAt = updateSetting("##AutoAssistAt", autoAssistAt, function(val)
         mq.cmdf("/squelch %s autoAssistAt %d", getCWTNBind(), val)
         print(string.format("Set AutoAssistAt to %d", val))
     end)
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.Text("AutoAssistAt")
 
-    CampRadius = updateSetting("CampRadius", CampRadius, function(val)
+    -- CampRadius
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
+    CampRadius = updateSetting("##CampRadius", CampRadius, function(val)
         mq.cmdf("/squelch %s CampRadius %d", getCWTNBind(), val)
         print(string.format("Set CampRadius to %d", val))
     end)
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.Text("CampRadius")
 
-    ChaseDistance = updateSetting("ChaseDistance", ChaseDistance, function(val)
+    -- ChaseDistance
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
+    ChaseDistance = updateSetting("##ChaseDistance", ChaseDistance, function(val)
         mq.cmdf("/squelch %s ChaseDistance %d", getCWTNBind(), val)
         print(string.format("Set ChaseDistance to %d", val))
     end)
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.Text("ChaseDistance")
 
-    AoECount = updateSetting("AoECount", AoECount, function(val)
+    -- AoECount
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
+    AoECount = updateSetting("##AoECount", AoECount, function(val)
         mq.cmdf("/squelch %s AoECount %d", getCWTNBind(), val)
         print(string.format("Set AoECount to %d", val))
     end)
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.Text("AoECount")
 
-    BurnCount = updateSetting("BurnCount", BurnCount, function(val)
+    -- BurnCount
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
+    BurnCount = updateSetting("##BurnCount", BurnCount, function(val)
         mq.cmdf("/squelch %s BurnCount %d", getCWTNBind(), val)
         print(string.format("Set BurnCount to %d", val))
     end)
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.Text("BurnCount")
 
     -- StickHow combo box with label to the right
     local stickHowOptions = {
@@ -691,9 +718,22 @@ local function drawCWTNTab()
     }
 
     imgui.PushItemWidth(110)
-    if imgui.BeginCombo("##StickHow", stickHowOptions[StickHow] or "Select...") then
+    local preview = stickHowOptions[StickHow] or "Select..."
+    -- Set text color for the preview
+    if preview == "Select..." then
+        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "Select..."
+    else
+        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected option
+    end
+
+    if imgui.BeginCombo("##StickHow", preview) then
+        imgui.PopStyleColor() -- Pop the color for the dropdown items
         for index, label in pairs(stickHowOptions) do
             local isSelected = (StickHow == index)
+            -- Set text color for selected item in dropdown
+            if isSelected then
+                imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected item
+            end
             if imgui.Selectable(label, isSelected) then
                 if not isSelected then
                     StickHow = index
@@ -703,14 +743,20 @@ local function drawCWTNTab()
             end
             if isSelected then
                 imgui.SetItemDefaultFocus()
+                imgui.PopStyleColor() -- Pop the green color
             end
         end
         imgui.EndCombo()
+    else
+        imgui.PopStyleColor() -- Pop the color if combo is not open
     end
     imgui.PopItemWidth()
 
     imgui.SameLine()
+    -- Keep the label gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
     imgui.Text("StickHow")
+    imgui.PopStyleColor()
 
     -- RaidMode toggle
     local prevRaidMode = RaidMode
@@ -741,20 +787,45 @@ local function drawCWTNTab()
 
     -- Combo UI
     imgui.PushItemWidth(100) -- limit width
-    if imgui.BeginCombo("##RaidAssist", selectedRaidAssist or "Select...") then
+
+    -- Set text color for the preview
+    local preview = selectedRaidAssist or "Select RA"
+    if preview == "Select RA" then
+        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "Select RA"
+    else
+        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected RA
+    end
+
+    if imgui.BeginCombo("##RaidAssist", preview) then
+        imgui.PopStyleColor() -- Pop the color for the dropdown items
+
         for _, assist in ipairs(assistOptions) do
             local isSelected = (assist == selectedRaidAssist)
-            if not isSelected and imgui.Selectable(assist, false) then
-                selectedRaidAssist = assist
-                mq.cmdf("/squelch %s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
-                print("Set RaidAssist to " .. selectedRaidAssist)
+            -- Set text color for selected item in dropdown
+            if isSelected then
+                imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected item
             end
+
+            if imgui.Selectable(assist, isSelected) then
+                -- Only send command if the selection is actually changing
+                if not isSelected then
+                    selectedRaidAssist = assist
+                    mq.cmdf("/squelch %s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
+                    print("Set RaidAssist to " .. selectedRaidAssist)
+                end
+            end
+
             if isSelected then
                 imgui.SetItemDefaultFocus()
+                imgui.PopStyleColor() -- Pop the green color
             end
         end
+
         imgui.EndCombo()
+    else
+        imgui.PopStyleColor() -- Pop the green color if combo is not open
     end
+
     imgui.PopItemWidth()
 
     --[[  -- Comment start
@@ -898,30 +969,32 @@ local function drawCWTNTab()
     imgui.PushID("melee_button") -- Add this line
     if imgui.Button(meleeStateText[meleeButtonState]) then
         UseMelee = (UseMelee + 1) % 5
+        -- For UseMelee commands, we'll use /dga or /dge directly
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
         if UseMelee == 1 then -- All ON
             mq.cmdf("/squelch %s usemelee on", getCWTNBind())
             print("Set Melee to ON for all")
         elseif UseMelee == 2 then -- Priests Only
             -- Turn on for priests
-            mq.cmdf("/squelch %s /clr usemelee on", getCWTNBind())
-            mq.cmdf("/squelch %s /shm usemelee on", getCWTNBind())
-            mq.cmdf("/squelch %s /dru usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /docommand /clr usemelee on", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /shm usemelee on", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /dru usemelee on", bindPrefix)
             -- Turn off for casters
-            mq.cmdf("/squelch %s /enc usemelee off", getCWTNBind())
-            mq.cmdf("/squelch %s /nec usemelee off", getCWTNBind())
-            mq.cmdf("/squelch %s /wiz usemelee off", getCWTNBind())
-            mq.cmdf("/squelch %s /mag usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /docommand /enc usemelee off", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /nec usemelee off", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /wiz usemelee off", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /mag usemelee off", bindPrefix)
             print("Set Melee ON for priests only")
         elseif UseMelee == 3 then -- Casters Only
             -- Turn on for casters
-            mq.cmdf("/squelch %s /enc usemelee on", getCWTNBind())
-            mq.cmdf("/squelch %s /nec usemelee on", getCWTNBind())
-            mq.cmdf("/squelch %s /wiz usemelee on", getCWTNBind())
-            mq.cmdf("/squelch %s /mag usemelee on", getCWTNBind())
+            mq.cmdf("/squelch %s /docommand /enc usemelee on", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /nec usemelee on", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /wiz usemelee on", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /mag usemelee on", bindPrefix)
             -- Turn off for priests
-            mq.cmdf("/squelch %s /clr usemelee off", getCWTNBind())
-            mq.cmdf("/squelch %s /shm usemelee off", getCWTNBind())
-            mq.cmdf("/squelch %s /dru usemelee off", getCWTNBind())
+            mq.cmdf("/squelch %s /docommand /clr usemelee off", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /shm usemelee off", bindPrefix)
+            mq.cmdf("/squelch %s /docommand /dru usemelee off", bindPrefix)
             print("Set Melee ON for casters only")
         elseif UseMelee == 4 then -- All OFF
             mq.cmdf("/squelch %s usemelee off", getCWTNBind())
