@@ -68,7 +68,8 @@ mq.event("BearerEvent", bearerEmote, handleBearerEvent)
 -- Main loop
 while true do
     mq.doevents()
-
+    BL.checkChestSpawn("an elaborate chest")
+    
     -- If bearer is spawned, handle mode switching and distance checking
     if bearerSpawned then
         local isSpawned, distance, bearer = getBearerInfo()
