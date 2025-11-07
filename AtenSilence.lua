@@ -84,6 +84,7 @@ mq.event("AtenSilenceRun", runawayemote, event_handler)
 
 -- Main loop
 while true do
+    BL.checkChestSpawn("a_shadowbound_chest")
     mq.doevents()
     mq.delay(100)
 end

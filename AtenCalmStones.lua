@@ -46,6 +46,7 @@ local function SingSMez()
 end
 
 while true do
+  BL.checkChestSpawn("a_shadowbound_chest")
   for i=1,4 do
     local npcSpawn = mq.TLO.NearestSpawn(i..',npc smirk')
     if npcSpawn.ID() and npcSpawn.Animation() ~= 110 then  -- Animation 110 is mezzed
