@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("HHbearer v1.03 Started")
+BL.info("HHbearer v1.04 Started")
 
 local myname = mq.TLO.Me.CleanName()
 local myclassname = mq.TLO.Me.Class.ShortName()
@@ -68,7 +68,7 @@ mq.event("BearerEvent", bearerEmote, handleBearerEvent)
 -- Main loop
 while true do
     mq.doevents()
-    BL.checkChestSpawn("an elaborate chest")
+    BL.checkChestSpawn("An elaborate chest")
     
     -- If bearer is spawned, handle mode switching and distance checking
     if bearerSpawned then
