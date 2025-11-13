@@ -92,15 +92,12 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     if #checkedMobs > 0 then
                         for _, mob in ipairs(checkedMobs) do
                             -- Check named mob first
-                            local spawnID = mq.TLO.Spawn("npc " .. mob.name).ID()
-                            if spawnID ~= nil and spawnID > 0 then
-                                local spawn = mq.TLO.Spawn(spawnID)
-                                if spawn() and not spawn.Dead() then
-                                    local distance = spawn.Distance3D() or math.huge
-                                    if distance < closestDistance then
-                                        closestDistance = distance
-                                        closestSpawn = spawn
-                                    end
+                            local spawn = mq.TLO.Spawn(mob.name) -- Remove the 'npc =' part
+                            if spawn and spawn.ID() and spawn.ID() > 0 and not spawn.Dead() and spawn.CleanName() == mob.name then
+                                local distance = spawn.Distance3D() or math.huge
+                                if distance < closestDistance then
+                                    closestDistance = distance
+                                    closestSpawn = spawn
                                 end
                             end
 
@@ -108,21 +105,17 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
                             if placeholders and type(placeholders) == "table" then
                                 for _, phName in ipairs(placeholders) do
-                                    local phID = mq.TLO.Spawn("npc " .. phName).ID()
-                                    if phID ~= nil and phID > 0 then
-                                        local phSpawn = mq.TLO.Spawn(phID)
-                                        if phSpawn() and not phSpawn.Dead() then
-                                            local distance = phSpawn.Distance3D() or math.huge
-                                            if distance < closestDistance then
-                                                closestDistance = distance
-                                                closestSpawn = phSpawn
-                                            end
+                                    local phSpawn = mq.TLO.Spawn(phName) -- Remove the 'npc =' part
+                                    if phSpawn and phSpawn.ID() and phSpawn.ID() > 0 and not phSpawn.Dead() and phSpawn.CleanName() == phName then
+                                        local distance = phSpawn.Distance3D() or math.huge
+                                        if distance < closestDistance then
+                                            closestDistance = distance
+                                            closestSpawn = phSpawn
                                         end
                                     end
                                 end
                             end
                         end
-
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
                             -- Add a small delay to ensure the mob is fully dead and removed from xtarget
                             for i = 1, 10 do -- 10 ticks delay

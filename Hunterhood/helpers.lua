@@ -41,15 +41,18 @@ end
 
     -- Find spawn by name
     function helpers.findSpawn(spawn, nameMap)
-        if not spawn then return 0 end
-        if nameMap and nameMap[spawn] then spawn = nameMap[spawn] end
-        local mySpawn = mq.TLO and mq.TLO.Spawn and mq.TLO.Spawn(string.format('npc "%s"', spawn))
-        if mySpawn and mySpawn.ID() and mySpawn.ID() > 0 then
-            return mySpawn.ID()
-        end
-        return 0
+    if not spawn then return 0 end
+    if nameMap and nameMap[spawn] then 
+        spawn = nameMap[spawn] 
     end
-
+    -- Use exact matching with = prefix
+    local searchStr = string.format('npc ="%s"', spawn)
+    local mySpawn = mq.TLO and mq.TLO.Spawn and mq.TLO.Spawn(searchStr)
+    if mySpawn and mySpawn.ID() and mySpawn.ID() > 0 then
+        return mySpawn.ID()
+    end
+    return 0
+end
     -- Normalize mob names for comparison
     function helpers.normalizeName(name)
         if not name then return "" end

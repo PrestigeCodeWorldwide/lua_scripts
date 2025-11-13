@@ -115,7 +115,7 @@ local ph_list = {
         ["Sergeant Kharsk"] = { "a Nokk adjutant" },
         ["Sergeant Kveldulf"] = { "a Nokk sentinel" },
         ["Tarantis"] = { "a crevice spider" },
-        ["Tutt"] = { "a bog turtler" }
+        ["Tutt"] = { "a bog turtle" }
     },
 
     [861] = { --Pal'Lomen
