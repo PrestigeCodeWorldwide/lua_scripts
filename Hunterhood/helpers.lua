@@ -40,19 +40,35 @@ end
     end
 
     -- Find spawn by name
-    function helpers.findSpawn(spawn, nameMap)
+    -- Find spawn by name with case-insensitive matching
+function helpers.findSpawn(spawn, nameMap)
     if not spawn then return 0 end
+    
+    -- Only clear target if we're not in the main thread
+    if not ImGui then
+        mq.cmd("/target clear")
+        mq.delay(100) -- Small delay to allow spawn list to update
+    end
+
+    local originalName = spawn
     if nameMap and nameMap[spawn] then 
-        spawn = nameMap[spawn] 
+        spawn = nameMap[spawn]
     end
-    -- Use exact matching with = prefix
-    local searchStr = string.format('npc ="%s"', spawn)
-    local mySpawn = mq.TLO and mq.TLO.Spawn and mq.TLO.Spawn(searchStr)
-    if mySpawn and mySpawn.ID() and mySpawn.ID() > 0 then
-        return mySpawn.ID()
+
+    -- First try case-insensitive match using SpawnCount
+    local searchStr = string.format('npc %s', spawn)
+    local spawnCount = mq.TLO.SpawnCount(searchStr)() or 0
+    if spawnCount > 0 then
+        -- If we found matches, get the first one
+        local mySpawn = mq.TLO.NearestSpawn(searchStr)
+        if mySpawn and mySpawn.ID() and mySpawn.ID() > 0 then
+            return mySpawn.ID()
+        end
     end
+
     return 0
 end
+
     -- Normalize mob names for comparison
     function helpers.normalizeName(name)
         if not name then return "" end
@@ -76,6 +92,12 @@ end
             if target() and target.ID() > 0 then
                 local spawn = mq.TLO.Spawn(target.ID())
                 if spawn() and not spawn.Dead() then
+                    -- Skip PC targets
+                    if spawn.Type() == "PC" then
+                        --helpers.printf("\aySkipping PC target: %s", spawn.CleanName())
+                        goto continue
+                    end
+                    
                     local spawnName = spawn.CleanName()
                     local spawnDistance = spawn.Distance3D() or math.huge
                     

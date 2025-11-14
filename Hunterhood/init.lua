@@ -92,12 +92,15 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     if #checkedMobs > 0 then
                         for _, mob in ipairs(checkedMobs) do
                             -- Check named mob first
-                            local spawn = mq.TLO.Spawn(mob.name) -- Remove the 'npc =' part
-                            if spawn and spawn.ID() and spawn.ID() > 0 and not spawn.Dead() and spawn.CleanName() == mob.name then
-                                local distance = spawn.Distance3D() or math.huge
-                                if distance < closestDistance then
-                                    closestDistance = distance
-                                    closestSpawn = spawn
+                            local spawnID = mq.TLO.Spawn("npc " .. mob.name).ID()
+                            if spawnID ~= nil and spawnID > 0 then
+                                local spawn = mq.TLO.Spawn(spawnID)
+                                if spawn() and not spawn.Dead() then
+                                    local distance = spawn.Distance3D() or math.huge
+                                    if distance < closestDistance then
+                                        closestDistance = distance
+                                        closestSpawn = spawn
+                                    end
                                 end
                             end
 
@@ -105,17 +108,21 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
                             if placeholders and type(placeholders) == "table" then
                                 for _, phName in ipairs(placeholders) do
-                                    local phSpawn = mq.TLO.Spawn(phName) -- Remove the 'npc =' part
-                                    if phSpawn and phSpawn.ID() and phSpawn.ID() > 0 and not phSpawn.Dead() and phSpawn.CleanName() == phName then
-                                        local distance = phSpawn.Distance3D() or math.huge
-                                        if distance < closestDistance then
-                                            closestDistance = distance
-                                            closestSpawn = phSpawn
+                                    local phID = mq.TLO.Spawn("npc " .. phName).ID()
+                                    if phID ~= nil and phID > 0 then
+                                        local phSpawn = mq.TLO.Spawn(phID)
+                                        if phSpawn() and not phSpawn.Dead() then
+                                            local distance = phSpawn.Distance3D() or math.huge
+                                            if distance < closestDistance then
+                                                closestDistance = distance
+                                                closestSpawn = phSpawn
+                                            end
                                         end
                                     end
                                 end
                             end
                         end
+
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
                             -- Add a small delay to ensure the mob is fully dead and removed from xtarget
                             for i = 1, 10 do -- 10 ticks delay
@@ -186,6 +193,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                             addSpawn.CleanName())
                                         mq.cmd("/nav stop")
                                         mq.cmdf("/target id %d", addSpawn.ID())
+                                        mq.cmdf("/nav id %d log=error", addSpawn.ID())
                                         currentTarget = addSpawn
                                         engagedTarget = addSpawn
                                         navComplete = false
@@ -378,7 +386,8 @@ local nameMap = {
     ["Pli Xin Liako"]           = "Pli Xin Laiko",
     ["Xetheg, Luclin's Warder"] = "Xetheg, Luclin`s Warder",
     ["Itzal, Luclin's Hunter"]  = "Itzal, Luclin`s Hunter",
-    ["Ol' Grinnin' Finley"]     = "Ol` Grinnin` Finley"
+    ["Ol' Grinnin' Finley"]     = "Ol` Grinnin` Finley",
+    ["Tha`k Rustae, the Butcher"] = "Tha`k Rustae, the Butcher"
 }
 
 -- Track selected zone per group for Hood tab
@@ -1095,43 +1104,43 @@ local function renderHoodTab()
             local selected = ImGui.Selectable(spawn.name, false, ImGuiSelectableFlags.AllowDoubleClick)
             if selected and ImGui.IsMouseDoubleClicked(0) then
                 -- First check if the named mob is up
-                local spawnID = mq.TLO.Spawn("npc " .. spawn.name).ID()
-                if spawnID ~= nil and spawnID > 0 then
-                    mq.cmdf('/nav id %d log=error', spawnID)
-                    printf('\ayMoving to \ag%s', spawn.name)
-                else
-                    -- Named mob not up, try to find a placeholder
-                    local phList = require("Hunterhood.ph_list")
-                    local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
-                    local nearestPh = nil
-                    local minDist = math.huge
+                local spawnID = helpers.findSpawn(spawn.name, nameMap)
+if spawnID > 0 then
+    mq.cmdf('/nav id %d log=error', spawnID)
+    printf('\ayMoving to \ag%s', spawn.name)
+else
+    -- Named mob not up, try to find a placeholder
+    local phList = require("Hunterhood.ph_list")
+    local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
+    local nearestPh = nil
+    local minDist = math.huge
 
-                    if placeholders and #placeholders > 0 then
-                        for _, phName in ipairs(placeholders) do
-                            local phID = mq.TLO.Spawn("npc " .. phName).ID()
-                            if phID ~= nil and phID > 0 then
-                                local phSpawn = mq.TLO.Spawn(phID)
-                                if phSpawn() and not phSpawn.Dead() then
-                                    local dist = phSpawn.Distance3D() or math.huge
-                                    if dist < minDist then
-                                        minDist = dist
-                                        nearestPh = phSpawn
-                                    end
-                                end
-                            end
-                        end
-
-                        if nearestPh then
-                            mq.cmdf('/nav id %d log=error', nearestPh.ID())
-                            printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name,
-                                nearestPh.CleanName() or "unknown")
-                        else
-                            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
-                        end
-                    else
-                        printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+    if placeholders and #placeholders > 0 then
+        for _, phName in ipairs(placeholders) do
+            local phID = helpers.findSpawn(phName, nameMap)
+            if phID > 0 then
+                local phSpawn = mq.TLO.Spawn(phID)
+                if phSpawn() and not phSpawn.Dead() then
+                    local dist = phSpawn.Distance3D() or math.huge
+                    if dist < minDist then
+                        minDist = dist
+                        nearestPh = phSpawn
                     end
                 end
+            end
+        end
+
+        if nearestPh then
+            mq.cmdf('/nav id %d log=error', nearestPh.ID())
+            printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name,
+                nearestPh.CleanName() or "unknown")
+        else
+            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+        end
+    else
+        printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+    end
+end
             end
             ImGui.PopID()
             ImGui.PopStyleColor()
