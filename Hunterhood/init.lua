@@ -27,6 +27,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
         local navComplete = true
         local engagedTarget = nil
         local currentMobNames = {}
+        local lastStickTime = 0
 
         while navActive do
             ::continue::
@@ -304,8 +305,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             end
 
                             if mq.TLO.Me.Combat() then
-                                mq.cmd("/stick 10 front moveback")
-                                mq.cmd("/face fast")
+                                -- Only execute stick/face once every 2 seconds
+                                local currentTime = os.clock()
+                                if not lastStickTime or (currentTime - lastStickTime) >= 2 then
+                                    mq.cmd("/stick 10 front moveback")
+                                    mq.cmd("/face fast")
+                                    lastStickTime = currentTime
+                                end
                             end
                         end
 
