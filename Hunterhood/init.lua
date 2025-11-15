@@ -139,7 +139,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                                 while needsInvis and attempts < 5 do -- Try up to 5 times
                                     if helpers.groupNeedsInvis() then
                                         printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", attempts + 1)
-                                        mq.cmd("/squelch /noparse /docommand /dgga /alt act 231")
+                                        mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
                                         mq.cmd("/squelch /alt act 231")
                                         -- Wait for cast to complete
                                         for i = 1, 10 do
@@ -209,7 +209,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
 
                                         -- Cast invisibility on group and self until successful or nav is stopped
                                         while navActive and helpers.groupNeedsInvis() and targetDistance > 100 do
-                                            mq.cmd("/squelch /noparse /docommand /dgga /alt act 231")
+                                            mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
                                             mq.cmd("/squelch /alt act 231")
 
                                             -- Update target distance in case we moved during the cast
@@ -298,7 +298,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                         if mq.TLO.Target.ID() == currentTarget.ID() then
                             if not mq.TLO.Me.Combat() then
                                 --printf("\ayDEBUG: Enabling attack mode (in range)")
-                                mq.cmd("/squelch /docommand /dgga /makemevisible")
+                                mq.cmd("/squelch /docommand /dgza /makemevisible")
                                 mq.cmd("/attack on")
                                 engagedTarget = currentTarget
                             end
@@ -322,7 +322,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                 -- Add invisibility check when no valid targets
                 if useInvis and helpers.groupNeedsInvis() then
                     printf("\ayNo valid targets - ensuring group invisibility...")
-                    mq.cmd("/squelch /noparse /docommand /dgga /alt act 231")
+                    mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
                     mq.cmd("/squelch /alt act 231")
                     if not mq.TLO.Me.Sitting() then
                         mq.cmd("/sit")
@@ -829,7 +829,7 @@ local function renderHoodTab()
             -- Check if group needs invisibility before starting navigation
             if useInvis and helpers.groupNeedsInvis() then
                 printf("\ayGroup members need invisibility, casting...")
-                mq.cmd("/squelch /noparse /docommand /dgga /alt act 231")
+                mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
             end
             navActive = true
             navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
