@@ -16,7 +16,7 @@ local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helper
 local navCoroutine = nil
 local navActive = false
 
-BL.info('HunterHood v2.15 loaded')
+BL.info('HunterHood v2.17 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes)
@@ -323,7 +323,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     end
                 end
             else
-                printf("\ayDEBUG: No valid target or target is dead")
+                --printf("\ayDEBUG: No valid target or target is dead")
 
                 -- Add invisibility check when no valid targets
                 if useInvis and helpers.groupNeedsInvis() then
@@ -683,6 +683,7 @@ local function InfoLine()
     if spawnUp == 2 then ImGui.TextColored(0.0129, 0.973, 0.129, 1, '\xee\x9f\xb5') end
 end
 
+
 local function RenderTitle()
     ImGui.SetWindowFontScale(1.15)
     local title = 0
@@ -791,10 +792,30 @@ local function renderHoodTab()
     -- Initialize with first zone's achievement if not already loaded
     if not hasInitialized and #combo_items > 0 then
         hasInitialized = true
-        local group_name = combo_items[1]
-        local zones = zone_lists[group_name] or {}
-        if #zones > 0 and zones[1].id then
-            updateHoodAchievement(zones[1].id)
+        -- Use the same logic as the CZ button
+        local exp, zone = helpers.getCurrentZoneData(zoneMap, zone_lists)
+        if exp and zone then
+            for i, item in ipairs(combo_items) do
+                if item == exp then
+                    selected_index = i
+                    local zones = zone_lists[exp] or {}
+                    for j, z in ipairs(zones) do
+                        if z.id == zone.id then
+                            selected_zone_index = j
+                            updateHoodAchievement(zone.id)
+                            break
+                        end
+                    end
+                    break
+                end
+            end
+        else
+            -- Fallback to first zone if current zone not found
+            local group_name = combo_items[1]
+            local zones = zone_lists[group_name] or {}
+            if #zones > 0 and zones[1].id then
+                updateHoodAchievement(zones[1].id)
+            end
         end
     end
 
