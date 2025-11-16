@@ -1,4 +1,4 @@
--- v1.11
+-- v1.111
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -17,9 +17,9 @@ local function new(myAch)
     end
 
     function helpers.isMouseButtonDown(button)
-    -- 0 = left, 1 = right, 2 = middle
-    return ImGui.IsMouseDown(button)
-end
+        -- 0 = left, 1 = right, 2 = middle
+        return ImGui.IsMouseDown(button)
+    end
 
     -- Check if a spawn is within a certain Z-axis distance from the player
     -- @param spawnID number - The ID of the spawn to check
@@ -31,19 +31,18 @@ end
         if not spawn or not spawn.ID() or spawn.ID() == 0 then
             return false, 0
         end
-        
+
         local myZ = mq.TLO.Me.Z() or 0
         local spawnZ = spawn.Z() or 0
         local zDiff = math.abs(myZ - spawnZ)
-        
+
         return zDiff <= maxZDistance, zDiff
     end
 
-    -- Find spawn by name
     -- Find spawn by name with case-insensitive matching
-function helpers.findSpawn(spawn, nameMap)
+    function helpers.findSpawn(spawn, nameMap)
     if not spawn then return 0 end
-    
+
     -- Only clear target if we're not in the main thread
     if not ImGui then
         mq.cmd("/target clear")
@@ -51,18 +50,44 @@ function helpers.findSpawn(spawn, nameMap)
     end
 
     local originalName = spawn
-    if nameMap and nameMap[spawn] then 
+    if nameMap and nameMap[spawn] then
         spawn = nameMap[spawn]
     end
 
-    -- First try case-insensitive match using SpawnCount
-    local searchStr = string.format('npc %s', spawn)
-    local spawnCount = mq.TLO.SpawnCount(searchStr)() or 0
-    if spawnCount > 0 then
-        -- If we found matches, get the first one
-        local mySpawn = mq.TLO.NearestSpawn(searchStr)
-        if mySpawn and mySpawn.ID() and mySpawn.ID() > 0 then
-            return mySpawn.ID()
+    -- Try exact match with npc =name syntax first
+    local spawnObj = mq.TLO.Spawn('npc =' .. spawn)
+    if spawnObj and spawnObj.ID() and spawnObj.ID() > 0 then
+        -- Double-check the name matches exactly (case-insensitive)
+        local cleanName = spawnObj.CleanName()
+        if cleanName and cleanName:lower() == spawn:lower() then
+            return spawnObj.ID()
+        end
+    end
+
+    -- If no match, try with quotes for names with spaces
+    spawnObj = mq.TLO.Spawn('npc ="' .. spawn .. '"')
+    if spawnObj and spawnObj.ID() and spawnObj.ID() > 0 then
+        local cleanName = spawnObj.CleanName()
+        if cleanName and cleanName:lower() == spawn:lower() then
+            return spawnObj.ID()
+        end
+    end
+
+    -- If still no match, try without the = but with quotes
+    spawnObj = mq.TLO.Spawn('npc "' .. spawn .. '"')
+    if spawnObj and spawnObj.ID() and spawnObj.ID() > 0 then
+        local cleanName = spawnObj.CleanName()
+        if cleanName and cleanName:lower() == spawn:lower() then
+            return spawnObj.ID()
+        end
+    end
+
+    -- Last resort, try without quotes or = but verify the name matches exactly
+    spawnObj = mq.TLO.Spawn('npc ' .. spawn)
+    if spawnObj and spawnObj.ID() and spawnObj.ID() > 0 then
+        local cleanName = spawnObj.CleanName()
+        if cleanName and cleanName:lower() == spawn:lower() then
+            return spawnObj.ID()
         end
     end
 
@@ -76,45 +101,45 @@ end
     end
 
     -- Check for any mobs on extended target (including PHs and named)
-    function helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
+    function helpers.hasNonPHTargets(phList, hoodAch, currentZoneID, nameMap)
         -- Get current zone if not provided
         if not currentZoneID then
             currentZoneID = mq.TLO.Zone.ID()
         end
-        
+
         -- Only check XTargets, ignore current target
         local xtargetCount = mq.TLO.Me.XTarget() or 0
         local closestAdd = nil
         local closestDistance = math.huge
-        
+
         for i = 1, xtargetCount do
-            local target = mq.TLO.Me.XTarget(i)
-            if target() and target.ID() > 0 then
-                local spawn = mq.TLO.Spawn(target.ID())
-                if spawn() and not spawn.Dead() then
-                    -- Skip PC targets
-                    if spawn.Type() == "PC" then
-                        --helpers.printf("\aySkipping PC target: %s", spawn.CleanName())
-                        goto continue
+        local target = mq.TLO.Me.XTarget(i)
+        if target() and target.ID() > 0 then
+            local spawn = mq.TLO.Spawn(target.ID())
+            if spawn() and not spawn.Dead() then
+                -- Skip PC targets
+                if spawn.Type() == "PC" then
+                    goto continue
+                end
+
+                local spawnName = spawn.CleanName()
+                local spawnDistance = spawn.Distance3D() or math.huge
+
+                -- Check if this is a named mob (using nameMap if available)
+                local isNamed = false
+                for _, mob in ipairs(hoodAch.Spawns) do
+                    local mobName = nameMap and nameMap[mob.name] or mob.name
+                    if mobName == spawnName then
+                        isNamed = true
+                        break
                     end
-                    
-                    local spawnName = spawn.CleanName()
-                    local spawnDistance = spawn.Distance3D() or math.huge
-                    
-                    -- Skip if too far away (over 400 range) unless it's a named mob
-                    local isNamed = false
-                    for _, mob in ipairs(hoodAch.Spawns) do
-                        if mob.name == spawnName then
-                            isNamed = true
-                            break
-                        end
-                    end
-                    
+                end
+
                     if spawnDistance > 400 and not isNamed then
                         helpers.printf("\aySkipping add %s - too far away (%.1f)", spawnName, spawnDistance)
                         goto continue
                     end
-                    
+
                     -- Track the closest mob on extended target
                     if spawnDistance < closestDistance then
                         closestDistance = spawnDistance
@@ -125,7 +150,7 @@ end
             end
             ::continue::
         end
-        
+
         return closestAdd ~= nil, closestAdd
     end
 
@@ -142,23 +167,23 @@ end
         local zoneID = mq.TLO.Zone.ID()
         local zoneName = mq.TLO.Zone.Name() or ""
         printf('Debug: Current zone ID: %d, Zone name: %s', zoneID, zoneName)
-        
+
         -- First try direct zone ID mapping
         if zoneMap[zoneID] then
             printf('Debug: Found achievement ID %d for zone %d', zoneMap[zoneID], zoneID)
             return zoneMap[zoneID]
         end
-        
+
         -- If no direct mapping, try to find achievement by zone name
         printf('Debug: No direct mapping for zone %d, trying name-based lookup', zoneID)
-        
+
         -- Try different achievement name patterns
         local patterns = {
             "Hunter of the " .. zoneName,
             "Hunter of " .. zoneName,
             zoneName .. " Hunter"
         }
-        
+
         -- Check each pattern
         for _, pattern in ipairs(patterns) do
             local ach = mq.TLO.Achievement(pattern)
@@ -167,7 +192,7 @@ end
                 return ach.ID()
             end
         end
-        
+
         printf('Debug: No achievement found for zone %d (%s)', zoneID, zoneName)
         return 0
     end
@@ -182,8 +207,8 @@ end
             end
         end
         local totalDone = string.format('%d/%d', tmp, curHunterAch.Count)
-        if tmp == curHunterAch.Count then 
-            totalDone = 'Completed!' 
+        if tmp == curHunterAch.Count then
+            totalDone = 'Completed!'
         end
         return tmp / curHunterAch.Count, totalDone
     end
@@ -198,29 +223,29 @@ end
         maxDistance = maxDistance or 200 -- Default to 200 units if not specified
         local status = {}
         local allInRange = true
-        
+
         -- If not in a group, return true with empty status
         if not mq.TLO.Group() or mq.TLO.Group.Members() == 0 then
             return true, {}
         end
-        
+
         -- Check each group member (note: Group.Members() does not include yourself)
         for i = 1, mq.TLO.Group.Members() do
             local member = mq.TLO.Group.Member(i)
             if member() then
                 local name = member.CleanName()
-                
+
                 -- Skip if we can't get the member's name (they're not loaded)
                 if not name or name == "" then
                     goto continue
                 end
-                
+
                 local spawn = mq.TLO.Spawn(string.format('pc =%s', name))
-                
+
                 if not spawn() or spawn.ID() == 0 then
                     -- Member is not in zone - only fail if they're actually online
                     if member.Level() and member.Level() > 0 then
-                        table.insert(status, {name = name, status = false})
+                        table.insert(status, { name = name, status = false })
                         -- Don't set allInRange to false for out of zone members
                         -- They might be on another task or waiting at zone line
                     end
@@ -228,16 +253,16 @@ end
                     -- Member is in zone, check distance
                     local distance = spawn.Distance3D() or 0
                     if distance > maxDistance then
-                        table.insert(status, {name = name, status = distance})
+                        table.insert(status, { name = name, status = distance })
                         allInRange = false
                     else
-                        table.insert(status, {name = name, status = true})
+                        table.insert(status, { name = name, status = true })
                     end
                 end
             end
             ::continue::
         end
-        
+
         return allInRange, status
     end
 
@@ -245,9 +270,9 @@ end
     function helpers.getCurrentZoneData(zoneMap, zone_lists)
         local currentZoneID = mq.TLO.Zone.ID()
         local currentZoneName = mq.TLO.Zone.Name()
-        
+
         if not currentZoneID or currentZoneID == 0 then return nil, nil end
-        
+
         -- First check zoneMap for exact match
         if zoneMap[currentZoneID] then
             for exp, zones in pairs(zone_lists) do
@@ -258,7 +283,7 @@ end
                 end
             end
         end
-        
+
         -- If no exact match, check zone names (case-insensitive)
         if currentZoneName then
             currentZoneName = currentZoneName:lower()
@@ -271,7 +296,7 @@ end
                 end
             end
         end
-        
+
         return nil, nil
     end
 
@@ -281,22 +306,22 @@ end
         if not useInvis then
             return false
         end
-        
+
         -- Check for any active targets
         local xtargetCount = mq.TLO.Me.XTarget() or 0
         if xtargetCount > 0 then
-            printf("\\arCannot check invis - mobs on extended target!")
+            --printf("\\arCannot check invis - mobs on extended target!")
             return false
         end
-        
+
         local groupSize = mq.TLO.Group.GroupSize() or 0
-        
+
         local membersNeedingInvis = 0
         local totalMembersChecked = 0
-        
+
         -- First check the script runner
         local myInvis = mq.TLO.Me.Invis()
-        
+
         if myInvis ~= nil then
             totalMembersChecked = totalMembersChecked + 1
             if myInvis == false then
@@ -306,7 +331,7 @@ end
         else
             printf("\\ayDEBUG: Can't see my own invis status")
         end
-        
+
         -- Then check other group members if in a group
         if groupSize > 1 then
             for i = 1, groupSize - 1 do
@@ -315,7 +340,7 @@ end
                     local spawn = member.Spawn
                     if spawn() and not member.Mercenary() then
                         local memberInvis = spawn.Invis()
-                        
+
                         if memberInvis ~= nil then
                             totalMembersChecked = totalMembersChecked + 1
                             if memberInvis == false then
@@ -327,7 +352,7 @@ end
                 end
             end
         end
-        
+
         return membersNeedingInvis > 0
     end
 

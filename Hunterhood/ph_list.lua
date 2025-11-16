@@ -7,14 +7,14 @@ local ph_list = {
 
     --------- ToB Zones ---------
     [872] = { -- Aureate Covert
-        ["scalewrought aerialist"] = { "scalewrought skyguardian" },
+        ["scalewrought aerialist"] = { "a scalewrought skyguardian" },
         ["scalewrought director"] = { "a scalewrought curator" },
-        ["scalewrought driver"] = { "scalewrought sentinel" },
-        ["scalewrought manager"] = { "scalewrought maker" },
-        ["scalewrought marshal"] = { "scalewrought skydefender" },
-        ["scalewrought quartermaster"] = { "scalewrought craftsman" },
-        ["scalewrought trainer"] = { "scalewrought striker" },
-        ["scalewrought watcher"] = { "scalewrought inspector" },
+        ["scalewrought driver"] = { "a scalewrought sentinel" },
+        ["scalewrought manager"] = { "a scalewrought maker" },
+        ["scalewrought marshal"] = { "a scalewrought skydefender" },
+        ["scalewrought quartermaster"] = { "a scalewrought craftsman" },
+        ["scalewrought trainer"] = { "a scalewrought striker" },
+        ["scalewrought watcher"] = { "a scalewrought inspector" },
     },
 
     [870] = { -- Hodstock Hills
@@ -60,7 +60,7 @@ local ph_list = {
         ["scalewrought overseer"] = { "a scalewrought deliverer" },
         ["scalewrought rancher"] = { "a scalewrought caregiver" },
         ["scalewrought servitor"] = { "a scalewrought farmhand" },
-        ["scalewrought trooper"] = { "scalewrought sentry" },
+        ["scalewrought trooper"] = { "a scalewrought sentry" },
         ["scalewrought viceroy"] = { "a scalewrought supervisor" },
         ["Tha`k Rustae, the Butcher"] = { "a scalewrought harvester" },
     },
@@ -243,13 +243,13 @@ local ph_list = {
         ["Irate Servant of Luclin"] = { "a shrewd abettor of luclin" },
         ["Itzal, Luclin`s Hunter"] = { "a tekuel" },
         ["Mistakenly Animated Salt Golem"] = { "an animated experiment" },
-        ["Xetheg, Luclin's Warden"] = { "a tekuel" }, -- TODO: verify
+        ["Xetheg, Luclin`s Warden"] = { "a tekuel" }, -- TODO: verify
     },
 
-    [849] = {                                        -- Bloodfalls
+    [849] = { -- Bloodfalls
         ["A Retainer of Shadow"] = { "a laborer of shadow" },
-        ["Centien Xi Va Xakra"] = { "a war shade" }, -- Removed leading space in key
-        ["Coagulus"] = { "a viscious blood bag" },
+        ["Centien Xi Va Xakra"] = { "a war shade" },
+        ["Coagulus"] = { "a viscous blood bag" },
         ["Cruor"] = { "a sanguineous blood beast" },
         ["Lady Constance"] = { "a nameless vampire" },
         ["Nikolas the Exiled"] = { "a lost vampire" },
@@ -258,10 +258,10 @@ local ph_list = {
 
     [845] = { --Ka Vethan
         ["Centi Thall"] = { "Centi Atulus" },
-        ["Diabo Tatrua"] = { "Gel'Temariel Centi" },
-        ["Diabo Va Thall"] = { "Fer'Tatrua Centi" },
-        ["Diabo Xi Va"] = { "Fer'Temariel Centi" },
-        ["Diabo Xi Xin"] = { "Teka'Temariel Centi" },
+        ["Diabo Tatrua"] = { "Gel`Temariel Centi" },
+        ["Diabo Va Thall"] = { "Fer`Tatrua Centi" },
+        ["Diabo Xi Va"] = { "Fer`Temariel Centi" },
+        ["Diabo Xi Xin"] = { "Teka`Temariel Centi" },
         ["The Protector"] = { "a shade guardian" },
     },
 
@@ -271,7 +271,7 @@ local ph_list = {
         ["Diabo Xi Akuel"] = { "a well-fed rockbreaker" },
         ["Lucca Brightfeld"] = { "a winged scavenger" },
         ["Namdrows"] = { "a mind burrower" },
-        ["Quietus the Forgotten"] = { "an erased hero's guard", "a lost shade or forlorn" },
+        ["Quietus the Forgotten"] = { "an erased hero`s guard", "a lost shade", "a forlorn shade" },
         ["Temariel Xi Tetoracu"] = { "Dabo Xi Vereor" },
         ["Tess Zelinstein"] = { "a peckish vampyre", "a beaten vampyre" },
         ["Txiki"] = { "a gleeful miscreant" },

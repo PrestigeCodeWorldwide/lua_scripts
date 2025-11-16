@@ -15,11 +15,12 @@ local myAch = mq.TLO.Achievement
 local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
 local navCoroutine = nil
 local navActive = false
+local showSettings = false
 
 BL.info('HunterHood v2.17 loaded')
 
 -- Function to handle navigation to targets
-local function navigateToTargets(hoodAch, mobCheckboxes)
+local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
     return coroutine.create(function()
         local phList = require("Hunterhood.ph_list")
         local currentZoneID = mq.TLO.Zone.ID()
@@ -93,7 +94,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     if #checkedMobs > 0 then
                         for _, mob in ipairs(checkedMobs) do
                             -- Check named mob first
-                            local spawnID = mq.TLO.Spawn("npc " .. mob.name).ID()
+                            local spawnID = helpers.findSpawn(mob.name, nameMap)
                             if spawnID ~= nil and spawnID > 0 then
                                 local spawn = mq.TLO.Spawn(spawnID)
                                 if spawn() and not spawn.Dead() then
@@ -109,7 +110,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                             local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
                             if placeholders and type(placeholders) == "table" then
                                 for _, phName in ipairs(placeholders) do
-                                    local phID = mq.TLO.Spawn("npc " .. phName).ID()
+                                    local phID = helpers.findSpawn(phName, nameMap)
                                     if phID ~= nil and phID > 0 then
                                         local phSpawn = mq.TLO.Spawn(phID)
                                         if phSpawn() and not phSpawn.Dead() then
@@ -265,12 +266,12 @@ local function navigateToTargets(hoodAch, mobCheckboxes)
                     --inCombat and "Already in combat" or "Adds detected")
                     --end
 
-                    -- Check if all group members are within 150 range (unless we need to skip)
+                    -- Check if all group members are within 100 range (unless we need to skip)
                     local allInRange = skipDistanceCheck
                     local memberStatus = {}
 
                     if not skipDistanceCheck then
-                        allInRange, memberStatus = helpers.getGroupMemberStatus(150)
+                        allInRange, memberStatus = helpers.getGroupMemberStatus(100)
                     end
 
                     if not allInRange then
@@ -389,10 +390,10 @@ local myHunterSpawn = {}
 
 -- nameMap that maps wrong achievement objective names to the ingame name.
 local nameMap = {
-    ["Pli Xin Liako"]           = "Pli Xin Laiko",
-    ["Xetheg, Luclin's Warder"] = "Xetheg, Luclin`s Warder",
-    ["Itzal, Luclin's Hunter"]  = "Itzal, Luclin`s Hunter",
-    ["Ol' Grinnin' Finley"]     = "Ol` Grinnin` Finley",
+    ["Pli Xin Liako"]             = "Pli Xin Laiko",
+    ["Xetheg, Luclin's Warden"]   = "Xetheg, Luclin`s Warden",
+    ["Itzal, Luclin's Hunter"]    = "Itzal, Luclin`s Hunter",
+    ["Ol' Grinnin' Finley"]       = "Ol` Grinnin` Finley",
     ["Tha`k Rustae, the Butcher"] = "Tha`k Rustae, the Butcher"
 }
 
@@ -487,17 +488,40 @@ local function textEnabled(spawn)
     -- Show PH info on hover
     if ImGui.IsItemHovered() then
         local zoneID = mq.TLO.Zone.ID()
-        local phs = ph_list.getPlaceholders(spawn, zoneID)
-        local spawnedPHs = {}
-        local totalSpawned = 0
-        local phCounts = {}
+        local phs = {}
 
-        -- Check which PHs are currently spawned and count them
+        -- First try with the exact name
+        local rawPhs = ph_list.getPlaceholders(spawn, zoneID)
+
+        -- If no placeholders found, try with the mapped name
+        if (not rawPhs or #rawPhs == 0) and nameMap[spawn] then
+            rawPhs = ph_list.getPlaceholders(nameMap[spawn], zoneID) or {}
+        end
+
+        -- Process the placeholders we found
+        for _, ph in ipairs(rawPhs or {}) do
+            table.insert(phs, ph)
+        end
+
+        local spawnedPHs = {}
+        local phCounts = {}
+        local totalSpawned = 0
+
         for _, ph in ipairs(phs) do
-            local count = mq.TLO.SpawnCount("npc " .. ph)() or 0
-            if count > 0 then
-                table.insert(spawnedPHs, { name = ph, count = count })
-                totalSpawned = totalSpawned + count
+            local phID = helpers.findSpawn(ph, nameMap)
+            if phID > 0 then
+                local phSpawn = mq.TLO.Spawn(phID)
+                if phSpawn() and not phSpawn.Dead() then
+                    local cleanName = phSpawn.CleanName() or ph
+                    -- Use SpawnCount with exact matching to get the real count
+                    local count = mq.TLO.SpawnCount('npc ="' .. cleanName .. '"')() or 0
+                    if count > 0 then
+                        phCounts[cleanName] = count
+                        if not spawnedPHs[cleanName] then
+                            table.insert(spawnedPHs, cleanName)
+                        end
+                    end
+                end
             end
         end
 
@@ -507,9 +531,15 @@ local function textEnabled(spawn)
             ImGui.Text("PH(s) for " .. spawn .. ":")
 
             if #spawnedPHs > 0 then
-                ImGui.Text(string.format("\nCurrently spawned (%d):", totalSpawned))
-                for _, ph in ipairs(spawnedPHs) do
-                    ImGui.BulletText(string.format("%s (x%d)", ph.name, ph.count))
+                local totalSpawned = 0
+                for _, phName in ipairs(spawnedPHs) do
+                    totalSpawned = totalSpawned + (phCounts[phName] or 0)
+                end
+
+                ImGui.Text(string.format("\nCurrently spawned (x%d):", totalSpawned))
+                for _, phName in ipairs(spawnedPHs) do
+                    local count = phCounts[phName] or 1
+                    ImGui.BulletText(string.format("%s (x%d)", phName, count))
                 end
             end
 
@@ -533,7 +563,14 @@ local function textEnabled(spawn)
         else
             -- Named is not up, find and navigate to nearest PH
             local zoneID = mq.TLO.Zone.ID()
+
+            -- Try with the exact name first
             local phs = ph_list.getPlaceholders(spawn, zoneID)
+
+            -- If no placeholders found, try with the mapped name
+            if (not phs or #phs == 0) and nameMap[spawn] then
+                phs = ph_list.getPlaceholders(nameMap[spawn], zoneID) or {}
+            end
 
             if #phs > 0 then
                 -- Find the nearest PH
@@ -773,13 +810,14 @@ local function updateHoodAchievement(zoneID)
         if objective and objective() ~= nil then
             local objName = objective()
             if type(objName) == "string" and objName ~= "" then
-                if nameMap[objName] then
-                    objName = nameMap[objName]
-                end
+                local originalName = objName               -- Store the original achievement name
+                local mappedName = nameMap[objName] or objName -- Get the mapped name if it exists
+
                 table.insert(hoodAch.Spawns, {
-                    name = objName,
+                    name = mappedName,       -- Use mapped name for spawn finding
+                    originalName = originalName, -- Keep original for achievement checking
                     done = objective.Completed() or false,
-                    id = helpers.findSpawn(objName, nameMap) or 0
+                    id = helpers.findSpawn(mappedName, nameMap) or 0
                 })
             end
         end
@@ -859,7 +897,7 @@ local function renderHoodTab()
                 mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
             end
             navActive = true
-            navCoroutine = navigateToTargets(hoodAch, mobCheckboxes)
+            navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
             printf("\ayStarted navigation to selected mobs")
         else
             navActive = false
@@ -1048,7 +1086,9 @@ local function renderHoodTab()
             local ach = myAch(hoodAch.ID)
             if ach and ach() then
                 for _, spawn in ipairs(hoodAch.Spawns) do
-                    local objective = ach.Objective(spawn.name)
+                    -- Use the original achievement objective name to check completion
+                    local objectiveName = spawn.originalName or spawn.name
+                    local objective = ach.Objective(objectiveName)
                     if objective and objective() and objective.Completed() then
                         completed = completed + 1
                     end
@@ -1106,7 +1146,9 @@ local function renderHoodTab()
             if hoodAch.ID > 0 then
                 local ach = myAch(hoodAch.ID)
                 if ach and ach() then
-                    local objective = ach.Objective(spawn.name)
+                    -- Use the original achievement objective name to check completion
+                    local objectiveName = spawn.originalName or spawn.name
+                    local objective = ach.Objective(objectiveName)
                     if objective and objective() then
                         isCompleted = objective.Completed() or false
                     end
@@ -1132,42 +1174,42 @@ local function renderHoodTab()
             if selected and ImGui.IsMouseDoubleClicked(0) then
                 -- First check if the named mob is up
                 local spawnID = helpers.findSpawn(spawn.name, nameMap)
-if spawnID > 0 then
-    mq.cmdf('/nav id %d log=error', spawnID)
-    printf('\ayMoving to \ag%s', spawn.name)
-else
-    -- Named mob not up, try to find a placeholder
-    local phList = require("Hunterhood.ph_list")
-    local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
-    local nearestPh = nil
-    local minDist = math.huge
+                if spawnID > 0 then
+                    mq.cmdf('/nav id %d log=error', spawnID)
+                    printf('\ayMoving to \ag%s', spawn.name)
+                else
+                    -- Named mob not up, try to find a placeholder
+                    local phList = require("Hunterhood.ph_list")
+                    local placeholders = phList.getPlaceholders(spawn.name, hoodAch.zoneID)
+                    local nearestPh = nil
+                    local minDist = math.huge
 
-    if placeholders and #placeholders > 0 then
-        for _, phName in ipairs(placeholders) do
-            local phID = helpers.findSpawn(phName, nameMap)
-            if phID > 0 then
-                local phSpawn = mq.TLO.Spawn(phID)
-                if phSpawn() and not phSpawn.Dead() then
-                    local dist = phSpawn.Distance3D() or math.huge
-                    if dist < minDist then
-                        minDist = dist
-                        nearestPh = phSpawn
+                    if placeholders and #placeholders > 0 then
+                        for _, phName in ipairs(placeholders) do
+                            local phID = helpers.findSpawn(phName, nameMap)
+                            if phID > 0 then
+                                local phSpawn = mq.TLO.Spawn(phID)
+                                if phSpawn() and not phSpawn.Dead() then
+                                    local dist = phSpawn.Distance3D() or math.huge
+                                    if dist < minDist then
+                                        minDist = dist
+                                        nearestPh = phSpawn
+                                    end
+                                end
+                            end
+                        end
+
+                        if nearestPh then
+                            mq.cmdf('/nav id %d log=error', nearestPh.ID())
+                            printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name,
+                                nearestPh.CleanName() or "unknown")
+                        else
+                            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
+                        end
+                    else
+                        printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
                     end
                 end
-            end
-        end
-
-        if nearestPh then
-            mq.cmdf('/nav id %d log=error', nearestPh.ID())
-            printf('\ayNamed \ag%s\ay not up, moving to nearest PH: \ag%s', spawn.name,
-                nearestPh.CleanName() or "unknown")
-        else
-            printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
-        end
-    else
-        printf('\arNo placeholders found for \ag%s\ar in zone', spawn.name)
-    end
-end
             end
             ImGui.PopID()
             ImGui.PopStyleColor()
@@ -1185,13 +1227,12 @@ end
                     placeholders = {}
                 end
 
-                -- If no direct match, try fuzzy matching
                 if #placeholders == 0 then
                     local allZoneMobs = phList.getNamedMobsInZone(hoodAch.zoneID)
                     if allZoneMobs and type(allZoneMobs) == "table" then
+                        local normalizedTarget = helpers.normalizeName(spawn.name)
                         for _, mobName in ipairs(allZoneMobs) do
-                            if helpers.normalizeName(mobName):find(helpers.normalizeName(normalizedSpawnName), 1, true)
-                                or helpers.normalizeName(normalizedSpawnName):find(helpers.normalizeName(mobName), 1, true) then
+                            if helpers.normalizeName(mobName) == normalizedTarget then
                                 placeholders = phList.getPlaceholders(mobName, hoodAch.zoneID)
                                 if type(placeholders) ~= "table" then
                                     placeholders = {}
@@ -1202,13 +1243,26 @@ end
                     end
                 end
 
-                local spawnedPHs, totalSpawned = {}, 0
+                local spawnedPHs = {} -- This will be an array of {name, count} tables
+                local phSeen = {}     -- This will help us track which PHs we've already counted
+
                 for _, phName in ipairs(placeholders) do
-                    if type(phName) == "string" then
-                        local count = mq.TLO.SpawnCount("npc " .. phName)() or 0
-                        if count > 0 then
-                            table.insert(spawnedPHs, { name = phName, count = count })
-                            totalSpawned = totalSpawned + count
+                    local phID = helpers.findSpawn(phName, nameMap)
+                    if phID > 0 then
+                        local phSpawn = mq.TLO.Spawn(phID)
+                        if phSpawn() and not phSpawn.Dead() then
+                            local cleanName = phSpawn.CleanName() or phName
+                            if not phSeen[cleanName] then
+                                phSeen[cleanName] = true
+                                -- Count all instances of this PH in the zone
+                                local count = mq.TLO.SpawnCount('npc ="' .. cleanName .. '"')() or 0
+                                if count > 0 then
+                                    table.insert(spawnedPHs, {
+                                        name = cleanName,
+                                        count = count
+                                    })
+                                end
+                            end
                         end
                     end
                 end
@@ -1218,7 +1272,11 @@ end
                     ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
                     ImGui.Text("PH(s) for " .. spawn.name .. ":")
                     if #spawnedPHs > 0 then
-                        ImGui.Text(string.format("\nCurrently spawned (%d):", totalSpawned))
+                        local totalSpawned = 0
+                        for _, ph in ipairs(spawnedPHs) do
+                            totalSpawned = totalSpawned + ph.count
+                        end
+                        ImGui.Text(string.format("\nCurrently spawned (x%d):", totalSpawned))
                         for _, ph in ipairs(spawnedPHs) do
                             ImGui.BulletText(string.format("%s (x%d)", ph.name, ph.count))
                         end
@@ -1226,9 +1284,7 @@ end
                     if #placeholders > 0 then
                         ImGui.Text("\nPossible Placeholders:")
                         for _, ph in ipairs(placeholders) do
-                            if type(ph) == "string" then
-                                ImGui.BulletText(ph)
-                            end
+                            ImGui.BulletText(ph)
                         end
                     end
                     ImGui.PopStyleColor()
@@ -1321,7 +1377,6 @@ local function HunterHUD()
             end
 
             -- Hood tab
-            -- Hood tab
             if ImGui.BeginTabItem("Hood") then
                 lastTab = currentTab
                 currentTab = "Hood"
@@ -1353,7 +1408,6 @@ local function HunterHUD()
         ImGui.End()
     end
 end
-
 
 local function bind_hh(cmd)
     local VividOrange = '\a#f8bd21'
