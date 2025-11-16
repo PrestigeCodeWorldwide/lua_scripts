@@ -3,7 +3,10 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
+BL.info("HPMez Script v1.2 Started")
+
 local isPaused = false
+local messengerType = "messenger"
 local stateFile = mq.TLO.MacroQuest.Path() .. "\\logs\\hpraid_state.txt"
 
 -- Function to check if HPRaid is currently handling debuffs
@@ -35,7 +38,7 @@ local function doMezEnc()
         return
     end
     
-    BL.info("Starting doMezEnc function")
+    --BL.info("Starting doMezEnc function")
     
     local highPriest = mq.TLO.Spawn("Yaran")
     if not highPriest() or highPriest.ID() == 0 then
@@ -58,12 +61,12 @@ local function doMezEnc()
     -- Find all messenger and track the closest one within range
     local closestMessenger = nil
     local minDistance = 200  -- Only consider messenger within 200 units
-    local messengerCount = tonumber(mq.TLO.SpawnCount("messenger")()) or 0
+    local messengerCount = tonumber(mq.TLO.SpawnCount(messengerType)()) or 0
     
-    BL.info(string.format("Found %d messenger in zone", messengerCount))
+    --BL.info(string.format("Found %d messenger in zone", messengerCount))
     
     for i = 1, messengerCount do
-        local messenger = mq.TLO.NearestSpawn(i, "messenger")
+        local messenger = mq.TLO.NearestSpawn(i, messengerType)
         if messenger() and messenger.ID() ~= 0 then
             -- Get messenger coordinates
             local messengerY = tonumber(messenger.Y())
@@ -71,7 +74,7 @@ local function doMezEnc()
             
             if messengerY and messengerX then
                 local distance = calculateDistance(hpX, hpY, messengerX, messengerY)
-                BL.info(string.format("Messenger %s distance: %.1f", messenger.ID(), distance))
+                BL.info(string.format("messenger %s distance: %.1f", messenger.ID(), distance))
                 
                 -- Track the closest messenger within range
                 if distance <= 200 and distance < minDistance then
@@ -94,7 +97,7 @@ local function doMezEnc()
 
         -- Check if we have line of sight and are in range to cast
         if closestMessenger.Distance() < 190 and closestMessenger.LineOfSight() then
-            BL.info("Messenger is in range, casting slumber")
+            BL.info("messenger is in range, casting slumber")
             BL.cmd.pauseAutomation()
             isPaused = true
             mq.cmd("/stopsong")
@@ -115,8 +118,13 @@ local function doMezEnc()
     end
 end
 
+local args = {...}
+if #args > 0 then
+    messengerType = args[1]:gsub("^%s*(.-)%s*$", "%1")  -- Trim whitespace
+    BL.info(string.format("Using messenger type: %s", messengerType))
+end
+
 -- Main loop
-BL.info("Script started")
 while true do
     doMezEnc()
     mq.delay(1000)  -- Check every second
