@@ -1,4 +1,4 @@
--- v1.13
+-- v1.131
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -94,7 +94,7 @@ local ph_list = {
 
     [859] = { -- Laurion Inn
         ["a brood queen"] = { "a leech elder" },
-        ["a djinn"] = { "an air mehit lord" },
+        ["a djinn"] = { "an air mephit lord" },
         ["a geonid"] = { "a cracked golem" },
         ["a lich"] = { "an undead lord" },
         ["a luggald"] = { "a white shark" },
