@@ -1,4 +1,4 @@
--- v1.132
+-- v1.133
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -320,7 +320,7 @@ local ph_list = {
         ["Desirae Fanfare"] = { "an alluring siren" },
         ["Octave Sforzando"] = { "any siren then cycle ends with", "a siren muse" },
         ["Skolskin Haeger"] = { "a protective ulthork" },
-        ["Kirezelbough"] = { "any wyvern then cycle ends with", "a winged terror" },
+        ["Kirezelbough"] = { "any wyvern then cycle ends with", "a winged terror", "a wyvern" },
     },
 
     [832] = { -- Dragon Necropolis

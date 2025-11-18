@@ -17,7 +17,7 @@ local navCoroutine = nil
 local navActive = false
 local showSettings = false
 
-BL.info('HunterHood v2.17 loaded')
+BL.info('HunterHood v2.18 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -129,6 +129,19 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             -- Add a small delay to ensure the mob is fully dead and removed from xtarget
                             for i = 1, 10 do -- 10 ticks delay
                                 if not navActive then break end
+                                -- Check for adds during the delay
+                                local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
+                                if hasAdd and addSpawn and (not engagedTarget or engagedTarget.ID() ~= addSpawn.ID()) then
+                                    printf("\arAdd detected: \ay%s\ar - Engaging", addSpawn.CleanName())
+                                    if mq.TLO.Navigation.Active() then
+                                        mq.cmd("/nav stop")
+                                    end
+                                    mq.cmdf("/target id %d", addSpawn.ID())
+                                    currentTarget = addSpawn
+                                    engagedTarget = addSpawn
+                                    navComplete = false
+                                    goto combat
+                                end
                                 coroutine.yield()
                             end
 
@@ -253,7 +266,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 goto continue     -- Go back to target selection
             end
             if currentTarget and currentTarget() and not currentTarget.Dead() then
-                if currentTarget.Distance3D() <= 60 then
+                if (currentTarget.Distance3D() <= 60 or currentTarget.Distance() <= 50) then
                     --printf("\ayDEBUG: In range, checking group distance...")
 
                     -- Check if we're already in combat or have adds - if so, skip distance check
@@ -285,7 +298,8 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                         end
 
                         -- Check if mob is still in range while waiting for group
-                        local mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and currentTarget.Distance3D() or math.huge
+                        local mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and
+                        currentTarget.Distance3D() or math.huge
                         if mobDistance > 100 then -- Mob is too far, break out of waiting
                             printf("\arTarget moved too far away (%.1f units), re-evaluating...", mobDistance)
                             navComplete = true
@@ -296,11 +310,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                         for i = 1, 10 do
                             if not navActive then break end
                             coroutine.yield()
-                            
+
                             -- Check mob distance during wait
-                            mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and currentTarget.Distance3D() or math.huge
+                            mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and
+                            currentTarget.Distance3D() or math.huge
                             if mobDistance > 100 then -- Mob is too far, break out of waiting
-                                printf("\arTarget moved too far away (%.1f units) while waiting, re-evaluating...", mobDistance)
+                                printf("\arTarget moved too far away (%.1f units) while waiting, re-evaluating...",
+                                    mobDistance)
                                 navComplete = true
                                 break
                             end
@@ -826,11 +842,11 @@ local function updateHoodAchievement(zoneID)
         if objective and objective() ~= nil then
             local objName = objective()
             if type(objName) == "string" and objName ~= "" then
-                local originalName = objName               -- Store the original achievement name
+                local originalName = objName                   -- Store the original achievement name
                 local mappedName = nameMap[objName] or objName -- Get the mapped name if it exists
 
                 table.insert(hoodAch.Spawns, {
-                    name = mappedName,       -- Use mapped name for spawn finding
+                    name = mappedName,           -- Use mapped name for spawn finding
                     originalName = originalName, -- Keep original for achievement checking
                     done = objective.Completed() or false,
                     id = helpers.findSpawn(mappedName, nameMap) or 0
