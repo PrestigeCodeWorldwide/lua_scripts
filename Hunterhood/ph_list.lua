@@ -1,4 +1,4 @@
--- v1.131
+-- v1.132
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -191,7 +191,7 @@ local ph_list = {
         ["Bedrock Burrower"] = { "a Firefall hollower" },
         ["Diabo Xi Vesta"] = { "Qua Liako", "Qua Centien", "Qua Zethon" },
         ["Firefallizard"] = { "a cinderscale saurek" },
-        ["Fowl Matriarch"] = { "firefall falcon", "soot-specked hawk" },
+        ["Fowl Matriarch"] = { "a firefall falcon", "a soot-specked hawk" },
         ["Igneous Insect"] = { "a ravine roamer" },
         ["Rock Lobber"] = { "a fissure fiend" },
     },
@@ -210,7 +210,7 @@ local ph_list = {
         ["Flail"] = { "spirit-touched scrap" },
         ["Mace"] = { "animated scrap" },
         ["Overgrowth"] = { "a contaminated digger" },
-        ["Skitter"] = { "an elder shik'nar outcast" },
+        ["Skitter"] = { "an elder shik`nar outcast" },
         ["Stone Chitin"] = { "a dour delver" },
         ["Velutipes"] = { "a sensate reishi" },
     },

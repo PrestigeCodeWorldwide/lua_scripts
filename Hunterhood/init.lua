@@ -284,10 +284,26 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             end
                         end
 
+                        -- Check if mob is still in range while waiting for group
+                        local mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and currentTarget.Distance3D() or math.huge
+                        if mobDistance > 100 then -- Mob is too far, break out of waiting
+                            printf("\arTarget moved too far away (%.1f units), re-evaluating...", mobDistance)
+                            navComplete = true
+                            break
+                        end
+
                         -- Wait a bit before checking again
                         for i = 1, 10 do
                             if not navActive then break end
                             coroutine.yield()
+                            
+                            -- Check mob distance during wait
+                            mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and currentTarget.Distance3D() or math.huge
+                            if mobDistance > 100 then -- Mob is too far, break out of waiting
+                                printf("\arTarget moved too far away (%.1f units) while waiting, re-evaluating...", mobDistance)
+                                navComplete = true
+                                break
+                            end
                         end
                         -- Don't set navComplete yet, will check again next iteration
                     else
