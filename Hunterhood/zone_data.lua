@@ -57,6 +57,14 @@ local function createZoneData(mq)
 
     -- Expansion zone lists
     local zone_lists = {
+        ["SoR"] = {
+            {id = 879, name = function() return getZoneDisplayName(879) end, shortname = "candlemakers"},
+            {id = 880, name = function() return getZoneDisplayName(880) end, shortname = "embattledpogrowth"},
+            {id = 881, name = function() return getZoneDisplayName(881) end, shortname = "arcstoneruins"},
+            {id = 882, name = function() return getZoneDisplayName(882) end, shortname = "ruinedrelic"},
+            {id = 883, name = function() return getZoneDisplayName(883) end, shortname = "vortex"},
+            {id = 884, name = function() return getZoneDisplayName(884) end, shortname = "spite"},
+        },
         ["ToB"] = {
             {id = 872, name = function() return getZoneDisplayName(872) end, shortname = "aureatecovert"},
             {id = 870, name = function() return getZoneDisplayName(870) end, shortname = "hodstock"},
@@ -301,7 +309,7 @@ local function createZoneData(mq)
     }
 
     -- Expansion display order
-    local combo_items = { "ToB", "LS", "NoS", "ToL", "CoV", "ToV", "TBL", "RoS", "EoK", "TBM", "TDS", "CoTF", "RoF", "VoA",
+    local combo_items = { "SoR","ToB", "LS", "NoS", "ToL", "CoV", "ToV", "TBL", "RoS", "EoK", "TBM", "TDS", "CoTF", "RoF", "VoA",
         "HoT", "UF", "SoD", "SoF", "TBS", "TSS", "Debug" }
 
     return {

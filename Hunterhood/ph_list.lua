@@ -5,6 +5,81 @@
 local ph_list = {
     -- Format: ["Zone ID"] = { ["Named Mob"] = {"Placeholder1", "Placeholder2", ...} }
 
+    --------- SoR Zo es ---------
+    [879] = { -- Candlemaker's Workshop
+        ["candlemakers01"] = { "candlemakers01" },
+        ["candlemakers02"] = { "candlemakers02" },
+        ["candlemakers03"] = { "candlemakers03" },
+        ["candlemakers04"] = { "candlemakers04" },
+        ["candlemakers05"] = { "candlemakers05" },
+        ["candlemakers06"] = { "candlemakers06" },
+        ["candlemakers07"] = { "candlemakers07" },
+        ["candlemakers08"] = { "candlemakers08" },
+        ["candlemakers09"] = { "candlemakers09" },
+        ["candlemakers10"] = { "candlemakers10" },
+    },
+
+    [880] = { -- Scarred Grove
+        ["scarredgrove01"] = { "scarredgrove01" },
+        ["scarredgrove02"] = { "scarredgrove02" },
+        ["scarredgrove03"] = { "scarredgrove03" },
+        ["scarredgrove04"] = { "scarredgrove04" },
+        ["scarredgrove05"] = { "scarredgrove05" },
+        ["scarredgrove06"] = { "scarredgrove06" },
+        ["scarredgrove07"] = { "scarredgrove07" },
+        ["scarredgrove08"] = { "scarredgrove08" },
+        ["scarredgrove09"] = { "scarredgrove09" },
+        ["scarredgrove10"] = { "scarredgrove10" },
+        ["scarredgrove11"] = { "scarredgrove11" },
+        ["scarredgrove12"] = { "scarredgrove12" },
+        ["scarredgrove13"] = { "scarredgrove13" },
+    },
+
+    [881] = { -- Arcstone, Shattered Isles
+        ["arcstoneisles01"] = { "arcstoneisles01" },
+        ["arcstoneisles02"] = { "arcstoneisles02" },
+        ["arcstoneisles03"] = { "arcstoneisles03" },
+        ["arcstoneisles04"] = { "arcstoneisles04" },
+        ["arcstoneisles05"] = { "arcstoneisles05" },
+        ["arcstoneisles06"] = { "arcstoneisles06" },
+        ["arcstoneisles07"] = { "arcstoneisles07" },
+        ["arcstoneisles08"] = { "arcstoneisles08" },
+    },
+
+    [882] = { -- Ruined Relic
+        ["ruinedrelic01"] = { "ruinedrelic01" },
+        ["ruinedrelic02"] = { "ruinedrelic02" },
+        ["ruinedrelic03"] = { "ruinedrelic03" },
+        ["ruinedrelic04"] = { "ruinedrelic04" },
+        ["ruinedrelic05"] = { "ruinedrelic05" },
+        ["ruinedrelic06"] = { "ruinedrelic06" },
+        ["ruinedrelic07"] = { "ruinedrelic07" },
+        ["ruinedrelic08"] = { "ruinedrelic08" },
+    },
+    
+    [883] = { -- The Vortex
+        ["thevortex01"] = { "thevortex01" },
+        ["thevortex02"] = { "thevortex02" },
+        ["thevortex03"] = { "thevortex03" },
+        ["thevortex04"] = { "thevortex04" },
+        ["thevortex05"] = { "thevortex05" },
+        ["thevortex06"] = { "thevortex06" },
+        ["thevortex07"] = { "thevortex07" },
+        ["thevortex08"] = { "thevortex08" },
+        ["thevortex10"] = { "thevortex10" },
+    },
+
+    [884] = { -- Labyrinth of Spite
+        ["labyrinthspite01"] = { "labyrinthspite01" },
+        ["labyrinthspite02"] = { "labyrinthspite02" },
+        ["labyrinthspite03"] = { "labyrinthspite03" },
+        ["labyrinthspite04"] = { "labyrinthspite04" },
+        ["labyrinthspite05"] = { "labyrinthspite05" },
+        ["labyrinthspite06"] = { "labyrinthspite06" },
+        ["labyrinthspite07"] = { "labyrinthspite07" },
+        ["labyrinthspite08"] = { "labyrinthspite08" },
+    },
+
     --------- ToB Zones ---------
     [872] = { -- Aureate Covert
         ["scalewrought aerialist"] = { "a scalewrought skyguardian" },
@@ -372,7 +447,7 @@ local ph_list = {
         ["Lord Vyemm"] = {
             "Cycle through all of the following",
             "a vile defender",
-            "a viscious defender",
+            "a vicious defender",
             "a vicious scholar",
             "a vicious warrior",
             "a vicious leader",
