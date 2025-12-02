@@ -65,6 +65,7 @@ setupEventHandlers()
 
 -- Main loop to process events
 while true do
+    BL.checkChestSpawn("a_funny-looking_chest")
     mq.doevents()
     mq.delay(100)
 end
