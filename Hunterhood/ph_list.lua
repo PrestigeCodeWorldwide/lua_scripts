@@ -1,4 +1,4 @@
--- v1.133
+-- v1.134
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -7,32 +7,32 @@ local ph_list = {
 
     --------- SoR Zo es ---------
     [879] = { -- Candlemaker's Workshop
-        ["candlemakers01"] = { "candlemakers01" },
-        ["candlemakers02"] = { "candlemakers02" },
-        ["candlemakers03"] = { "candlemakers03" },
-        ["candlemakers04"] = { "candlemakers04" },
-        ["candlemakers05"] = { "candlemakers05" },
-        ["candlemakers06"] = { "candlemakers06" },
-        ["candlemakers07"] = { "candlemakers07" },
-        ["candlemakers08"] = { "candlemakers08" },
-        ["candlemakers09"] = { "candlemakers09" },
-        ["candlemakers10"] = { "candlemakers10" },
+        ["Caiser the Lava Dweller"] = { "a molten slug" },
+        ["Captain Foley"] = { "a solusek knight" },
+        ["Everburning Candle Master"] = { "a candle master coercer" },
+        ["Flame Devourer"] = { "a candle master leader" },
+        ["Furok the Firestarter"] = { "a stomping unbreaker" },
+        ["Haywired Creation"] = { "a clockwork engineer" },
+        ["Loken the Rabid"] = { "a gnoll leader" },
+        ["Melted Monstrosity"] = { "a waxwork colossus" },
+        ["Scragen the Vicious"] = { "a kobold pack leader" },
+        ["The Great Shell"] = { "a subterranean pincer" },
     },
 
     [880] = { -- Scarred Grove
-        ["scarredgrove01"] = { "scarredgrove01" },
-        ["scarredgrove02"] = { "scarredgrove02" },
-        ["scarredgrove03"] = { "scarredgrove03" },
-        ["scarredgrove04"] = { "scarredgrove04" },
-        ["scarredgrove05"] = { "scarredgrove05" },
-        ["scarredgrove06"] = { "scarredgrove06" },
-        ["scarredgrove07"] = { "scarredgrove07" },
-        ["scarredgrove08"] = { "scarredgrove08" },
-        ["scarredgrove09"] = { "scarredgrove09" },
-        ["scarredgrove10"] = { "scarredgrove10" },
-        ["scarredgrove11"] = { "scarredgrove11" },
-        ["scarredgrove12"] = { "scarredgrove12" },
-        ["scarredgrove13"] = { "scarredgrove13" },
+        ["Adralydia Stormraven"] = { "a grove scout" },
+        ["Ashbark"] = { "an oakward ancient" },
+        ["Blood-soaked Pack Leader"] = { "a dread wolf" },
+        ["Bonesplinter"] = { "a corpse golem" },
+        ["Deathbringer Colossus"] = { "a warbound sentry" },
+        ["Fiflip Hopemender"] = { "a lightbearer protector" },
+        ["Grimclaw"] = { "a thicket bear" },
+        ["Ik`Drun"] = { "a damaged thicket golem" },
+        ["Magmus Flame Eater"] = { "a burning warcaster" },
+        ["Nul`Kul"] = { "a thicket golem" },
+        ["Telthel the Wretched"] = { "a dreadful blade" },
+        ["Trung"] = { "a warbringer" },
+        ["Vallina"] = { "a wretched abomination" },
     },
 
     [881] = { -- Arcstone, Shattered Isles
