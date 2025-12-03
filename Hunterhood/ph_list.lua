@@ -1,4 +1,4 @@
--- v1.134
+-- v1.135
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -36,48 +36,49 @@ local ph_list = {
     },
 
     [881] = { -- Arcstone, Shattered Isles
-        ["arcstoneisles01"] = { "arcstoneisles01" },
-        ["arcstoneisles02"] = { "arcstoneisles02" },
-        ["arcstoneisles03"] = { "arcstoneisles03" },
-        ["arcstoneisles04"] = { "arcstoneisles04" },
-        ["arcstoneisles05"] = { "arcstoneisles05" },
-        ["arcstoneisles06"] = { "arcstoneisles06" },
-        ["arcstoneisles07"] = { "arcstoneisles07" },
-        ["arcstoneisles08"] = { "arcstoneisles08" },
+        ["a manasheen plaguebloom"] = { "a manasheen stalk" },
+        ["Ash Harbinger"] = { "a firecrest ashfang" },
+        ["Broj the Devourer"] = { "an aberrant behemoth" },
+        ["Dravok the Rootbinder"] = { "a wandering tanglefoot" },
+        ["Fire Maw"] = { "an ash drake" },
+        ["Irdrath the Withered"] = { "a volatile scrykin" },
+        ["Orvain the Mooncaller"] = { "a spectral stag" },
+        ["Velith the Cinderfang"] = { "a blazing emberfang" },
     },
 
     [882] = { -- Ruined Relic
-        ["ruinedrelic01"] = { "ruinedrelic01" },
-        ["ruinedrelic02"] = { "ruinedrelic02" },
-        ["ruinedrelic03"] = { "ruinedrelic03" },
-        ["ruinedrelic04"] = { "ruinedrelic04" },
-        ["ruinedrelic05"] = { "ruinedrelic05" },
-        ["ruinedrelic06"] = { "ruinedrelic06" },
-        ["ruinedrelic07"] = { "ruinedrelic07" },
-        ["ruinedrelic08"] = { "ruinedrelic08" },
+        ["living marble"] = { "living stone" },
+        ["Marith the Fireborn"] = { "a fiery scrykin" },
+        ["Pfath of the Wind"] = { "a chilling breath" },
+        ["Raw Meat"] = { "a crazed flesh horror" },
+        ["Sharosh the Lost"] = { "a lost scrykin" },
+        ["Vosk the Terrakin"] = { "a chaotic earth pile" },
+        ["Whisper"] = { "a forgotten spiritlight" },
+        ["Windshear"] = { "shattered debris" },
     },
     
     [883] = { -- The Vortex
-        ["thevortex01"] = { "thevortex01" },
-        ["thevortex02"] = { "thevortex02" },
-        ["thevortex03"] = { "thevortex03" },
-        ["thevortex04"] = { "thevortex04" },
-        ["thevortex05"] = { "thevortex05" },
-        ["thevortex06"] = { "thevortex06" },
-        ["thevortex07"] = { "thevortex07" },
-        ["thevortex08"] = { "thevortex08" },
-        ["thevortex10"] = { "thevortex10" },
+        ["Azureflutter"] = { "a satin laced monarch" },
+        ["Chromaire"] = { "a bloated tropicaura vulture" },
+        ["Corax the Nethercharged"] = { "a supercharged sentinel" },
+        ["Forlien the Abyss Speaker"] = { "a supercharged battlemage" },
+        ["Iridesca"] = { "a wide swipping tidebinder" },
+        ["NeuroKraken"] = { "a supercharged curadrone" },
+        ["OctoXecutor"] = { "a supercharged octodrone" },
+        ["Stormstomper"] = { "a brutish galasaur hulk" },
+        ["Torrentclaw"] = { "a wicked galasaur shredder" },
     },
 
     [884] = { -- Labyrinth of Spite
-        ["labyrinthspite01"] = { "labyrinthspite01" },
-        ["labyrinthspite02"] = { "labyrinthspite02" },
-        ["labyrinthspite03"] = { "labyrinthspite03" },
-        ["labyrinthspite04"] = { "labyrinthspite04" },
-        ["labyrinthspite05"] = { "labyrinthspite05" },
-        ["labyrinthspite06"] = { "labyrinthspite06" },
-        ["labyrinthspite07"] = { "labyrinthspite07" },
-        ["labyrinthspite08"] = { "labyrinthspite08" },
+        ["Chirid"] = { "a governess of spite" },
+        ["Coagulation of Spite"] = { "a lump of spite" },
+        ["Drendre Gnarledgear"] = { "a cursed combatant" },
+        ["Husk Devourer"] = { "	a hungry drachnid" },
+        ["Lherre, the Silkwhisperer"] = { "a silkwhisper attendant" },
+        ["Matriarch of Enmity"] = { "a jealous escort" },
+        ["Mite"] = { "a nameless husk" },
+        ["Scorned Weeper"] = { "a scorn drinker" },
+        ["The Headsman"] = { "a hateful executioner" },
     },
 
     --------- ToB Zones ---------
