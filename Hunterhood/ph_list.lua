@@ -1,4 +1,4 @@
--- v1.135
+-- v1.136
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -62,7 +62,7 @@ local ph_list = {
         ["Chromaire"] = { "a bloated tropicaura vulture" },
         ["Corax the Nethercharged"] = { "a supercharged sentinel" },
         ["Forlien the Abyss Speaker"] = { "a supercharged battlemage" },
-        ["Iridesca"] = { "a wide swipping tidebinder" },
+        ["Iridesca"] = { "a wide swiping tidebinder" },
         ["NeuroKraken"] = { "a supercharged curadrone" },
         ["OctoXecutor"] = { "a supercharged octodrone" },
         ["Stormstomper"] = { "a brutish galasaur hulk" },
