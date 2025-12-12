@@ -8,7 +8,7 @@ local imgui = require("ImGui")
 local ActorsLib = require("actors")
 
 
-BL.info("RaidPrep v1.793 Started")
+BL.info("RaidPrep v1.794 Started")
 
 local lastCleanupTime = 0
 local cleanupInterval = 5   -- how often to clean
@@ -219,10 +219,10 @@ local expansionScripts = {
     ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "OfftankX", "TankBandoSwap", "TCN" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer", "HPMez", "HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
-    ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway" },
-    ["Terror of Luclin"] = { "FreeTheGoranga", "PH2" },
-    ["Claws of Veeshan"] = { "Tantor", "PH2" },
-    ["Torment of Velious"] = { "Griklor", "VelksRaid" },
+    ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
+    ["Terror of Luclin"] = { "Doomshade", "FreeTheGoranga", "SheiBane" },
+    ["Claws of Veeshan"] = { "Tantor" },
+    ["Torment of Velious"] = { "Griklor", "ToFS3", "VelksRaid" },
 }
 
 local scriptTooltips = {
@@ -270,7 +270,10 @@ local scriptTooltips = {
     ["OpenTheDoorRunAway"] = "Does a couple of the run aways during the When One Door Closes raid",
     ["FreeTheGoranga"] = "Runs toon to SE building out of LoS during the Free the Goranga raid",
     ["Griklor"] = "Called out toons will auto follow Griklor around during the Griklor the Restless raid",
-    ["VelksRaid"] = "Can't remember, does stuff"
+    ["VelksRaid"] = "Can't remember, does stuff",
+    ["ShadowsMove"] = "Handles the Setting Sun and Rising Sun emotes during the Firefall Pass raid",
+    ["ToFS3"] = "Calls out which character and race is duplicated for ToFS #3 raid",
+    ["Doomshade"] = "Runs characters to safe spots for the viral and doom emotes during the Doomshade raid",
 }
 
 local function drawluaTab()
