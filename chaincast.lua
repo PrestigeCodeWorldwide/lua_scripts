@@ -3,7 +3,7 @@ local mq = require('mq')
 local ImGui = require 'ImGui'
 local BL = require 'biggerlib'
 
-BL.info("ChainCast v1.0 loaded")
+BL.info("ChainCast v1.1 loaded")
 
 local wasCasting = nil
 -- Configuration
@@ -14,8 +14,7 @@ local config = {
 	enabled = false,
 	currentAttempts = 0,
 	lastCastTime = 0,
-	castDelay = 1000, -- Initial cast delay (ms)
-	recastDelay = 0, -- Additional delay after cast completes (ms)
+	castDelay = 1000, -- Delay between casts (ms)
 	autoInv = false,
 	window = {
 		open = true,
@@ -36,8 +35,8 @@ local function DoCast()
 	local isCasting = mq.TLO.Me.Casting()
 	local isBard = mq.TLO.Me.Class.ShortName() == "BRD"
 
-	-- Don't cast if we're still in the combined delay period
-	if timeSinceLastCast < (config.castDelay + config.recastDelay) then
+	-- Don't cast if we're still in the delay period
+	if timeSinceLastCast < config.castDelay then
 		-- For bards, if we're not casting but the gem is still greyed out, force stop
 		if isBard and not isCasting and mq.TLO.Me.CastTimeLeft() > 0 then
 			mq.cmd("/stopcast")
@@ -136,7 +135,10 @@ local function OnImGuiFrame()
 		end
 
 		-- Cast Delay input
-		ImGui.Text("Cast Delay (ms):")
+		ImGui.Text("Recast Delay (ms):")
+		if ImGui.IsItemHovered() then
+			ImGui.SetTooltip("Total delay between cast attempts starting at initial cast")
+		end
 		ImGui.SameLine()
 		local newCastDelay = ImGui.InputText("##castdelay", tostring(config.castDelay or 1000))
 		if newCastDelay ~= nil then
@@ -145,18 +147,8 @@ local function OnImGuiFrame()
 			end
 		end
 
-		-- Recast Delay input
-		ImGui.Text("Recast Delay (ms):")
-		ImGui.SameLine()
-		local newRecastDelay = ImGui.InputText("##recastdelay", tostring(config.recastDelay or 0))
-		if newRecastDelay ~= nil then
-			if newRecastDelay == "" or newRecastDelay:match("^%d*$") then
-				config.recastDelay = tonumber(newRecastDelay) or 0
-			end
-		end
-
 		-- Max attempts input
-		ImGui.Text("Max Attempts (0=unlimited):")
+		ImGui.Text("Attempts (0=unlimited):")
 		ImGui.SameLine()
 		local newMaxAttempts = ImGui.InputText("##maxattempts", tostring(config.maxAttempts or 0))
 		if newMaxAttempts ~= nil then
@@ -183,8 +175,8 @@ mq.imgui.init('ChainCaster', function()
     -- Begin window and check if it's open
     local windowOpen = ImGui.Begin("Chain Caster", config.window.open)
     if not windowOpen then
+        config.window.open = false
         ImGui.End()
-        mq.exit()
         return
     end
     OnImGuiFrame()
@@ -197,7 +189,10 @@ mq.bind('/chaincast', function()
 end)
 
 -- Main loop
-while true do
+while config.window.open do
     DoCast()
     mq.delay(100)
 end
+
+-- Exit the script when the window is closed
+mq.exit()
