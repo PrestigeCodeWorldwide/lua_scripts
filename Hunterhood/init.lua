@@ -17,7 +17,7 @@ local navCoroutine = nil
 local navActive = false
 local showSettings = false
 
-BL.info('HunterHood v2.18 loaded')
+BL.info('HunterHood v2.19 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -660,8 +660,57 @@ local function createLines(spawn)
         end
     end
 
-    -- Draw the checkbox and text for the spawn
+    -- Draw the checkbox
     drawCheckBox(spawn)
+    
+    --[[ -- Commented out PH count display for Hunter tab
+    -- Get PH count and display it
+    local zoneID = mq.TLO.Zone.ID()
+    local phs = {}
+    
+    -- First try with the exact name
+    local rawPhs = ph_list.getPlaceholders(spawn, zoneID)
+    
+    -- If no placeholders found, try with the mapped name
+    if (not rawPhs or #rawPhs == 0) and nameMap[spawn] then
+        rawPhs = ph_list.getPlaceholders(nameMap[spawn], zoneID) or {}
+    end
+    
+    -- Process the placeholders we found
+    for _, ph in ipairs(rawPhs or {}) do
+        table.insert(phs, ph)
+    end
+    
+    local totalSpawned = 0
+    local phCounts = {}
+    
+    for _, ph in ipairs(phs) do
+        local phID = helpers.findSpawn(ph, nameMap)
+        if phID > 0 then
+            local phSpawn = mq.TLO.Spawn(phID)
+            if phSpawn() and not phSpawn.Dead() then
+                local cleanName = phSpawn.CleanName() or ph
+                -- Use SpawnCount with exact matching to get the real count
+                local count = mq.TLO.SpawnCount('npc ="' .. cleanName .. '"')() or 0
+                if count > 0 then
+                    phCounts[cleanName] = count
+                    totalSpawned = totalSpawned + count
+                end
+            end
+        end
+    end
+    
+    -- Display PH count if any are spawned
+    if totalSpawned > 0 then
+        ImGui.SameLine()
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.0, 0.95, 0.0, 1) -- Lime green color
+        ImGui.Text(string.format("%d", totalSpawned))
+        ImGui.PopStyleColor()
+        ImGui.SameLine()
+    end
+    --]] -- End commented section
+    
+    -- Draw the mob name
     textEnabled(spawn)
 end
 
@@ -1193,6 +1242,72 @@ local function renderHoodTab()
                 ImGui.DrawTextureAnimation(notDone, 15, 15)
             end
             ImGui.SameLine(0, 5)
+
+            -- Get PH count and display it
+            local phs = {}
+            
+            -- First try with the exact name
+            local rawPhs = ph_list.getPlaceholders(spawn.name, hoodAch.zoneID)
+            
+            -- If no placeholders found, try with the mapped name
+            if (not rawPhs or #rawPhs == 0) and nameMap[spawn.name] then
+                rawPhs = ph_list.getPlaceholders(nameMap[spawn.name], hoodAch.zoneID) or {}
+            end
+            
+            -- Fallback: Try the same method as the tooltip
+            if (not rawPhs or #rawPhs == 0) then
+                local allZoneMobs = ph_list.getNamedMobsInZone(hoodAch.zoneID)
+                if allZoneMobs and type(allZoneMobs) == "table" then
+                    local normalizedTarget = helpers.normalizeName(spawn.name)
+                    for _, mobName in ipairs(allZoneMobs) do
+                        if helpers.normalizeName(mobName) == normalizedTarget then
+                            rawPhs = ph_list.getPlaceholders(mobName, hoodAch.zoneID)
+                            if type(rawPhs) ~= "table" then
+                                rawPhs = {}
+                            end
+                            break
+                        end
+                    end
+                end
+            end
+            
+            -- Process the placeholders we found
+            for _, ph in ipairs(rawPhs or {}) do
+                table.insert(phs, ph)
+            end
+            
+            local totalSpawned = 0
+            local phCounts = {}
+            
+            for _, ph in ipairs(phs) do
+                local phID = helpers.findSpawn(ph, nameMap)
+                if phID > 0 then
+                    local phSpawn = mq.TLO.Spawn(phID)
+                    if phSpawn() and not phSpawn.Dead() then
+                        local cleanName = phSpawn.CleanName() or ph
+                        -- Use SpawnCount with exact matching to get the real count
+                        local count = mq.TLO.SpawnCount('npc ="' .. cleanName .. '"')() or 0
+                        if count > 0 then
+                            phCounts[cleanName] = count
+                            totalSpawned = totalSpawned + count
+                        end
+                    end
+                end
+            end
+            
+            -- Display PH count (always show for consistent spacing)
+            ImGui.SameLine()
+            ImGui.SetWindowFontScale(0.9)
+            -- Use lime green for spawned PHs, grey for none
+            if totalSpawned > 0 then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.0, 0.95, 0.0, 1) -- Lime green color
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Grey color
+            end
+            ImGui.Text(string.format("%d", totalSpawned))
+            ImGui.PopStyleColor()
+            ImGui.SetWindowFontScale(1.0)
+            ImGui.SameLine()
 
             local isSpawned = mq.TLO.SpawnCount("npc " .. spawn.name)() > 0
             if isSpawned then

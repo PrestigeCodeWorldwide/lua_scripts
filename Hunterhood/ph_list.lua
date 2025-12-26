@@ -1,4 +1,4 @@
--- v1.136
+-- v1.137
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -636,7 +636,7 @@ local ph_list = {
         ["Silver Eyes Dread"] = { "a glorious djinn" },
         ["Starshine, Icebreaker"] = { "a brumebreeze armor" },
         ["Triumphal Still Sky"] = { "a grand djinn" },
-        ["Wild Blossom Star's_Flight"] = { "an easterly mephit's_Flight" },
+        ["Wild Blossom Star"] = { "an easterly mephit" },
     },
 
     [823] = { --Chamber of Tears--No Achievements for this zone
