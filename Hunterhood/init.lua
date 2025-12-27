@@ -17,7 +17,7 @@ local navCoroutine = nil
 local navActive = false
 local showSettings = false
 
-BL.info('HunterHood v2.19 loaded')
+BL.info('HunterHood v2.191 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -426,7 +426,6 @@ local nameMap = {
     ["Xetheg, Luclin's Warden"]   = "Xetheg, Luclin`s Warden",
     ["Itzal, Luclin's Hunter"]    = "Itzal, Luclin`s Hunter",
     ["Ol' Grinnin' Finley"]       = "Ol` Grinnin` Finley",
-    ["Tha`k Rustae, the Butcher"] = "Tha`k Rustae, the Butcher"
 }
 
 -- Track selected zone per group for Hood tab
@@ -464,21 +463,54 @@ local function updateHunterTab()
         }
         printf('\a#f8bd21Updating Hunter Tab(\a#b08d42%s\a#f8bd21)', curHunterAch.Name)
 
-        -- Get all objectives by name
-        for i = 1, objCount do
+        -- Get all objectives using robust repeat/until logic (like original HunterHUD)
+        local i = 0
+        repeat
             local objective = ach.ObjectiveByIndex(i)
             if objective and objective() then
                 local objName = objective()
                 if objName and objName ~= "" then
                     table.insert(myHunterSpawn, objName)
+                    
+                    -- Debug output for Labyrinth of Spite
+                    if mq.TLO.Zone.ID() == 884 then
+                        printf('DEBUG: Zone 884 objective %d: "%s"', i, objName)
+                    end
+                else
+                    -- Debug for empty/null objectives in Labyrinth of Spite
+                    if mq.TLO.Zone.ID() == 884 then
+                        printf('DEBUG: Zone 884 objective %d is empty or null', i)
+                    end
+                end
+            else
+                -- Debug for missing objectives in Labyrinth of Spite
+                if mq.TLO.Zone.ID() == 884 then
+                    printf('DEBUG: Zone 884 objective %d is missing', i)
                 end
             end
-        end
+            i = i + 1
+        until #myHunterSpawn >= curHunterAch.Count
 
         -- Debug output
         printf('\a#f8bd21Found %d mobs for %s', #myHunterSpawn, curHunterAch.Name)
         for i, mob in ipairs(myHunterSpawn) do
             printf('  %d. %s', i, mob)
+        end
+        
+        -- Special case: Add The Headsman for Labyrinth of Spite if not in achievement
+        if mq.TLO.Zone.ID() == 884 then
+            local hasHeadsman = false
+            for _, mob in ipairs(myHunterSpawn) do
+                if mob == "The Headsman" or mob == "Headsman" or mob == "The Headman" or mob == "Headman" then
+                    hasHeadsman = true
+                    break
+                end
+            end
+            
+            if not hasHeadsman then
+                table.insert(myHunterSpawn, "The Headsman")
+                printf('\a#f8bd21Added The Headsman manually for Labyrinth of Spite')
+            end
         end
 
         printf('\a#f8bd21Hunter Tab Update Done(\a#b08d42%s\a#f8bd21)', curHunterAch.Name)
@@ -882,7 +914,9 @@ local function updateHoodAchievement(zoneID)
     hoodAch.Spawns = {}
     hoodAch.zoneID = zoneID
 
-    for i = 0, achCount do
+    -- Get all objectives using robust repeat/until logic (like original HunterHUD)
+    local i = 0
+    repeat
         local objective = ach.ObjectiveByIndex(i)
         if not objective or not objective() then
             objective = ach.Objective(i)
@@ -902,7 +936,8 @@ local function updateHoodAchievement(zoneID)
                 })
             end
         end
-    end
+        i = i + 1
+    until #hoodAch.Spawns >= achCount
 
     return true
 end
