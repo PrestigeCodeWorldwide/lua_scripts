@@ -17,7 +17,7 @@ local navCoroutine = nil
 local navActive = false
 local showSettings = false
 
-BL.info('HunterHood v2.191 loaded')
+BL.info('HunterHood v2.192 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -471,21 +471,6 @@ local function updateHunterTab()
                 local objName = objective()
                 if objName and objName ~= "" then
                     table.insert(myHunterSpawn, objName)
-                    
-                    -- Debug output for Labyrinth of Spite
-                    if mq.TLO.Zone.ID() == 884 then
-                        printf('DEBUG: Zone 884 objective %d: "%s"', i, objName)
-                    end
-                else
-                    -- Debug for empty/null objectives in Labyrinth of Spite
-                    if mq.TLO.Zone.ID() == 884 then
-                        printf('DEBUG: Zone 884 objective %d is empty or null', i)
-                    end
-                end
-            else
-                -- Debug for missing objectives in Labyrinth of Spite
-                if mq.TLO.Zone.ID() == 884 then
-                    printf('DEBUG: Zone 884 objective %d is missing', i)
                 end
             end
             i = i + 1
@@ -495,22 +480,6 @@ local function updateHunterTab()
         printf('\a#f8bd21Found %d mobs for %s', #myHunterSpawn, curHunterAch.Name)
         for i, mob in ipairs(myHunterSpawn) do
             printf('  %d. %s', i, mob)
-        end
-        
-        -- Special case: Add The Headsman for Labyrinth of Spite if not in achievement
-        if mq.TLO.Zone.ID() == 884 then
-            local hasHeadsman = false
-            for _, mob in ipairs(myHunterSpawn) do
-                if mob == "The Headsman" or mob == "Headsman" or mob == "The Headman" or mob == "Headman" then
-                    hasHeadsman = true
-                    break
-                end
-            end
-            
-            if not hasHeadsman then
-                table.insert(myHunterSpawn, "The Headsman")
-                printf('\a#f8bd21Added The Headsman manually for Labyrinth of Spite')
-            end
         end
 
         printf('\a#f8bd21Hunter Tab Update Done(\a#b08d42%s\a#f8bd21)', curHunterAch.Name)
@@ -546,6 +515,11 @@ local function textEnabled(spawn)
     ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
 
     local selSpawn = ImGui.Selectable(spawn, false, ImGuiSelectableFlags.AllowDoubleClick)
+    
+    -- Handle right-click targeting
+    if ImGui.IsItemClicked(1) then -- Right click (button 1)
+        helpers.targetMobOrPH(spawn, mq.TLO.Zone.ID(), nameMap)
+    end
 
     ImGui.PopStyleColor(3)
 
@@ -1353,6 +1327,11 @@ local function renderHoodTab()
 
             ImGui.PushID("mob_" .. tostring(spawn.id or 0) .. "_" .. spawn.name)
             local selected = ImGui.Selectable(spawn.name, false, ImGuiSelectableFlags.AllowDoubleClick)
+            
+            -- Handle right-click targeting
+            if ImGui.IsItemClicked(1) then -- Right click (button 1)
+                helpers.targetMobOrPH(spawn.name, hoodAch.zoneID, nameMap)
+            end
             if selected and ImGui.IsMouseDoubleClicked(0) then
                 -- First check if the named mob is up
                 local spawnID = helpers.findSpawn(spawn.name, nameMap)

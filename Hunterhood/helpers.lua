@@ -1,11 +1,12 @@
--- v1.111
+-- v1.113
 local mq = require 'mq'
 local BL = require("biggerlib")
 
 local useInvis = true
 local function new(myAch)
     local helpers = {}
-
+    helpers.pathCache = {}
+    helpers.lastCacheClear = os.clock()
 
     -- Print format function
     function helpers.printf(...)
@@ -300,7 +301,123 @@ end
         return nil, nil
     end
 
-    -- Check if group needs invisibility
+    function helpers.findNearestSpawnWithPathing(spawns, maxCandidates)
+        local now = os.clock()
+        local pathCache = helpers.pathCache or {}
+        local lastCacheClear = helpers.lastCacheClear or 0
+        local CACHE_DURATION = 5 -- seconds
+        
+        -- Clear cache every CACHE_DURATION seconds
+        if now - lastCacheClear > CACHE_DURATION then
+            pathCache = {}
+            lastCacheClear = now
+            helpers.pathCache = pathCache
+            helpers.lastCacheClear = lastCacheClear
+        end
+
+        -- First pass: find closest candidates by direct distance
+        local candidates = {}
+        for _, spawn in ipairs(spawns) do
+            if spawn and spawn() and not spawn.Dead() then
+                local dist = spawn.Distance3D() or math.huge
+                table.insert(candidates, {
+                    spawn = spawn,
+                    dist = dist,
+                    id = spawn.ID()
+                })
+            end
+        end
+
+        -- Sort by direct distance
+        table.sort(candidates, function(a, b) return a.dist < b.dist end)
+
+        -- Only check the closest N candidates with pathfinding
+        local bestSpawn = nil
+        local minPathDist = math.huge
+        local checked = 0
+
+        for _, candidate in ipairs(candidates) do
+            if checked >= (maxCandidates or 5) then break end
+            
+            -- Check cache first
+            local pathLength = pathCache[candidate.id]
+            
+            if not pathLength then
+                -- Not in cache, calculate path
+                pathLength = mq.TLO.Navigation.PathLength(candidate.id)()
+                pathCache[candidate.id] = pathLength
+                helpers.pathCache = pathCache
+                coroutine.yield() -- Prevent freezing
+            end
+
+            -- Only consider valid paths
+            if pathLength > 0 and pathLength < minPathDist then
+                minPathDist = pathLength
+                bestSpawn = candidate.spawn
+            end
+
+            checked = checked + 1
+        end
+
+        -- If no valid paths found, fall back to direct distance
+        return bestSpawn or (candidates[1] and candidates[1].spawn)
+    end
+
+    -- Target named mob or nearest PH (for right-click functionality)
+    -- @param mobName string - Name of the named mob to target
+    -- @param zoneID number - Zone ID to search in (current zone if nil)
+    -- @param nameMap table - Name mapping table for spawn name corrections
+    -- @return boolean - True if successfully targeted something, false otherwise
+    function helpers.targetMobOrPH(mobName, zoneID, nameMap)
+        if not mobName then return false end
+        
+        zoneID = zoneID or mq.TLO.Zone.ID()
+        local spawnID = helpers.findSpawn(mobName, nameMap)
+        
+        if spawnID > 0 then
+            -- Named mob is up, target it
+            mq.cmd('/target id ' .. spawnID)
+            printf('\a#f8bd21Targeted named mob: %s (ID: %d)', mobName, spawnID)
+            return true
+        else
+            -- Named not up, try to target nearest PH
+            local phList = require('Hunterhood.ph_list')
+            local phs = phList.getPlaceholders(mobName, zoneID)
+            
+            if phs and #phs > 0 then
+                local nearestPH = nil
+                local nearestDist = 999999
+                
+                for _, ph in ipairs(phs) do
+                    local phID = helpers.findSpawn(ph, nameMap)
+                    if phID > 0 then
+                        local phSpawn = mq.TLO.Spawn(phID)
+                        if phSpawn() and not phSpawn.Dead() then
+                            local dist = phSpawn.Distance()
+                            if dist < nearestDist then
+                                nearestDist = dist
+                                nearestPH = phID
+                            end
+                        end
+                    end
+                end
+                
+                if nearestPH then
+                    local phName = mq.TLO.Spawn(nearestPH).CleanName()
+                    mq.cmd('/target id ' .. nearestPH)
+                    printf('\a#f8bd21Targeted nearest PH for %s: %s (ID: %d)', mobName, phName, nearestPH)
+                    return true
+                else
+                    printf('\arNo PHs found for %s', mobName)
+                end
+            else
+                printf('\arNo PHs defined for %s', mobName)
+            end
+        end
+        
+        return false
+    end
+
     function helpers.groupNeedsInvis()
         -- First check if invis is disabled
         if not useInvis then
