@@ -9,7 +9,7 @@ BL.info("TankBandoSwap Script v1.1 Started")
 -- Get command-line argument
 local arg = ...
 local threshold = tonumber(arg) or 3
-local swapOnNamed = true -- Default to true for backward compatibility
+local swapOnNamed = false
 
 BL.info(string.format("TankBandoSwap started with XTarget threshold: %d, Swap on named: %s", threshold,
     tostring(swapOnNamed)))
