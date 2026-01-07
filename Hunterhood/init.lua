@@ -17,7 +17,7 @@ local navCoroutine = nil
 local navActive = false
 local showSettings = false
 
-BL.info('HunterHood v2.192 loaded')
+BL.info('HunterHood v2.193 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -269,10 +269,26 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 if (currentTarget.Distance3D() <= 60 or currentTarget.Distance() <= 50) then
                     --printf("\ayDEBUG: In range, checking group distance...")
 
-                    -- Check if we're already in combat or have adds - if so, skip distance check
+                    -- Check if we're already in combat or have dangerous adds - if so, skip distance check
                     local inCombat = mq.TLO.Me.Combat()
-                    local hasAdds = (mq.TLO.Me.XTarget() or 0) > 0
-                    local skipDistanceCheck = inCombat or hasAdds
+                    local hasDangerousAdds = false
+                    
+                    -- Check if any extended targets are dangerous adds (not PCs)
+                    local xtargetCount = mq.TLO.Me.XTarget() or 0
+                    if xtargetCount > 0 then
+                        for i = 1, xtargetCount do
+                            local xtarget = mq.TLO.Me.XTarget(i)
+                            if xtarget() and xtarget.ID() > 0 then
+                                local spawn = mq.TLO.Spawn(xtarget.ID())
+                                if spawn() and not spawn.Dead() and spawn.Type() ~= "PC" then
+                                    hasDangerousAdds = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    
+                    local skipDistanceCheck = inCombat or hasDangerousAdds
 
                     --if skipDistanceCheck then
                     --printf("\ayDEBUG: %s - skipping group distance check",
@@ -1406,6 +1422,8 @@ local function renderHoodTab()
 
                 local spawnedPHs = {} -- This will be an array of {name, count} tables
                 local phSeen = {}     -- This will help us track which PHs we've already counted
+                local nearestPHDistance = math.huge
+                local nearestPHName = ""
 
                 for _, phName in ipairs(placeholders) do
                     local phID = helpers.findSpawn(phName, nameMap)
@@ -1413,6 +1431,14 @@ local function renderHoodTab()
                         local phSpawn = mq.TLO.Spawn(phID)
                         if phSpawn() and not phSpawn.Dead() then
                             local cleanName = phSpawn.CleanName() or phName
+                            local distance = phSpawn.Distance3D() or math.huge
+                            
+                            -- Track nearest PH
+                            if distance < nearestPHDistance then
+                                nearestPHDistance = distance
+                                nearestPHName = cleanName
+                            end
+                            
                             if not phSeen[cleanName] then
                                 phSeen[cleanName] = true
                                 -- Count all instances of this PH in the zone
@@ -1439,7 +1465,17 @@ local function renderHoodTab()
                         end
                         ImGui.Text(string.format("\nCurrently spawned (x%d):", totalSpawned))
                         for _, ph in ipairs(spawnedPHs) do
-                            ImGui.BulletText(string.format("%s (x%d)", ph.name, ph.count))
+                            local displayText = string.format("%s (x%d)", ph.name, ph.count)
+                            -- Add distance for nearest PH in lime green
+                            if ph.name == nearestPHName and nearestPHDistance < math.huge then
+                                ImGui.BulletText(displayText)
+                                ImGui.SameLine(0, 2)
+                                ImGui.PushStyleColor(ImGuiCol.Text, 0.0, 0.95, 0.0, 1) -- Lime green color
+                                ImGui.Text(string.format("[%.0f]", nearestPHDistance))
+                                ImGui.PopStyleColor()
+                            else
+                                ImGui.BulletText(displayText)
+                            end
                         end
                     end
                     if #placeholders > 0 then
