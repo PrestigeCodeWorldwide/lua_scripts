@@ -5,6 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
+BL.info("OfftankX v1.01 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -283,6 +284,7 @@ local function ParseIgnoredMobs(ignoredMobsInput)
 end
 
 local DrawUI = function()
+	ImGui.SetNextItemWidth(100)  -- Set width for distance input
 	State.distance, State.isChanged = ImGui.InputInt(
 		"Distance",
 		State.distance, 5,
@@ -298,6 +300,7 @@ local DrawUI = function()
 	
 	local selected = tostring(State.selected_xtar_to_tank) or "NONE"
 	local changedXtarSelection = false
+	ImGui.SetNextItemWidth(100)  -- Set width for xtar combo (same as distance)
 	selected, changedXtarSelection = draw_combo_box("XTar to Tank", selected, State.xtar_options)
 	if changedXtarSelection then
 		State.UserChangedSelectionFlag = true
@@ -314,19 +317,48 @@ local DrawUI = function()
 	
 	local changedMode = false
 	local selectedMode = State.chosenMode
+	ImGui.SetNextItemWidth(100)  -- Set width for mode combo (same as distance/xtar)
 	selectedMode, changedMode = draw_combo_box("Non-Tanking Mode", selectedMode, State.cwtnModeList)
 	if changedMode then
 		State.chosenMode = selectedMode
 		State.UserChangedModeFlag = true
-	
 	end
 	
 	-- Accept user input for list of names and put them into string array State.ignored_mobs
+	ImGui.Text("Ignored Mobs")
 	local ignoredMobsInput = State.ignored_mobs_input or ""
 	local changed = false
-	ignoredMobsInput, changed = ImGui.InputTextMultiline("Ignored Mobs", ignoredMobsInput, 265, 100, 0)
+	ImGui.SetNextItemWidth(300)  -- Set width for ignored mobs input
+	ignoredMobsInput, changed = ImGui.InputTextMultiline("", ignoredMobsInput, 265, 100, 0)
 	if changed then
 		ParseIgnoredMobs(ignoredMobsInput)
+	end
+	
+	-- Add Ignore Current Target button
+	if ImGui.Button("Ignore Current Target") then
+		local currentTarget = mq.TLO.Target
+		if currentTarget() and currentTarget.Type() ~= "PC" then
+			local targetName = currentTarget.CleanName()
+			-- Check if target is already in ignore list
+			local alreadyIgnored = false
+			for _, ignoredName in ipairs(State.ignored_mobs) do
+				if ignoredName == targetName then
+					alreadyIgnored = true
+					break
+				end
+			end
+			
+			if not alreadyIgnored then
+				table.insert(State.ignored_mobs, targetName)
+				-- Update the input text to show the new ignore list
+				State.ignored_mobs_input = table.concat(State.ignored_mobs, "\n")
+				print("Added " .. targetName .. " to ignore list")
+			else
+				print(targetName .. " is already in ignore list")
+			end
+		else
+			print("No valid target selected (or targeting a PC)")
+		end
 	end
 end
 
