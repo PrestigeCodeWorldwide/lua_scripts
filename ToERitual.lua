@@ -3,13 +3,15 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToERitual Script v1.22 Started")
+BL.info("ToERitual Script v1.23Started")
 
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} mode 2")
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} chasedistance 10 nosave")
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} raidmode off")
 mq.cmdf("/docommand /${Me.Class.ShortName} raidmode on")
 mq.cmdf("/docommand /grouproles set ${Me.Name} 2")
+mq.cmdf("/dgge /docommand /${Me.Class.ShortName} useselos off nosave")
+mq.cmdf("/dgga /docommand /removebuff Selo's Accelerato")
 
 local ritualinprogress = false
 local canMoveToCircles = false
