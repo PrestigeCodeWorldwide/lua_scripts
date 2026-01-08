@@ -5,13 +5,10 @@ local BL = require("biggerlib")
 ---@type ImGui
 require('ImGui')
 
--- version 0.09
--- edited by Dragon to allow the user to choose the distance for the assisting
--- 11-3-23 - Added five NoS raids--Strat
--- 1-31-24 - Added Pit Fight and T2 LS Placeholders --Strat
--- 3-2-24 - Added 23rd Anni Raid- Strat
+BL.info("OffTank v1.00 loaded")
+-- version 1.00
 -- 5-19-25 - Refactored UI to avoid 60 upvalues error and added 5 ToB raids - Strat
-
+-- 1-7-25 - Added SoR T1 raids - Strat
 
 local my_class = mq.TLO.Me.Class.ShortName()
 local assigned_mob = ''
@@ -23,11 +20,12 @@ local prev_ToL_Raid = ''
 local prev_NoS_Raid = ''
 local prev_LS_Raid = ''
 local prev_ToB_Raid = ''
+local prev_SoR_Raid = ''
 local prev_Misc_Raid = ''
 
 -- Minimum and maximim distance for Imgui input to prevent numbers too low/high
-local MIN_DIST = 20
-local MAX_DIST = 200
+local MIN_DIST = 10
+local MAX_DIST = 300
 -- The distance in which the assigned mob can be targeted and attacked
 -- default is 150
 local distance = 100
@@ -135,7 +133,8 @@ local expansions = {
 	[5] = 'Night of Shadows',
 	[6] = 'Laurions Song',
 	[7] = 'The Outer Brood',
-	[8] = 'Misc',
+	[8] = 'The Shattering of Ro',
+	[9] = 'Misc',
 }
 
 local expansion = 'None'
@@ -196,6 +195,16 @@ local ToB_Raids = {
 	[6] = 'Docks'
 }
 local ToB_Raid = 'None'
+
+local SoR_Raids = {
+	[1] = 'WaxworkAbolishion',
+	[2] = 'TheInvaders',
+	[3] = 'ColossusofSkylance',
+	[4] = 'Ashenback',
+	[5] = 'SharDrahn',
+	[6] = 'EchoofHate'
+}
+local SoR_Raid = 'None'
 
 local Misc_Raids = {
 	[1] = 'Anni23rd',
@@ -537,6 +546,32 @@ local Docks = {
 	[5] = 'Whirling_debris04',
 	[6] = 'Whirling_debris05',
 }
+
+------Beginning of SoR Raid Mob List------
+local WaxworkAbolishion = {
+	[1] = 'Waxwork_Abolishion00',
+	[2] = 'Waxwork_Igniter00',
+	[3] = 'Waxwork_Trapper00',
+	[4] = 'Waxwork_Combustor00',
+	[5] = 'Waxwork_Burster00',
+	[6] = 'Waxwork_Lancer00',
+	[7] = 'A_waxwork_zealot00',
+	[8] = 'A_waxwork_ambusher00',
+	[9] = 'A_waxwork_soldier00',
+	[10] = 'A_waxwork_globule00',
+}
+local TheInvaders = {
+	[1] = '"Glarubaran,_the_Great_Storm00"',
+	[2] = '"Teknaz,_Bringer_of_Flames00"',
+	[3] = 'The_Loathing_Lord00',
+	[4] = 'A_payload_specialist00',
+	[5] = 'A_candlefolk_defender00',
+	[6] = 'An_inferior_spite00',
+	[7] = 'An_inferior_spite01',
+	[8] = 'A_flame_elemental00',
+	[9] = 'A_candlemaster00',
+}
+
 ------Beginning of Misc Raid Mob List------
 local Anni23rd = {
 	[1] = 'A_sebilite_golem00',
@@ -702,6 +737,28 @@ local function draw_ToB_UI()
     prev_ToB_Raid = ToB_Raid
 end
 
+local function draw_SoR_UI()
+    SoR_Raid = draw_combo_box('Raid Select', SoR_Raid, SoR_Raids)
+    if SoR_Raid ~= prev_SoR_Raid then
+        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
+    end
+    local raidTable = {
+        WaxworkAbolishion = WaxworkAbolishion,
+        TheInvaders = TheInvaders,
+        CollussusofSkylance = CollussusofSkylance,
+        Ashenback = Ashenback,
+        SharDrahn = SharDrahn,
+        EchoofHate = EchoofHate,
+    }
+    local mobList = raidTable[SoR_Raid]
+    if mobList then
+        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
+        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
+        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
+    end
+    prev_SoR_Raid = SoR_Raid
+end
+
 local function draw_Misc_UI()
     Misc_Raid = draw_combo_box('Raid Select', Misc_Raid, Misc_Raids)
     if Misc_Raid ~= prev_Misc_Raid then
@@ -748,9 +805,17 @@ local function OT_UI()
         if expansion == 'Night of Shadows' then draw_NoS_UI() end
         if expansion == 'Laurions Song' then draw_LS_UI() end
         if expansion == 'The Outer Brood' then draw_ToB_UI() end
+		if expansion == 'The Shattering of Ro' then draw_SoR_UI() end
         if expansion == 'Misc' then draw_Misc_UI() end
     end
     ImGui.End()
+    
+    -- Check if window was closed via X button
+    if not open_gui then
+        mq.imgui.destroy('OffTanking')
+        mq.exit()
+        return
+    end
 end
 
 mq.imgui.init('OffTanking', OT_UI)
