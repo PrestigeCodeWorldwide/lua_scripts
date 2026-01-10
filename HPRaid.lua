@@ -8,7 +8,7 @@ BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 BL.warn("Untested as of 12-16-25. Reminder to test when MQ is back up.")
 
 -- Shared State
-local mezSpell = "Slumber of Suja"
+local mezSpell = "Slumber of Keftlik"
 local shouldDoMez = false
 local isMezPaused = false
 local isHandlingDebuff = false
