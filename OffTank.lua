@@ -1,829 +1,760 @@
 ---@type Mq
 local mq = require("mq")
----@type BL
+--- @type ImGui
+require("ImGui")
+--- @type BL
 local BL = require("biggerlib")
----@type ImGui
-require('ImGui')
 
-BL.info("OffTank v1.00 loaded")
--- version 1.00
--- 5-19-25 - Refactored UI to avoid 60 upvalues error and added 5 ToB raids - Strat
--- 1-7-25 - Added SoR T1 raids - Strat
+BL.info("Offtank v1.13 loaded")
+--local _chosenMode = mq.TLO.CWTN.Mode()
 
-local my_class = mq.TLO.Me.Class.ShortName()
-local assigned_mob = ''
-local assigned_mob1 = ''
-local assigned_mob2 = ''
-local prev_ToV_Raid = ''
-local prev_CoV_Raid = ''
-local prev_ToL_Raid = ''
-local prev_NoS_Raid = ''
-local prev_LS_Raid = ''
-local prev_ToB_Raid = ''
-local prev_SoR_Raid = ''
-local prev_Misc_Raid = ''
 
--- Minimum and maximim distance for Imgui input to prevent numbers too low/high
-local MIN_DIST = 10
-local MAX_DIST = 300
--- The distance in which the assigned mob can be targeted and attacked
--- default is 150
-local distance = 100
-local isChanged = false
+---@class ScriptState
+local State = {
+	MIN_DIST = 15,
+	MAX_DIST = 9999,
+	distance = 60,
+	Paused = true,  -- Start in paused state
+	chosenMode = nil,
+	waypoints = {},  -- Store waypoint data
+	current_waypoint = nil,  -- Active waypoint for tanking
+	use_waypoint = false,  -- Whether to use waypoint positioning
+	cwtnModeList = {
+		"Manual",
+		"Assist",
+		"ChaseAssist",
+		"SicTank",
+		"Vorpal",
+	},
+	selected_xtar_to_tank = "NONE", -- chosen xtar i should be tanking
+	xtar_options = {
+		"NONE",
+		"1",
+		"2",
+		"3",
+		"4",
+		"5",
+		"6",
+		"7",
+		"8",
+		"9",
+		"10",
+		"11",
+		"12",
+		"13",
+		"14",
+		"15",
+		"16",
+		"17",
+		"18",
+		"19",
+		"20",
+	},
+	ignored_mobs = {},
+	ignored_mobs_input = "",
+	current_mob_being_tanked = nil,
+	filtered_xtar_list = {},
+	IAmTanking = false,
+	UserChangedSelectionFlag = false,
+	UserChangedModeFlag = false,
+	my_class = mq.TLO.Me.Class.ShortName(),
+	last_waypoint_time = 0,  -- Track last waypoint movement time
+	no_xtar_warning_shown = false,  -- Track if no xtar warning has been shown
+	nil_selection_warning_shown = false,  -- Track if nil selection warning has been shown
+	last_selected_xtar = nil,  -- Track last selection to detect actual changes
+	targeting_mode = "xtar",  -- "xtar" or "mobname"
+	mob_name_input = "",  -- Input field for mob name
+	mob_names = {},  -- Parsed mob names from input (like original offtank)
+	current_mob_target = nil,  -- Current target when in mobname mode
+	last_mob_input_change = 0,  -- Track last mob name input change for debouncing
+	last_mode_change = 0,  -- Track last mode change for UI context detections
+}
 
-local open_gui = true
-local should_draw_gui = true
-local pause = false
-local chosenMode = mq.TLO.CWTN.Mode()
+local function initMQBindings()
+	mq.bind("/offtank reset", function()
+		State.chosenMode = mq.TLO.CWTN.Mode()
+		print("Setting idle mode to " .. State.chosenMode)
+	end)
+	
+	mq.bind("/offtank pause on", function()
+		State.Paused = true
+		mq.cmd("/squelch /nav stop")
+		print("Offtank paused")
+	end)
+	
+	mq.bind("/offtank pause off", function()
+		State.Paused = false
+		print("Offtank resumed")
+	end)
+	
+	mq.bind("/offtank pause", function()
+		State.Paused = true
+		mq.cmd("/squelch /nav stop")
+		print("Offtank paused")
+	end)
+end
 
-mq.bind("/offtank reset", function()
-	chosenMode = mq.TLO.CWTN.Mode()
-	print("Setting idle mode to " .. chosenMode)
-end)
-
-mq.bind("/offtank pause on", function()
-	pause = true
-	mq.cmd('/squelch /nav stop')
-	print("Offtank paused")
-end)
-
-mq.bind("/offtank pause off", function()
-	pause = false
-	print("Offtank resumed")
-end)
-
-mq.bind("/offtank pause", function()
-	pause = true
-	mq.cmd('/squelch /nav stop')
-	print("Offtank paused")
-end)
 
 local function cwtnCHOSEN()
-	if mq.TLO.CWTN.Mode() ~= chosenMode then
-		mq.cmdf('/%s mode %s', my_class, chosenMode)
+
+	if mq.TLO.CWTN.Mode() ~= State.chosenMode then
+		BL.info("Returning to chosen non-tank mode")
+		mq.cmd("/squelch /nav stop")
+		mq.cmd("/target clear")
+		mq.cmdf("/%s mode %s", State.my_class, State.chosenMode)
+		State.last_mode_change = mq.gettime()
 	end
 end
 
 local function cwtnTANK()
-	if mq.TLO.CWTN.Mode() ~= 'Tank' then
-		mq.cmdf('/%s mode 4', my_class)
+	if mq.TLO.CWTN.Mode() ~= "Tank" then
+		mq.cmdf("/%s mode 4", State.my_class)
 	end
 end
 
-local function target()
-	if mq.TLO.Target() ~= assigned_mob then
-		mq.delay('1s')
-		mq.cmdf('/target %s', assigned_mob)
+local function TargetAssignedMob()
+	if mq.TLO.Target.ID() ~= State.current_mob_being_tanked.ID() then
+		--mq.cmdf("/target %s", State.selected_xtar_to_tank)
+		--BL.info("Changing target to currently assigned, which is:")
+		--BL.dump(State.current_mob_being_tanked.ID())
+		--BL.dump(State.current_mob_being_tanked.Name())
+		State.current_mob_being_tanked.DoTarget()
+		mq.delay(1)
 	end
 end
 
-local function target1()
-	if mq.TLO.Target() ~= assigned_mob1 then
-		mq.delay('1s')
-		mq.cmdf('/target %s', assigned_mob1)
-	end
-end
-
-local function target2()
-	if mq.TLO.Target() ~= assigned_mob2 then
-		mq.delay('1s')
-		mq.cmdf('/target %s', assigned_mob2)
-	end
+local function removeMainTankRole(mtName)
+	mq.cmd("/grouproles unset " .. mtName .. " 1")
+	print("Removed main tank role")
 end
 
 
-local function main()
-	if pause then
-		mq.delay(100)
+local function checkGroupTankRoleIsEmpty()
+    local groupHasMainTank = mq.TLO.Group.MainTank()
+	
+	if BL.IsNil(groupHasMainTank) then
+		return true
+	end
+	
+	local mainTank = mq.TLO.Group.MainTank.CleanName()
+	
+    if mainTank ~= mq.TLO.Me.CleanName()
+	then
+		return true
+	else
+		--print("WARNING: GROUP MAIN TANK ROLE IS SET!")
+		--mq.cmd("/rs WARNING: MY GROUP MAIN TANK ROLE IS ENABLED")
+		removeMainTankRole(mainTank)
+		return false
+	end
+end
+
+local function SaveWaypoint()
+	-- Save current position as a waypoint
+	local loc = mq.TLO.Me.Loc()
+	local zone = mq.TLO.Zone.ShortName()
+	
+	local waypoint = {
+		name = "WP" .. #State.waypoints + 1,
+		x = mq.TLO.Me.X(),
+		y = mq.TLO.Me.Y(),
+		z = mq.TLO.Me.Z(),
+		zone = zone,
+		heading = mq.TLO.Me.Heading()
+	}
+	
+	table.insert(State.waypoints, waypoint)
+	print("\arSaved waypoint: " .. waypoint.name .. " at (" .. string.format("%.1f, %.1f, %.1f", waypoint.y, waypoint.x, waypoint.z) .. ") in " .. zone .. "\ax")
+end
+
+local function GetWaypointNames()
+	local names = {"NONE"}
+	for i, wp in ipairs(State.waypoints) do
+		table.insert(names, wp.name)
+	end
+	return names
+end
+
+local function MoveToWaypoint(waypoint)
+	if not waypoint or waypoint.name == "NONE" then
+		return false
+	end
+	
+	-- Check if we're in the right zone
+	if waypoint.zone ~= mq.TLO.Zone.ShortName() then
+		print("\arWaypoint " .. waypoint.name .. " is in zone " .. waypoint.zone .. ", but you're in " .. mq.TLO.Zone.ShortName() .. "\ax")
+		return false
+	end
+	
+	-- Navigate to waypoint location
+	mq.cmdf("/nav loc %f %f %f", waypoint.y, waypoint.x, waypoint.z)
+	print("\arMoving to waypoint " .. waypoint.name .. "\ax")
+	return true
+end
+
+local function ParseMobNames(mobNameInput)
+	-- cache UI input for later change comparison
+	State.mob_name_input = mobNameInput
+	--split mobNameInput by newline and push each resulting string into State.mob_names
+	local mobNames = {}
+	for line in mobNameInput:gmatch("[^\r\n]+") do
+		-- Trim whitespace and add if not empty
+		local trimmed = line:match("^%s*(.-)%s*$")
+		if trimmed and trimmed ~= "" then
+			table.insert(mobNames, trimmed)
+		end
+	end
+	
+	State.mob_names = mobNames
+	-- Clear current target when mob list changes to prevent targeting removed mobs
+	State.current_mob_being_tanked = nil
+	State.IAmTanking = false
+	cwtnCHOSEN()
+end
+
+local function FindMobByName()
+	if #State.mob_names == 0 then
+		return nil
+	end
+	
+	-- Search for mobs by exact name match, prioritize closest
+	local closestMob = nil
+	local closestDistance = 999999
+	
+	-- Check each mob name in our list
+	for _, mobName in ipairs(State.mob_names) do
+		local spawn = mq.TLO.Spawn(mobName)
+		if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance then
+			local distance = spawn.Distance()
+			if distance < closestDistance then
+				closestDistance = distance
+				closestMob = spawn
+			end
+		end
+	end
+	
+	return closestMob
+end
+
+local function IsNotIgnored(targetName)
+	-- check if targetName is in State.ignored_mobs (case insensitive)
+	if not targetName or targetName == "" then
+		return false  -- Can't ignore a nil/empty name
+	end
+	local targetNameLower = string.lower(targetName)
+	for _, ignored in ipairs(State.ignored_mobs) do
+		if targetNameLower == string.lower(ignored) then
+			return false
+		end
+	end
+	return true
+end
+
+local function UpdateAggroState()
+	
+	if State.UserChangedModeFlag then
+		cwtnCHOSEN()
+		State.UserChangedModeFlag = false
+	end
+	
+	-- Handle different targeting modes
+	if State.targeting_mode == "xtar" then
+		-- XTar mode logic (original)
+		if BL.IsNil(State.selected_xtar_to_tank) or State.selected_xtar_to_tank == "NONE" then
+			if not State.no_xtar_warning_shown then
+				BL.info("NO SELECTED XTAR")
+				State.no_xtar_warning_shown = true
+			end
+			if State.IAmTanking then
+				cwtnTANK()
+				State.IAmTanking = false
+			end
+			return
+		end
+		
+		-- Get entire xtar list so we can filter out the ignored ones
+		local xtarCount = mq.TLO.Me.XTarget()
+		State.filtered_xtar_list = {}
+		State.no_xtar_warning_shown = false  -- Reset warning flag when we have targets
+		for i = 1, xtarCount do
+			local currtar = mq.TLO.Me.XTarget(i)
+			if not BL.IsNil(currtar) and currtar.CleanName() and IsNotIgnored(currtar.CleanName()) then
+				table.insert(State.filtered_xtar_list, currtar)
+			end
+		end
+		
+		-- Get target from xtar list
+		local xtar = State.filtered_xtar_list[State.selected_xtar_to_tank]
+		if xtar ~= nil and not xtar.Dead() then
+			local xtarSpawn = mq.TLO.Spawn(xtar.ID())
+			State.current_mob_being_tanked = xtarSpawn
+		else
+			State.current_mob_being_tanked = nil
+			cwtnCHOSEN()
+			State.IAmTanking = false
+		end
+		
+	else -- mobname mode
+		-- MobName mode logic
+		if #State.mob_names == 0 then
+			if not State.no_xtar_warning_shown then
+				BL.info("NO MOB NAMES SPECIFIED")
+				State.no_xtar_warning_shown = true
+			end
+			if State.IAmTanking then
+				cwtnTANK()
+				State.IAmTanking = false
+			end
+			return
+		end
+		
+		State.no_xtar_warning_shown = false  -- Reset warning flag when we have mob names
+		
+		-- Find target by mob name
+		local targetMob = FindMobByName()
+		if targetMob then
+			State.current_mob_being_tanked = targetMob
+		else
+			State.current_mob_being_tanked = nil
+			cwtnCHOSEN()
+			State.IAmTanking = false
+		end
+	end
+end
+
+local function StartTankingTarget()
+	cwtnTANK()
+	mq.delay(1)
+	if not mq.TLO.Me.Combat() then
+		mq.cmd("/attack on")
+	end
+	mq.delay(50)
+end
+
+local function DoTanking()
+	local assigned_mob = State.current_mob_being_tanked
+	if assigned_mob == nil or assigned_mob == 0 then
+		--BL.info("Early out cwtnChosen call from DoTanking")
+		if State.IAmTanking then
+			cwtnCHOSEN()
+			State.IAmTanking = false
+		end
 		return
 	end
-	if assigned_mob ~= '' and mq.TLO.Spawn(assigned_mob).Distance() ~= nil and mq.TLO.Spawn(assigned_mob).Distance() < distance then
-		target()
-		mq.delay('1ms')
-		cwtnTANK()
-		mq.delay('1ms')
-		mq.cmd('/attack on')
-		mq.delay('5ms')
-	elseif
-		assigned_mob1 ~= '' and mq.TLO.Spawn(assigned_mob1).Distance() ~= nil and mq.TLO.Spawn(assigned_mob1).Distance() < distance then
-		target1()
-		mq.delay('1ms')
-		cwtnTANK()
-		mq.delay('1ms')
-		mq.cmd('/attack on')
-		mq.delay('5ms')
-	elseif assigned_mob2 ~= '' and mq.TLO.Spawn(assigned_mob2).Distance() ~= nil and mq.TLO.Spawn(assigned_mob2).Distance() < distance then
-		target2()
-		mq.delay('1ms')
-		cwtnTANK()
-		mq.delay('1ms')
-		mq.cmd('/attack on')
-		mq.delay('5ms')
-	else
-		cwtnCHOSEN()
+	local spawn_to_tank = mq.TLO.Spawn(assigned_mob.ID())
+	if BL.IsNil(spawn_to_tank) then
+		BL.info("Early out from DoTanking because spawn_to_tank is nil")
+		if State.IAmTanking then
+			cwtnCHOSEN()
+			State.IAmTanking = false
+		end
+	end
+	local spawn_distance = spawn_to_tank.Distance()
+	local spawn_los = spawn_to_tank.LineOfSight()
+	local current_mode = mq.TLO.CWTN.Mode()
+	
+	-- Check if we're currently in manual mode (navigating) and should continue
+	if current_mode == 0 and State.IAmTanking then
+		-- We're navigating to target, continue until we get close or gain LOS
+		if spawn_distance < 15 then
+			-- Close enough, switch to tank mode
+			cwtnTANK()
+			BL.info("Reached target location, switching to tank mode")
+		elseif spawn_los then
+			-- Gained LOS during navigation, switch to tank mode
+			cwtnTANK()
+			BL.info("Gained LOS to %s, switching to tank mode", spawn_to_tank.CleanName())
+		else
+			-- Still navigating, continue
+			return
+		end
+	end
+	
+	if
+	BL.NotNil(spawn_to_tank) and BL.NotNil(spawn_distance)
+		and spawn_distance < State.distance
+		and (mq.TLO.Target.ID() ~= State.current_mob_being_tanked.ID() or not mq.TLO.Me.Combat())
+	--and (not State.IAmTanking or State.UserChangedSelectionFlag)
+	then
+		-- Check if we have line of sight, if not, navigate manually
+		if not spawn_los then
+			-- Switch to manual mode and navigate to target location
+			mq.cmdf("/%s mode 0", State.my_class)
+			mq.cmdf("/nav loc %f %f %f", spawn_to_tank.Y(), spawn_to_tank.X(), spawn_to_tank.Z())
+			BL.info("No LOS to %s, navigating to location", spawn_to_tank.CleanName())
+			return
+		end
+		
+		if State.UserChangedSelectionFlag then State.UserChangedSelectionFlag = false end
+		-- We want to tank this mob
+		TargetAssignedMob()
+		-- Stand up if sitting
+		if mq.TLO.Me.Sitting() then
+			mq.cmd("/stand")
+			mq.delay(500)
+		end
+		if BL.NotNil(State.current_mob_being_tanked) and State.current_mob_being_tanked() then
+			if State.targeting_mode == "xtar" then
+				BL.info("Tanking %s (ID %s) (xtar %d)", State.current_mob_being_tanked.CleanName(), State.current_mob_being_tanked.ID(), State.selected_xtar_to_tank)
+			else
+				BL.info("Tanking %s (ID %s)", State.current_mob_being_tanked.CleanName(), State.current_mob_being_tanked.ID())
+			end
+		else
+			BL.info("Trying to tank a NULL mob, something went wrong!")
+		end
+		
+		StartTankingTarget()
+		State.IAmTanking = true
+	end
+	
+	-- Move to waypoint if we have 100% aggro and a waypoint is selected
+	if State.IAmTanking and State.use_waypoint and State.current_waypoint then
+		local target = mq.TLO.Target
+		local current_time = mq.gettime()
+		local my_x = mq.TLO.Me.X()
+		local my_y = mq.TLO.Me.Y()
+		local wp_distance = math.sqrt((my_x - State.current_waypoint.x)^2 + (my_y - State.current_waypoint.y)^2)
+		
+		-- Always check aggro and switch back to tank mode if not 100%
+		if target() and target.PctAggro() < 100 then
+			cwtnTANK()
+			mq.cmd("/squelch /nav stop")
+			return
+		end
+		
+		-- Only move to waypoint every 3 seconds when at 100% aggro and not already at waypoint
+		if target() and target.PctAggro() == 100 and (current_time - State.last_waypoint_time) > 3000 then
+			if wp_distance > 20 then  -- Only nav if more than 20 units away
+				-- Switch to manual mode to prevent fighting with navigation
+				mq.cmdf("/%s mode 0", State.my_class)
+				MoveToWaypoint(State.current_waypoint)
+				State.last_waypoint_time = current_time
+			else
+				-- Stop navigation and switch back to tank mode when at waypoint
+				mq.cmd("/squelch /nav stop")
+				cwtnTANK()
+			end
+		end
 	end
 end
 
------------- Expansions ---------------------------
-local expansions = {
-	[1] = 'The Burning Lands',
-	[2] = 'Torment of Velious',
-	[3] = 'Claws of Veeshan',
-	[4] = 'Terror of Luclin',
-	[5] = 'Night of Shadows',
-	[6] = 'Laurions Song',
-	[7] = 'The Outer Brood',
-	[8] = 'The Shattering of Ro',
-	[9] = 'Misc',
-}
-
-local expansion = 'None'
------------- Raids ---------------------------
-local ToV_Raids = {
-	[1] = 'Griklor',
-	[2] = 'ServantOfSleeper',
-	[3] = 'RestlessAssault',
-	[4] = 'SeekingTheSorcerer',
-}
-local ToV_Raid = 'None'
-
-local CoV_Raids = {
-	[1] = 'Zlandicar',
-	[2] = 'Sontalak',
-	[3] = 'Crusaders',
-	[4] = 'Aaryonar',
-	[5] = 'Klandicar',
-	[6] = 'Tantor'
-}
-local CoV_Raid = 'None'
-
-local ToL_Raids = {
-	[1] = 'SwarmCommander',
-	[2] = 'Zelnithak',
-	[3] = 'DoomShade',
-	[4] = 'Goranga',
-	[5] = 'PrimalVampire',
-}
-local ToL_Raid = 'None'
-
-local NoS_Raids = {
-	[1] = 'Insatiable',
-	[2] = 'MeanStreets',
-	[3] = 'PitFight',
-	[4] = 'SpiritFades',
-	[5] = 'Door',
-	[6] = 'ShadowsMove'
-}
-local NoS_Raid = 'None'
-
-local LS_Raids = {
-	[1] = 'PoM',
-	[2] = 'Kanghammer',
-	[3] = 'T2a',
-	[4] = 'T2b',
-	[5] = 'T2c',
-	[6] = 'T3a'
-}
-local LS_Raid = 'None'
-
-local ToB_Raids = {
-	[1] = 'LeviathanHeart',
-	[2] = 'Hodstock',
-	[3] = 'ToE',
-	[4] = 'Cannons',
-	[5] = 'ControlRoom',
-	[6] = 'Docks'
-}
-local ToB_Raid = 'None'
-
-local SoR_Raids = {
-	[1] = 'WaxworkAbolishion',
-	[2] = 'TheInvaders',
-	[3] = 'ColossusofSkylance',
-	[4] = 'Ashenback',
-	[5] = 'SharDrahn',
-	[6] = 'EchoofHate'
-}
-local SoR_Raid = 'None'
-
-local Misc_Raids = {
-	[1] = 'Anni23rd',
-	[2] = 'PH',
-}
-local Misc_Raid = 'None'
-
------------- Raid Mobs ---------------------------
-------Beginning of ToV Raid Mob List------
-local Griklor = {
-	[1] = 'a_cursed_dervish00',
-	[2] = 'a_cursed_dervish01',
-	[3] = 'a_restless_Ry`Gorr00',
-	[4] = 'a_restless_Ry`Gorr01',
-	[5] = 'a_haunted_Ry`Gorr00',
-	[6] = 'a_haunted_Ry`Gorr01',
-}
-local ServantOfSleeper = {
-	[1] = 'a_velium_sentry00',
-	[2] = 'a_velium_sentry01',
-	[3] = 'a_velium_sentry02',
-}
-local RestlessAssault = {
-	[1] = 'Narandi_the_Restless00',
-	[2] = 'Narandi_the_Restless01',
-	[3] = 'Narandi_the_Restless02',
-	[4] = 'Narandi_the_Restless03',
-	[5] = 'a_restless_Kromrif00',
-	[6] = 'a_restless_Kromrif01',
-	[7] = 'a_restless_dire_wolf00',
-	[8] = 'a_restless_dire_wolf01',
-}
-local SeekingTheSorcerer = {
-	[1] = 'a_restless_fleshpile00',
-	[2] = 'a_restless_fleshpile01',
-	[3] = 'a_restless_fleshpile02',
-	[4] = 'a_restless_fleshpile03',
-	[5] = 'a_rambling_kobold00',
-	[6] = 'a_rambling_kobold01',
-	[7] = 'a_rambling_kobold02',
-}
-------Beginning of CoV Raid Mob List------
-local Zlandicar = {
-	[1] = 'a_dracoliche00',
-	[2] = 'a_dracoliche01',
-	[3] = 'a_dracoliche02',
-	[4] = 'a_dracoliche03',
-}
-local Sontalak = {
-	[1] = 'a_burning_aggressor00',
-	[2] = 'a_burning_aggressor01',
-	[3] = 'a_burning_aggressor02',
-	[4] = 'a_combative_follower00',
-	[5] = 'a_combative_follower01',
-	[6] = 'a_combative_follower02',
-	[7] = 'a_combative_adherent00',
-	[8] = 'a_combative_adherent01',
-	[9] = 'a_combative_adherent02'
-}
-local Crusaders = {
-	[1] = 'An_atrium_disciple00',
-	[2] = 'An_atrium_disciple01',
-	[3] = 'A_bodyguard00',
-	[4] = 'A_bodyguard01',
-	[5] = 'a_foyer_guardian00',
-	[6] = 'a_foyer_guardian01',
-	[7] = 'a_domicile_defender00',
-	[8] = 'a_domicile_defender01',
-	[9] = 'a_combative_adherent02'
-}
-local Klandicar = {
-	[1] = 'A_guardian_of_Klandicar00',
-	[2] = 'A_guardian_of_Klandicar01',
-	[3] = 'A_guardian_of_Klandicar02',
-	[4] = 'a_restless_kromrif00',
-	[5] = 'a_restless_kromrif01',
-	[6] = 'An_egg_tender00',
-	[7] = 'An_egg_tender01',
-	[8] = 'An_egg_tender02',
-	[9] = 'An_egg_tender03'
-}
-local Tantor = {
-	[1] = 'A_primal_guardian00',
-	[2] = 'A_primal_guardian01',
-	[3] = 'A_primal_guardian02',
-	[4] = 'A_primal_guardian03',
-}
-------Beginning of ToL Raid Mob List------
-local SwarmCommander = {
-	[1] = 'A_netherbian_warrior00',
-	[2] = 'A_netherbian_warrior01',
-	[3] = 'A_netherbian_warrior02',
-	[4] = 'A_netherbian_warrior03',
-	[5] = 'A_netherbian_warrior04',
-	[6] = 'A_netherbian_warrior05',
-	[7] = 'A_netherbian_warrior06',
-	[8] = 'A_netherbian_energist00',
-	[9] = 'A_netherbian_ravager00',
-	[10] = 'A_netherbian_ravager01',
-	[11] = 'a_netherbian_infestor00',
-	[12] = 'a_netherbian_infestor01',
-	[13] = 'A_netherbian_infuser00',
-	[14] = 'A_netherbian_infuser01',
-	[15] = 'A_netherbian_invigorator00',
-	[16] = 'A_newborn_drone00',
-	[17] = 'A_newborn_drone01',
-	[18] = 'A_newborn_drone02',
-	[19] = 'A_newborn_drone03',
-	[20] = 'A_netherbian_drone00',
-	[21] = 'A_netherbian_drone01',
-}
-local Zelnithak = {
-	[1] = 'A_zelniak00',
-	[2] = 'A_zelniak01',
-	[3] = 'A_small_zelniak00',
-	[4] = 'A_small_zelniak01',
-	[5] = 'A_young_zelniak00',
-	[6] = 'A_young_zelniak01',
-}
-local DoomShade = {
-	[1] = 'A_dark_master00',
-	[2] = 'A_fading_shade00',
-	[3] = 'A_fading_shade01',
-	[4] = 'A_fading_shade02',
-	[5] = 'A_fading_shade03',
-}
-local Goranga = {
-	[1] = 'Eom_sentien00',
-	[2] = 'Eom_sentien01',
-	[3] = 'Eom_sentien02',
-	[4] = 'Liquid_shadow00',
-	[5] = 'Liquid_shadow01',
-	[6] = 'Liquid_shadow02',
-	[7] = 'Liquid_shadow03',
-	[8] = 'Pli_liako00',
-	[9] = 'Pli_liako01',
-	[10] = 'Pli_liako02',
-	[11] = 'Pli_liako03',
-}
-local PrimalVampire = {
-	[1] = 'An_amorphous_vampire00',
-	[2] = 'An_amorphous_vampire01',
-	[3] = 'A_floating_feast00',
-	[4] = 'A_floating_feast01',
-	[5] = 'A_floating_feast02',
-	[6] = 'A_floating_feast03',
-	[7] = 'A_floating_feast04',
-	[8] = 'A_tenacious_tick00',
-	[9] = 'A_tenacious_tick01',
-	[10] = 'A_tenacious_tick02',
-	[11] = 'A_tenacious_tick03',
-}
-------Beginning of NoS Raid Mob List------
-local Insatiable = {
-	[1] = 'a_cliknar_nymph00',
-	[2] = 'a_cliknar_nymph01',
-	[3] = 'a_cliknar_nymph02',
-	[4] = 'a_cliknar_nymph03',
-	[5] = 'a_cliknar_nymph04',
-	[6] = 'a_cliknar_nymph05',
-	[7] = 'a_cliknar_nymph06',
-	[8] = 'an_immature_shiknar00',
-	[9] = 'an_immature_shiknar01',
-	[10] = 'an_immature_shiknar02',
-	[11] = 'a_shiknar00',
-	[12] = 'a_shiknar01',
-	[13] = 'a_shiknar02',
-	[14] = 'a_shiknar03',
-	[15] = 'a_shiknar04',
-	[16] = 'a_shiknar_aberration00',
-	[17] = 'an_expanding_spore00',
-	[18] = 'an_expanding_spore01',
-}
-local MeanStreets = {
-	[1] = 'a_riled_up_thug00',
-	[2] = 'a_riled_up_thug02',
-	[3] = 'a_riled_up_thug03',
-	[4] = 'a_wild-eyed_thug00',
-	[5] = 'a_wild-eyed_thug01',
-	[6] = 'a_wild-eyed_thug02',
-	[7] = 'an_impassioned_thug00',
-	[8] = 'an_impassioned_thug01',
-	[9] = 'an_impassioned_thug02',
-	[10] = 'an_outraged_thug00',
-	[11] = 'an_outraged_thug01',
-	[12] = 'an_outraged_thug02',
-	[13] = 'a_tiger00',
-	[14] = 'Flickering_Illusion00',
-	[15] = 'Flickering_Illusion01',
-}
-local PitFight = {
-	[1] = 'A_blacksoul_defender00',
-	[2] = 'a_grimling_hunter00',
-	[3] = 'A_skirmisher00',
-	[4] = 'A_skirmisher_elite00',
-	[5] = 'A_skirmisher_guard00',
-	[6] = 'A_dark_master00',
-	[7] = 'a_warblood_recruit00',
-	[8] = 'A_skeleton00',
-}
-local SpiritFades = {
-	[1] = 'Lesser_Depletion00',
-	[2] = 'Lesser_Depletion01',
-	[3] = 'Lesser_Manipulation00',
-	[4] = 'Lesser_Manipulation01',
-	[5] = 'Lesser_Weakness00',
-	[6] = 'Lesser_Weakness01',
-	[7] = 'Lesser_Lethargy00',
-	[8] = 'Manifest_Drowsiness00',
-	[9] = 'Manifest_Apathy00',
-}
-local Door = {
-	[1] = 'Whirling_debris00',
-	[2] = 'Whirling_debris01',
-	[3] = 'Whirling_debris02',
-	[4] = 'Whirling_debris03',
-	[5] = 'Whirling_debris04',
-	[6] = 'Whirling_debris05',
-}
-local ShadowsMove = {
-	[1] = 'Whirling_debris00',
-	[2] = 'Whirling_debris01',
-	[3] = 'Whirling_debris02',
-	[4] = 'Whirling_debris03',
-	[5] = 'Whirling_debris04',
-	[6] = 'Whirling_debris05',
-}
-------Beginning of LS Raid Mob List------
-local PoM = {
-	[1] = 'a_white_jester00',
-	[2] = 'a_white_jester01',
-	[3] = 'a_white_jester02',
-	[4] = 'a_black_jester00',
-	[5] = 'a_black_jester01',
-	[6] = 'a_black_jester02',
-}
-local Kanghammer = {
-	[1] = 'Rufus_Invictus00',
-	[2] = 'a_Takish_engineer00',
-}
-local T2a = {
-	[1] = 'A_dark_master00',
-	[2] = 'A_fading_shade00',
-	[3] = 'A_fading_shade01',
-	[4] = 'A_fading_shade02',
-	[5] = 'A_fading_shade03',
-}
-local T2b = {
-	[1] = 'Lesser_Depletion00',
-	[2] = 'Lesser_Depletion01',
-	[3] = 'Lesser_Manipulation00',
-	[4] = 'Lesser_Manipulation01',
-	[5] = 'Lesser_Weakness00',
-	[6] = 'Lesser_Weakness01',
-	[7] = 'Lesser_Lethargy00',
-	[8] = 'Manifest_Drowsiness00',
-	[9] = 'Manifest_Apathy00',
-}
-local T2c = {
-	[1] = 'Whirling_debris00',
-	[2] = 'Whirling_debris01',
-	[3] = 'Whirling_debris02',
-	[4] = 'Whirling_debris03',
-	[5] = 'Whirling_debris04',
-	[6] = 'Whirling_debris05',
-}
-local T3a = {
-	[1] = 'Whirling_debris00',
-	[2] = 'Whirling_debris01',
-	[3] = 'Whirling_debris02',
-	[4] = 'Whirling_debris03',
-	[5] = 'Whirling_debris04',
-	[6] = 'Whirling_debris05',
-}
-
-------Beginning of ToB Raid Mob List------
-local LeviathanHeart = {
-	[1] = 'The_Custodian00',
-	[2] = 'a_mind_melder00',
-	[3] = 'a_mind_melder01',
-	[4] = 'a_bright_energist00',
-	[5] = 'a_dark_energist00',
-	[6] = 'a_voidburned_skyguard00',
-	[7] = 'a_voidburned_skyguard01',
-	[8] = 'a_soldier00',
-	[9] = 'a_soldier01',
-	[10] = 'a_soldier02',
-	[11] = 'a_soldier03',
-	[12] = 'a_soldier04',
-}
-local Hodstock = {
-	[1] = 'The_Custodian00',
-	[2] = 'a_mind_melder00',
-	[3] = 'a_mind_melder01',
-	[4] = 'a_bright_energist00',
-	[5] = 'a_dark_energist00',
-	[6] = 'a_dark_energist01',
-	[7] = 'an_impassioned_thug00',
-	[8] = 'an_impassioned_thug01',
-	[9] = 'an_impassioned_thug02',
-	[10] = 'an_outraged_thug00',
-	[11] = 'an_outraged_thug01',
-	[12] = 'an_outraged_thug02',
-	[13] = 'a_tiger00',
-	[14] = 'Flickering_Illusion00',
-	[15] = 'Flickering_Illusion01',
-}
-local ToE = {
-	[1] = 'A_dark_master00',
-	[2] = 'A_fading_shade00',
-	[3] = 'A_fading_shade01',
-	[4] = 'A_fading_shade02',
-	[5] = 'A_fading_shade03',
-}
-local Cannons = {
-	[1] = 'Lesser_Depletion00',
-	[2] = 'Lesser_Depletion01',
-	[3] = 'Lesser_Manipulation00',
-	[4] = 'Lesser_Manipulation01',
-	[5] = 'Lesser_Weakness00',
-	[6] = 'Lesser_Weakness01',
-	[7] = 'Lesser_Lethargy00',
-	[8] = 'Manifest_Drowsiness00',
-	[9] = 'Manifest_Apathy00',
-}
-local ControlRoom = {
-	[1] = 'Whirling_debris00',
-	[2] = 'Whirling_debris01',
-	[3] = 'Whirling_debris02',
-	[4] = 'Whirling_debris03',
-	[5] = 'Whirling_debris04',
-	[6] = 'Whirling_debris05',
-}
-local Docks = {
-	[1] = 'Whirling_debris00',
-	[2] = 'Whirling_debris01',
-	[3] = 'Whirling_debris02',
-	[4] = 'Whirling_debris03',
-	[5] = 'Whirling_debris04',
-	[6] = 'Whirling_debris05',
-}
-
-------Beginning of SoR Raid Mob List------
-local WaxworkAbolishion = {
-	[1] = 'Waxwork_Abolishion00',
-	[2] = 'Waxwork_Igniter00',
-	[3] = 'Waxwork_Trapper00',
-	[4] = 'Waxwork_Combustor00',
-	[5] = 'Waxwork_Burster00',
-	[6] = 'Waxwork_Lancer00',
-	[7] = 'A_waxwork_zealot00',
-	[8] = 'A_waxwork_ambusher00',
-	[9] = 'A_waxwork_soldier00',
-	[10] = 'A_waxwork_globule00',
-}
-local TheInvaders = {
-	[1] = '"Glarubaran,_the_Great_Storm00"',
-	[2] = '"Teknaz,_Bringer_of_Flames00"',
-	[3] = 'The_Loathing_Lord00',
-	[4] = 'A_payload_specialist00',
-	[5] = 'A_candlefolk_defender00',
-	[6] = 'An_inferior_spite00',
-	[7] = 'An_inferior_spite01',
-	[8] = 'A_flame_elemental00',
-	[9] = 'A_candlemaster00',
-}
-
-------Beginning of Misc Raid Mob List------
-local Anni23rd = {
-	[1] = 'A_sebilite_golem00',
-	[2] = 'A_sebilite_golem01',
-	[3] = 'An_Imperial_construct00',
-	[4] = 'An_Imperial_construct01',
-	[5] = 'A_skeleton00',
-	[6] = 'A_skeleton01',
-	[7] = 'A_skeleton02',
-	[8] = 'A_skeleton03',
-}
-local PH = {
-	[1] = 'a_white_jester00',
-	[2] = 'a_white_jester01',
-	[3] = 'a_white_jester02',
-	[4] = 'a_black_jester00',
-	[5] = 'a_black_jester01',
-	[6] = 'a_black_jester02',
-}
-
------------- End of Raid Mobs ---------------------------
+------------ GUI ---------------------------
 local function draw_combo_box(label, resultvar, options, showClearTarget)
+	local changed = false
 	if ImGui.BeginCombo(label, resultvar) then
-		if showClearTarget and ImGui.Selectable('Clear target', resultvar == '') then
-			resultvar = ''
+		if showClearTarget and ImGui.Selectable("Clear target", resultvar == "") then
+            resultvar = ""
+			changed = true
 		end
 		for _, j in ipairs(options) do
 			if ImGui.Selectable(j, j == resultvar) then
-				resultvar = j
+                resultvar = j
+				changed = true
 			end
 		end
 		ImGui.EndCombo()
 	end
-	return resultvar
+	return resultvar, changed
+end
+local function ParseIgnoredMobs(ignoredMobsInput)
+	-- cache UI input for later change comparison
+	State.ignored_mobs_input = ignoredMobsInput
+	--split ignoredMobsInput by newline and push each resulting string into State.ignored_mobs
+	local ignoredMobs = {}
+	for line in ignoredMobsInput:gmatch("[^\r\n]+") do
+		--BL.info("Adding %s to ignored mobs", line)
+		table.insert(ignoredMobs, line)
+	end
+	
+	--BL.dump(State.ignored_mobs, "State ignoredmobs")
+	State.ignored_mobs = ignoredMobs
 end
 
-
--- Split version of OffTank UI to avoid 60 upvalues error
-
-local function draw_ToV_UI()
-    ToV_Raid = draw_combo_box('Raid Select', ToV_Raid, ToV_Raids)
-    if ToV_Raid ~= prev_ToV_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        Griklor = Griklor,
-        ServantOfSleeper = ServantOfSleeper,
-        RestlessAssault = RestlessAssault,
-        SeekingTheSorcerer = SeekingTheSorcerer,
-    }
-    local mobList = raidTable[ToV_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_ToV_Raid = ToV_Raid
+local DrawUI = function()
+	-- Warning for group leaders (regardless of MT role status)
+	if mq.TLO.Group.Leader() == mq.TLO.Me.CleanName() then
+		ImGui.TextColored(1.0, 0.0, 0.0, 1.0, "WARNING: You are Group Leader!")
+		ImGui.TextColored(1.0, 0.0, 0.0, 1.0, "Change leader to prevent role conflicts")
+		ImGui.Separator()
+	-- Warning for non-leaders with main tank role
+	elseif mq.TLO.Group.MainTank() and mq.TLO.Group.MainTank.CleanName() == mq.TLO.Me.CleanName() then
+		ImGui.TextColored(1.0, 0.5, 0.0, 1.0, "You are MT but NOT Group Leader!")
+		ImGui.TextColored(1.0, 0.5, 0.0, 1.0, "Unset your MT role on leader")
+		ImGui.Separator()
+	end
+	
+	-- Start/Stop button with mode pickers on the right
+	local buttonText = State.Paused and "Start" or "Stop"
+	if State.Paused then
+		ImGui.PushStyleColor(ImGuiCol.Button, 0.0, 0.5, 0.0, 1.0)  -- Green when paused
+		ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.0, 0.7, 0.0, 1.0)
+		ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.0, 0.8, 0.0, 1.0)
+	else
+		ImGui.PushStyleColor(ImGuiCol.Button, 0.7, 0.0, 0.0, 1.0)  -- Red when running
+		ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.9, 0.0, 0.0, 1.0)
+		ImGui.PushStyleColor(ImGuiCol.ButtonActive, 1.0, 0.0, 0.0, 1.0)
+	end
+	
+	if ImGui.Button(buttonText) then
+		if State.Paused then
+			-- Start tanking
+			State.Paused = false
+			BL.info("Offtank started - ready to tank")
+		else
+			-- Stop tanking
+			State.Paused = true
+			mq.cmd("/attack off")
+			mq.cmd("/target clear")
+			cwtnCHOSEN()
+			State.IAmTanking = false
+			BL.info("Offtank stopped - returned to non-tanking mode")
+		end
+	end
+	
+	ImGui.PopStyleColor(3)
+	
+	-- Mode pickers on the right side
+	ImGui.SameLine()
+	ImGui.Text("Mode:")
+	ImGui.SameLine()
+	local xtar_selected = (State.targeting_mode == "xtar")
+	local mobname_selected = (State.targeting_mode == "mobname")
+	
+	xtar_selected, changed = ImGui.Checkbox("XTar", xtar_selected)
+	if changed and xtar_selected then
+		State.targeting_mode = "xtar"
+	end
+	
+	ImGui.SameLine()
+	mobname_selected, changed = ImGui.Checkbox("Name", mobname_selected)
+	if changed and mobname_selected then
+		State.targeting_mode = "mobname"
+	end
+	
+	ImGui.Separator()
+	
+	ImGui.SetNextItemWidth(100)  -- Set width for distance input
+	State.distance, State.isChanged = ImGui.InputInt(
+		"Distance",
+		State.distance, 5,
+		0, 0
+	)
+	
+	if State.distance < State.MIN_DIST then
+		State.distance = State.MIN_DIST
+	end
+	if State.distance > State.MAX_DIST then
+		State.distance = State.MAX_DIST
+	end
+	
+	-- Non-Tanking Mode selection (appears after distance for both modes)
+	local changedMode = false
+	local selectedMode = State.chosenMode
+	ImGui.SetNextItemWidth(100)  -- Set width for mode combo (same as distance/xtar)
+	selectedMode, changedMode = draw_combo_box("Non-Tanking Mode", selectedMode, State.cwtnModeList)
+	if changedMode then
+		State.chosenMode = selectedMode
+		State.UserChangedModeFlag = true
+	end
+	
+	-- Show appropriate controls based on mode
+	if State.targeting_mode == "xtar" then
+		local selected = tostring(State.selected_xtar_to_tank) or "NONE"
+		local changedXtarSelection = false
+		ImGui.SetNextItemWidth(100)  -- Set width for xtar combo (same as distance)
+		selected, changedXtarSelection = draw_combo_box("XTar to Tank", selected, State.xtar_options)
+		if changedXtarSelection then
+			State.UserChangedSelectionFlag = true
+			
+			local selectionNum = tonumber(selected)
+			if BL.IsNil(selectionNum) then
+				-- Only show message if selection actually changed to NONE
+				if State.last_selected_xtar ~= "NONE" then
+					BL.info("Sel num is nil, setting to NONE")
+				end
+				State.current_mob_being_tanked = nil
+				State.selected_xtar_to_tank = "NONE"
+				-- Stop combat and return to non-tanking mode when switching to NONE
+				if State.IAmTanking then
+					mq.cmd("/attack off")
+					mq.cmd("/target clear")
+					cwtnCHOSEN()
+					State.IAmTanking = false
+					BL.info("Stopped tanking - switched to NONE")
+				end
+			else
+				-- Only show message if selection actually changed to this number
+				if State.last_selected_xtar ~= tostring(selectionNum) then
+					BL.info("Sel xtar num is " .. tostring(selectionNum))
+				end
+				State.selected_xtar_to_tank = selectionNum
+			end
+			
+			-- Update last selection tracker
+			State.last_selected_xtar = selected
+		end
+	else -- mobname mode
+		ImGui.Text("NPC's to tank (one per line):")
+		local mobNameInput = State.mob_name_input or ""
+		local changed = false
+		ImGui.SetNextItemWidth(200)  -- Set width for mob name input
+		mobNameInput, changed = ImGui.InputTextMultiline("##mobnames", mobNameInput, 200, 80, 0)
+		if changed then
+			ParseMobNames(mobNameInput)
+		end
+		
+		-- Add Current Target button
+		if ImGui.Button("Add Target") then
+			local currentTarget = mq.TLO.Target
+			if currentTarget() and currentTarget.Type() ~= "PC" then
+				local targetName = currentTarget.CleanName()
+				-- Check if target is already in mob list
+				local alreadyAdded = false
+				for _, mobName in ipairs(State.mob_names) do
+					if mobName == targetName then
+						alreadyAdded = true
+						break
+					end
+				end
+				
+				if not alreadyAdded then
+					table.insert(State.mob_names, targetName)
+					-- Update the input text to show the new mob list
+					State.mob_name_input = table.concat(State.mob_names, "\n")
+					print("Added " .. targetName .. " to mob list")
+				else
+					print(targetName .. " is already in mob list")
+				end
+			else
+				print("No valid target selected (or targeting a PC)")
+			end
+		end
+	end
+	
+	-- Waypoint controls
+	ImGui.Separator()
+	
+	-- Save current position as waypoint
+	if ImGui.Button("Save WP") then
+		SaveWaypoint()
+	end
+	ImGui.SameLine()
+	if ImGui.Button("Go to Selected WP") then
+		MoveToWaypoint(State.current_waypoint)
+	end
+	
+	-- Waypoint checkboxes
+	ImGui.Text("Select Waypoint:")
+	
+	for i, wp in ipairs(State.waypoints) do
+		local is_checked = (State.current_waypoint and State.current_waypoint.name == wp.name)
+		local changed = false
+		
+		is_checked, changed = ImGui.Checkbox(wp.name .. " (" .. string.format("%.1f, %.1f", wp.y, wp.x) .. ")", is_checked)
+		
+		if changed then
+			if is_checked then
+				-- Uncheck all other waypoints by setting this as the only selected one
+				State.current_waypoint = wp
+				State.use_waypoint = true
+				print("\arSelected waypoint: " .. wp.name .. "\ax")
+			else
+				-- Uncheck this waypoint
+				State.current_waypoint = nil
+				State.use_waypoint = false
+				print("\arDeselected waypoint: " .. wp.name .. "\ax")
+			end
+		end
+		
+		-- Delete button for this waypoint
+		ImGui.SameLine()
+		if ImGui.Button("Delete##" .. wp.name) then
+			-- Remove waypoint from table
+			for j, check_wp in ipairs(State.waypoints) do
+				if check_wp.name == wp.name then
+					table.remove(State.waypoints, j)
+					-- If this was the selected waypoint, clear selection
+					if State.current_waypoint and State.current_waypoint.name == wp.name then
+						State.current_waypoint = nil
+						State.use_waypoint = false
+					end
+					print("\arDeleted waypoint: " .. wp.name .. "\ax")
+					break
+				end
+			end
+		end
+	end
+	
+	-- Accept user input for list of names and put them into string array State.ignored_mobs
+	ImGui.Text("Ignored NPC's")
+	local ignoredMobsInput = State.ignored_mobs_input or ""
+	local changed = false
+	ImGui.SetNextItemWidth(300)  -- Set width for ignored mobs input
+	ignoredMobsInput, changed = ImGui.InputTextMultiline("##ignoredmobs", ignoredMobsInput, 265, 100, 0)
+	if changed then
+		ParseIgnoredMobs(ignoredMobsInput)
+	end
+	
+	-- Add Ignore Current Target button
+	if ImGui.Button("Ignore Current Target") then
+		local currentTarget = mq.TLO.Target
+		if currentTarget() and currentTarget.Type() ~= "PC" then
+			local targetName = currentTarget.CleanName()
+			-- Check if target is already in ignore list
+			local alreadyIgnored = false
+			for _, ignoredName in ipairs(State.ignored_mobs) do
+				if ignoredName == targetName then
+					alreadyIgnored = true
+					break
+				end
+			end
+			
+			if not alreadyIgnored then
+				table.insert(State.ignored_mobs, targetName)
+				-- Update the input text to show the new ignore list
+				State.ignored_mobs_input = table.concat(State.ignored_mobs, "\n")
+				print("Added " .. targetName .. " to ignore list")
+			else
+				print(targetName .. " is already in ignore list")
+			end
+		else
+			print("No valid target selected (or targeting a PC)")
+		end
+	end
 end
-
-local function draw_CoV_UI()
-    CoV_Raid = draw_combo_box('Raid Select', CoV_Raid, CoV_Raids)
-    if CoV_Raid ~= prev_CoV_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        Zlandicar = Zlandicar,
-        Sontalak = Sontalak,
-        Crusaders = Crusaders,
-        Klandicar = Klandicar,
-        Tantor = Tantor,
-    }
-    local mobList = raidTable[CoV_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_CoV_Raid = CoV_Raid
-end
-
-local function draw_ToL_UI()
-    ToL_Raid = draw_combo_box('Raid Select', ToL_Raid, ToL_Raids)
-    if ToL_Raid ~= prev_ToL_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        SwarmCommander = SwarmCommander,
-        Zelnithak = Zelnithak,
-        DoomShade = DoomShade,
-        Goranga = Goranga,
-        PrimalVampire = PrimalVampire,
-    }
-    local mobList = raidTable[ToL_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_ToL_Raid = ToL_Raid
-end
-
-local function draw_NoS_UI()
-    NoS_Raid = draw_combo_box('Raid Select', NoS_Raid, NoS_Raids)
-    if NoS_Raid ~= prev_NoS_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        Insatiable = Insatiable,
-        MeanStreets = MeanStreets,
-        PitFight = PitFight,
-        SpiritFades = SpiritFades,
-        Door = Door,
-    }
-    local mobList = raidTable[NoS_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_NoS_Raid = NoS_Raid
-end
-
-local function draw_LS_UI()
-    LS_Raid = draw_combo_box('Raid Select', LS_Raid, LS_Raids)
-    if LS_Raid ~= prev_LS_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        PoM = PoM,
-        Kanghammer = Kanghammer,
-        T2a = T2a,
-        T2b = T2b,
-        T2c = T2c,
-    }
-    local mobList = raidTable[LS_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_LS_Raid = LS_Raid
-end
-
-local function draw_ToB_UI()
-    ToB_Raid = draw_combo_box('Raid Select', ToB_Raid, ToB_Raids)
-    if ToB_Raid ~= prev_ToB_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        LeviathanHeart = LeviathanHeart,
-        Hodstock = Hodstock,
-        ToE = ToE,
-        Cannons = Cannons,
-        ControlRoom = ControlRoom,
-        Docks = Docks,
-    }
-    local mobList = raidTable[ToB_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_ToB_Raid = ToB_Raid
-end
-
-local function draw_SoR_UI()
-    SoR_Raid = draw_combo_box('Raid Select', SoR_Raid, SoR_Raids)
-    if SoR_Raid ~= prev_SoR_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        WaxworkAbolishion = WaxworkAbolishion,
-        TheInvaders = TheInvaders,
-        CollussusofSkylance = CollussusofSkylance,
-        Ashenback = Ashenback,
-        SharDrahn = SharDrahn,
-        EchoofHate = EchoofHate,
-    }
-    local mobList = raidTable[SoR_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_SoR_Raid = SoR_Raid
-end
-
-local function draw_Misc_UI()
-    Misc_Raid = draw_combo_box('Raid Select', Misc_Raid, Misc_Raids)
-    if Misc_Raid ~= prev_Misc_Raid then
-        assigned_mob, assigned_mob1, assigned_mob2 = '', '', ''
-    end
-    local raidTable = {
-        Anni23rd = Anni23rd,
-        PH = PH,
-    }
-    local mobList = raidTable[Misc_Raid]
-    if mobList then
-        assigned_mob = draw_combo_box('OT Target 1', assigned_mob, mobList, true)
-        assigned_mob1 = draw_combo_box('OT Target 2', assigned_mob1, mobList, true)
-        assigned_mob2 = draw_combo_box('OT Target 3', assigned_mob2, mobList, true)
-    end
-    prev_Misc_Raid = Misc_Raid
-end
-
-local function OT_UI()
-    if not open_gui or mq.TLO.MacroQuest.GameState() ~= 'INGAME' then return end
-    open_gui, should_draw_gui = ImGui.Begin('Zzaddy OffTank', open_gui)
-
-    ImGui.Text("Set the Distance: ")
-    distance, isChanged = ImGui.InputInt("Min: " .. MIN_DIST .. " Max: " .. MAX_DIST, distance, 5, 0, 0)
-    if distance < MIN_DIST then distance = MIN_DIST end
-    if distance > MAX_DIST then distance = MAX_DIST end
-    if isChanged then print(distance) end
-
-    if should_draw_gui then
-        if pause then
-            if ImGui.Button('Resume') then pause = false end
-        else
-            if ImGui.Button('Pause') then
-                pause = true
-                mq.cmd('/squelch /nav stop')
-            end
-        end
-
-        expansion = draw_combo_box('Expansion Select', expansion, expansions)
-
-        if expansion == 'Torment of Velious' then draw_ToV_UI() end
-        if expansion == 'Claws of Veeshan' then draw_CoV_UI() end
-        if expansion == 'Terror of Luclin' then draw_ToL_UI() end
-        if expansion == 'Night of Shadows' then draw_NoS_UI() end
-        if expansion == 'Laurions Song' then draw_LS_UI() end
-        if expansion == 'The Outer Brood' then draw_ToB_UI() end
-		if expansion == 'The Shattering of Ro' then draw_SoR_UI() end
-        if expansion == 'Misc' then draw_Misc_UI() end
-    end
-    ImGui.End()
-    
-    -- Check if window was closed via X button
-    if not open_gui then
-        mq.imgui.destroy('OffTanking')
-        mq.exit()
-        return
-    end
-end
-
-mq.imgui.init('OffTanking', OT_UI)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-print('\arBrought\ar \ayto\ar \agyou\ag \apby\ap \atZzaddy\ar \ayand \arDragon')
+--print("\arStarting OFFTANK XTAR script\ax")
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+local function init()
+	initMQBindings()	
+	State.chosenMode = mq.TLO.CWTN.Mode()
+	--UI Init
+	BL.Gui:Init({
+		            WindowName = "Offtank",
+		            ScriptName = "offtank",
+		            ScriptState = State,
+		            DrawFunction = DrawUI,
+	            })
+	
+	return checkGroupTankRoleIsEmpty()
+end
+
+local function main()
+	if State.Paused then
+		return
+	end
+	-- Make sure group MT role didn't get switched back on
+	checkGroupTankRoleIsEmpty()
+	-- update from xtar
+	UpdateAggroState()
+	DoTanking()
+end
+
+init()
+
 while true do
-	main()
-	mq.delay(100)
+    main()
+	mq.doevents()
+	mq.delay(500)
 end
