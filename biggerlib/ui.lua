@@ -128,11 +128,21 @@ Gui.Tick = function(self)
         end
         if self.Config.WindowSize then ImGui.SetNextWindowSize(self.Config.WindowSize, ImGuiCond.Once) end
 
-        self.OpenGUI, self.ShouldDrawGUI = ImGui.Begin(self.Name, self.OpenGUI, flags)
+        -- Call ImGui.Begin but don't update self.OpenGUI to prevent permanent closure
+        local shouldDraw, shouldContinue = ImGui.Begin(self.Name, true, flags)
+        self.ShouldDrawGUI = shouldDraw
+        
+        -- Check if window is being closed (X button clicked) and exit script
+        if not shouldDraw and self.OpenGUI then
+            -- Window was closed by X button, exit the script
+            mq.exit()
+        end
+        -- Keep self.OpenGUI as true to prevent window from disappearing permanently
         --Log.info("Calling script callback")
 
         --draw the generic content
         -- pause/resume
+        --[[ COMMENTED OUT - Remove default pause/play buttons
         if self.ScriptState.Paused then
             if ImGui.Button(Icons.FA_PLAY) then
                 --Log.warn("Changing PAUSED state to false")
@@ -176,6 +186,7 @@ Gui.Tick = function(self)
                 self.ScriptState.DirtyFlag = true
             end
         end
+        -- END COMMENTED OUT SECTION ]]
 
         self.UpdateCallbackFn()
 
