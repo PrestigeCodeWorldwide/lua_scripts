@@ -6,17 +6,12 @@ local BL = require("biggerlib")
 local imgui = require("ImGui")
 --- @type Actors
 local ActorsLib = require("actors")
+local buffUI = require("raidprep.buffactors")
+local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.794 Started")
+BL.info("RaidPrep v1.80 Started")
 
-local lastCleanupTime = 0
-local cleanupInterval = 5   -- how often to clean
-local expireThreshold = 20  -- seconds until a character is considered stale
-local lastAnnounceTime = 0
-local announceInterval = 10 -- seconds
-local matchingChars = {}    -- class → list of characters
-local availableBuffs = {}   -- charName → list of buff names
 local openGUI = true
 --local selectedScripts = {}
 --local selectedClass = nil
@@ -31,8 +26,6 @@ local RaidMode = false
 local UseAlliance = 0
 local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
 --local BYOS = 0
-local selectedBuffClass = "Cleric"
-local selectedBuffChar = nil
 --local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
 --local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
 local selectedRaidAssist = "Select RA"
@@ -49,50 +42,6 @@ local windowHeight = 600 -- default height, will be adjusted when window is rest
 local function getCWTNBind()
     return applytoallChecked and AllIncludingSelfBind or AllButSelfBind
 end
-
-local actor = ActorsLib.register(function(message)
-    local content = message.content
-    if content.id == "announceBuffs" and content.class and content.name then
-        matchingChars[content.class] = matchingChars[content.class] or {}
-        matchingChars[content.class][content.name] = {
-            timestamp = os.time(),
-        }
-        availableBuffs[content.name] = content.buffs
-        --printf("Registered %s (%s) with buffs: %s", content.name, content.class, table.concat(content.buffs, ", "))
-    elseif content.id == "castBuff" and content.buff and content.target then
-        local me = mq.TLO.Me.CleanName()
-        if me == content.target then
-            local targetName = message.sender.character
-            if targetName and targetName ~= "" then
-                mq.cmdf("/noparse /docommand /${Me.Class.ShortName} pause on")
-                mq.cmdf('/target pc %s', targetName)
-                mq.cmdf('/cast "%s"', content.buff)
-                mq.cmdf("/noparse /docommand /${Me.Class.ShortName} pause off")
-            else
-                print("[WARN] No valid targetName in castBuff message.")
-            end
-        end
-    end
-end)
-
-
-local myClass = mq.TLO.Me.Class.ShortName()
-local myName = mq.TLO.Me.CleanName()
-local myBuffs = {
-    CLR = { 'Unified Hand of Helmsbane', 'Unified Hand of Infallibility', 'Shining Steel', 'Divine Interference' },
-    SHM = { 'Talisman of the Heroic', 'Minor Healing', 'Talisman of Altuna' }
-}
-
--- Register if this class has buffs defined
-if myBuffs[myClass] then
-    actor:send({
-        id = 'announceBuffs',
-        class = mq.TLO.Me.Class.ShortName(),
-        name = mq.TLO.Me.CleanName(),
-        buffs = myBuffs[mq.TLO.Me.Class.ShortName()]
-    })
-end
-
 
 local function applySettings()
     mq.cmdf("%s autoAssistAt %d", getCWTNBind(), autoAssistAt)
@@ -216,7 +165,7 @@ local expansions = {
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "OfftankX", "TankBandoSwap", "TCN" },
+    ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "OfftankX", "TankBandoSwap", "TCN" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer", "HPMez", "HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
     ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
@@ -233,6 +182,7 @@ local scriptTooltips = {
     ["ButtonMaster"] = "Customizable button interface for common commands",
     ["GoldenPickPL"] = "Uses the Golden Pick to hit each mob once during PL'ing",
     ["GuildClicky"] = "Manages guild hall zone port clickies",
+    ["Hemicfam"] = "Casts Scrykin then Personal Hemic familiar",
     ["HunterHUD"] = "Tracks hunter achievements",
     ["HunterHood"] = "HunterHUD with added features",
     ["LEM"] = "lua event manager",
@@ -562,7 +512,8 @@ local function drawCWTNTab()
         mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
         mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
         mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
-        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
+        mq.cmd(
+            "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -1031,70 +982,7 @@ local function drawCWTNTab()
     -- Reset to single-column layout
 end
 
--- DrawBuffs Tab
---local lastRefreshTime = 0
---local refreshInterval = 10 -- seconds
 
-local function drawBuffsTab()
-    -- Draw headers in a single row before starting columns
-    imgui.Text("Classes")
-    imgui.SameLine(150)
-    imgui.Text("Characters")
-    imgui.SameLine(300)
-    imgui.Text("Buffs")
-
-    -- Start columns after headers
-    imgui.Separator()
-    imgui.Columns(3, "buffs_columns", true)
-
-    -- === Column 1: Class selection ===
-    local classMap = {
-        CLR = "Cleric",
-        SHM = "Shaman",
-        -- Add more classes as needed
-    }
-
-    for classShort, classLong in pairs(classMap) do
-        local wasSelected = (selectedBuffClass == classShort)
-        if imgui.Selectable(classLong, wasSelected) and not wasSelected then
-            selectedBuffClass = classShort
-            selectedBuffChar = nil
-        end
-    end
-
-    imgui.NextColumn()
-
-    -- === Column 2: Characters ===
-    if selectedBuffClass and matchingChars[selectedBuffClass] then
-        for name, _ in pairs(matchingChars[selectedBuffClass]) do
-            if imgui.Selectable(name, selectedBuffChar == name) then
-                selectedBuffChar = name
-            end
-        end
-    else
-        imgui.TextDisabled("No characters found.")
-    end
-
-    imgui.NextColumn()
-
-    -- === Column 3: Buffs ===
-    if selectedBuffChar and availableBuffs[selectedBuffChar] then
-        for _, buff in ipairs(availableBuffs[selectedBuffChar]) do
-            if imgui.Button(buff) then
-                actor:send({
-                    id = "castBuff",
-                    buff = buff,
-                    target = selectedBuffChar
-                })
-                print("Requested " .. buff .. " from " .. selectedBuffChar)
-            end
-        end
-    else
-        imgui.TextDisabled("Select a character.")
-    end
-
-    imgui.Columns(1)
-end
 
 -- Main ImGui draw function
 local function drawGUI()
@@ -1193,12 +1081,13 @@ local function drawGUI()
 
             -- Buffs tab
             if imgui.BeginTabItem("Buffs") then
-                local success, err = pcall(drawBuffsTab)
+                local success, err = pcall(buffUI.drawBuffsTab)
                 if not success then
                     print("[ERROR] In Buffs tab: " .. tostring(err))
                 end
                 imgui.EndTabItem()
             end
+
             -- Add help button after the last tab
             imgui.SameLine()
             imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetContentRegionAvail() - 20) -- Position at far right
@@ -1235,43 +1124,42 @@ end
 
 mq.imgui.init("RaidPrepUI", drawGUI)
 
+local lastAnnounce = 0
+local lastCleanup = 0
+local lastProcessCleanups = 0
 while true do
     local now = os.time()
 
-    -- Re-broadcast every 10s
-    if now - lastAnnounceTime > announceInterval then
-        lastAnnounceTime = now
-        if myBuffs[myClass] then
-            actor:send({
-                id = 'announceBuffs',
-                class = myClass,
-                name = myName,
-                buffs = myBuffs[myClass]
-            })
-        end
+    -- Process pending casts every 100ms
+    if buffUI.processCasts then
+        buffUI.processCasts()
     end
 
-    -- Cleanup every 5s
-    if now - lastCleanupTime > cleanupInterval then
-        lastCleanupTime = now
-        for class, charTable in pairs(matchingChars) do
-            for name, info in pairs(charTable) do
-                if now - (info.timestamp or 0) > expireThreshold then
-                    print(string.format("Removing stale character: %s (%s)", name, class))
-                    matchingChars[class][name] = nil
-                    availableBuffs[name] = nil
-                    if selectedBuffChar == name then
-                        selectedBuffChar = nil
-                    end
-                end
-            end
-            -- Clean up empty class table
-            if next(matchingChars[class]) == nil then
-                matchingChars[class] = nil
-            end
+    -- Process buff UI cleanups every 100ms
+    if now - lastProcessCleanups >= 0.1 then
+        if buffUI.processCleanups then
+            buffUI.processCleanups()
         end
+        lastProcessCleanups = now
     end
 
+    -- Every 10 seconds, announce buffs
+    if now - lastAnnounce >= 10 then
+        if buffUI.announceBuffs then
+            buffUI.announceBuffs()
+        end
+        lastAnnounce = now
+    end
 
-    mq.delay(300)
+    -- Every 5 seconds, clean up stale entries
+    if now - lastCleanup >= 5 then
+        if buffUI.cleanupStaleEntries then
+            buffUI.cleanupStaleEntries()
+        end
+        lastCleanup = now
+    end
+
+    -- Process events and add a small delay
+    mq.doevents()
+    mq.delay(100) -- Check every 100ms
 end
