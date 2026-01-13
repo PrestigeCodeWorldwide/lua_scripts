@@ -1,1165 +1,1358 @@
 ---@type Mq
 local mq = require("mq")
----@type BL
-local BL = require("biggerlib")
---- @type ImGui
-local imgui = require("ImGui")
---- @type Actors
-local ActorsLib = require("actors")
-local buffUI = require("raidprep.buffactors")
-local burnsUI = require("raidprep.burns")
+local Log = require("biggerlib.log")
+local Enum = require("biggerlib.enum")
+local Gui = require("biggerlib.ui")
 
+-- Version: 0.2.2
 
-BL.info("RaidPrep v1.80 Started")
+-- Lua Require Paths for zen subfolder:
+-- MQ\lua\zen\?.lua
+-- MQ\lua\zen\?\init.lua
 
-local openGUI = true
---local selectedScripts = {}
---local selectedClass = nil
-local autoAssistAt = 99
-local CampRadius = 60
-local ChaseDistance = 15
-local AoECount = 2
-local BurnCount = 99
-local StickHow = -1
-local UseAoE = 0 -- 0=SET, 1=ON, 2=OFF
-local RaidMode = false
-local UseAlliance = 0
-local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
---local BYOS = 0
---local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
---local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
-local selectedRaidAssist = "Select RA"
-local AllButSelfBind = "/noparse /dge /docommand /${Me.Class.ShortName}"
-local AllIncludingSelfBind = "/noparse /dga /docommand /${Me.Class.ShortName}"
-local applytoallChecked = false -- Controls whether to include self in CWTN commands
-local scriptDir = debug.getinfo(1, "S").source:match("@(.*[\\/])") or ""
-local settingsFile = scriptDir .. "raidprep_settings.lua"
-local forceRefresh = 0
-local isWindowMinimized = false
-local windowHeight = 600 -- default height, will be adjusted when window is restored
+---@class BL
+---BiggerLib (BL) is a utility library providing a collection of functions and submodules to enhance Lua scripting capabilities within MacroQuest.
+---
+---@field log BL.Log Provides logging functions with different levels such as info, warn, error, and dump.
+---@field Enum table A utility for creating enumerations.
+---@field UI table Contains functions related to user interface utilities.
+---@field Lume table A submodule providing a set of helper functions for table manipulation, math calculations, string manipulation, and more.
+---@field ZenArray table A submodule offering functional array utilities to work with tables as arrays.
+---@field GroupCmd fun(cmd: string) Executes a command on the entire group.
+---@field IsNil fun(thingToCheckForNilly: any):boolean Checks if a value is nil or a string representation of nil.
+---@field NotNil fun(thingToCheckForNilly: any):boolean Checks if a value is not nil or a string representation of nil.
+---@field parseAllNames fun(names: string):table Parses a string of names separated by commas and/or 'and'.
+---@field nameListIncludesMe fun(namesString: string):boolean Determines if the current character's name is included in a given list of names.
+---@field searchForAliveSpawnByName fun(name: string, optionalRadius: number|nil):any Searches for a spawn by name within an optional radius.
+---@field TargetAndNavTo fun(targetName: string, optionalRadius: number|nil) Targets a spawn by name and navigates to it.
+---@field NavToPos fun(posX: number, posY: number, posZ: number) Travel to same coordinates given by /loc command
+---@field getRandomPointOnCircle fun():number, number Generates a random point on a circle centered around the player's position.
+---@field cmd.pauseAutomation fun() Pauses automation scripts and stops various character actions.
+---@field cmd.resumeAutomation fun() Resumes paused automation scripts.
+---@field cmd.runToAfterDelay fun(x: number, y: number, z: number, delay: number)Waits for a delay then navigates to a location.
+---@field cmd.setRngSeedFromPlayerPosition fun()Sets the RNG seed based on the player's position.
+---@field cmd.returnToRaidMainAssist fun() Navigates to the raid main assist if one is set.
+---@field cmd.removeZerkerRootDisc fun() Removes the Berserker root discipline if it is active.
+---@field cmd.sendRaidChannelMessage fun(messageToSend: string) Sends a message to the raid channel.
+---@field cmd.sendGroupChatMessage fun(messageToSend: string) Sends a message to the group chat.
+---@field cmd.sendFellowshipChannelMessage fun(messageToSend: string) Sends a message to the fellowship chat channel.
+---@field cmd.pauseScript fun(scriptName: string):boolean Pauses a specific Lua script if it's running.
+---@field cmd.resumeScript fun(scriptName: string):boolean Resumes a specific Lua script if it's paused.
+---@field cmd.coordinateWithScript fun(scriptName: string, eventCallback: function) Coordinates with a specific script during an event.
+---@field IHaveBuff fun(buffName: string):boolean Returns true if the current character has the specified buff.
+---@field WaitForNav fun() Waits until navigation is complete before continuing.
+---@field UI.GetOnOffColor fun(val: string):string Utility function for on/off text coloring.
+---@field MakeGroupVisible fun() Makes the entire group visible.
+---@field checkChestSpawn fun(chestName: string|nil) Checks if a chest has spawned and exits the script if it has.
+---@field cmd.TurnOffAllAoE fun() Turns off all AoE's and AoE related settings for all classes using CWTN plugins.
+---@field cmd.TurnOnAllAoE fun() Turns on all AoE's and AoE related settings for all classes using CWTN plugins.
+---@field cmd.StandIfFeigned fun() Checks if the current character is feigned and stands if so.
+local BL = {}
 
--- Helper function to get the appropriate bind based on applytoallChecked
-local function getCWTNBind()
-    return applytoallChecked and AllIncludingSelfBind or AllButSelfBind
+---@class BL.Log
+---@field info fun(message: string)|nil @Logs an informational message.
+---@field warn fun(message: string)|nil @Logs a warning message.
+---@field error fun(message: string)|nil @Logs an error message.
+---@field dump fun(value: any)|nil @Dumps a value for debugging purposes.
+
+BL.cmd = {}
+---@type BL.Log
+BL.log = {}
+BL.Enum = Enum
+BL.UI = {}
+---@type Gui
+BL.Gui = Gui
+-- #region Oneoffs
+
+--- Checks if the character is feigned and stands if they are.
+function BL.cmd.StandIfFeigned()
+	if mq.TLO.Me.Spawn.State() == "FEIGN" then
+		mq.cmd("/stand")
+		mq.delay(100)
+	end
 end
 
-local function applySettings()
-    mq.cmdf("%s autoAssistAt %d", getCWTNBind(), autoAssistAt)
-    mq.cmdf("%s CampRadius %d", getCWTNBind(), CampRadius)
-    mq.cmdf("%s ChaseDistance %d", getCWTNBind(), ChaseDistance)
-    mq.cmdf("%s AoECount %d", getCWTNBind(), AoECount)
-    mq.cmdf("%s BurnCount %d", getCWTNBind(), BurnCount)
-    mq.cmdf("%s StickHow %d", getCWTNBind(), StickHow)
-
-    mq.cmdf("%s useaoe %s", getCWTNBind(), UseAoE and "on" or "off")
-    mq.cmdf("%s RaidMode %s", getCWTNBind(), RaidMode and "on" or "off")
-    mq.cmdf("%s usealliance %s", getCWTNBind(), UseAlliance and "on" or "off")
-    mq.cmdf("%s usemelee %s", getCWTNBind(), UseMelee and "on" or "off")
-    --mq.cmdf("%s byos %s", getCWTNBind(), BYOS and "on" or "off")
-
-    if selectedRaidAssist and selectedRaidAssist ~= "Select RA" then
-        mq.cmdf("%s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
-    end
-
-    print("Settings applied to all toons.")
+--- Turns off AoE's and AoE related settings for all classes using CWTN plugins. 
+--- Meant for events that we don't want any AoE damage.
+function BL.cmd.TurnOffAllAoE()
+	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE off")
+	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 99")
+	if mq.TLO.Me.Class.ShortName() == "BER" or mq.TLO.Me.Class.ShortName() == "MNK" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault off")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive off")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHD" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious off")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHM" and mq.TLO.Me.AltAbility("Languid Bite: Enabled").ID() ~= nil then
+		mq.cmd("/alt act 861")
+	end
 end
 
--- Load settings from file
-local function loadSettings()
-    print("Attempting to load settings from: " .. settingsFile)
-    local file = io.open(settingsFile, "r")
-    if file then
-        print("Successfully opened settings file")
-        local content = file:read("*all")
-        file:close()
-
-        -- Execute the Lua file to load settings
-        local chunk, err = load(content)
-        if chunk then
-            local settings = chunk()
-            autoAssistAt = settings.autoAssistAt or autoAssistAt
-            CampRadius = settings.CampRadius or CampRadius
-            ChaseDistance = settings.ChaseDistance or ChaseDistance
-            AoECount = settings.AoECount or AoECount
-            BurnCount = settings.BurnCount or BurnCount
-            StickHow = settings.StickHow or StickHow
-            UseAoE = settings.UseAoE or UseAoE
-            RaidMode = settings.RaidMode or RaidMode
-            UseAlliance = settings.UseAlliance or UseAlliance
-            UseMelee = settings.UseMelee or UseMelee
-            --BYOS = settings.BYOS or BYOS
-            selectedRaidAssist = settings.selectedRaidAssist or selectedRaidAssist
-            applySettings()
-            forceRefresh = 2 -- <-- trigger the UI to update
-            print("Settings loaded successfully")
-        else
-            print("Error loading settings: " .. tostring(err))
-        end
-    else
-        print("Settings file not found")
-    end
+function BL.cmd.TurnOnAllAoE()
+	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE on")
+	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 2")
+	if mq.TLO.Me.Class.ShortName() == "BER" or mq.TLO.Me.Class.ShortName() == "MNK" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault on")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive on")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHD" then
+		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious on")
+	end
+	if mq.TLO.Me.Class.ShortName() == "SHM" and mq.TLO.Me.AltAbility("Languid Bite: Disabled").ID() ~= nil then
+		mq.cmd("/alt act 861")
+	end
 end
 
--- Save settings to file
-local function saveSettings()
-    print("Attempting to save settings to: " .. settingsFile)
-
-    -- Get the current working directory
-    local currentDir = package.config:sub(1, 1) -- Get path separator
-    print("Current directory: " .. currentDir)
-    print("Full path: " .. currentDir .. settingsFile)
-
-    local settings = {
-        autoAssistAt = autoAssistAt,
-        CampRadius = CampRadius,
-        ChaseDistance = ChaseDistance,
-        AoECount = AoECount,
-        BurnCount = BurnCount,
-        StickHow = StickHow,
-        UseAoE = UseAoE,
-        RaidMode = RaidMode,
-        UseAlliance = UseAlliance,
-        UseMelee = UseMelee,
-        --BYOS = BYOS,
-        selectedRaidAssist = selectedRaidAssist
-    }
-
-    -- Create a Lua table definition
-    local content = "return {\n"
-    for k, v in pairs(settings) do
-        if type(v) == "boolean" then
-            content = content .. string.format("    %s = %s,\n", k, v and "true" or "false")
-        elseif type(v) == "number" then
-            content = content .. string.format("    %s = %d,\n", k, v)
-        elseif type(v) == "string" then
-            content = content .. string.format("    %s = \"%s\",\n", k, v)
-        end
-    end
-    content = content .. "}\n"
-
-    local file = io.open(settingsFile, "w")
-    if file then
-        print("Successfully opened file for writing")
-        file:write(content)
-        file:close()
-        print("Settings saved successfully")
-        applySettings() -- Apply the settings after saving
-    else
-        print("Failed to open file for writing")
-    end
-end
-
--- Load settings when script starts
---loadSettings()
---applySettings()
-
-local selectedExpansion = "--Misc Scripts--"
-local expansions = {
-    "--Misc Scripts--",
-    "The Outer Brood",
-    "Laurion's Song",
-    "Night of Shadows",
-    "Terror of Luclin",
-    "Claws of Veeshan",
-    "Torment of Velious"
-}
-
-local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "OfftankX", "TankBandoSwap", "TCN" },
-    ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer", "HPMez", "HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
-    ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
-    ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
-    ["Terror of Luclin"] = { "Doomshade", "FreeTheGoranga", "SheiBane" },
-    ["Claws of Veeshan"] = { "Tantor" },
-    ["Torment of Velious"] = { "Griklor", "ToFS3", "VelksRaid" },
-}
-
-local scriptTooltips = {
-    -- Misc Scripts
-    ["BannerBack"] = "Runs toon back to GH and takes banner back if they are in the Lobby",
-    ["Bard"] = "Koda's Bard automation lua",
-    ["BoxHUD"] = "Heads-up display for boxed characters",
-    ["ButtonMaster"] = "Customizable button interface for common commands",
-    ["GoldenPickPL"] = "Uses the Golden Pick to hit each mob once during PL'ing",
-    ["GuildClicky"] = "Manages guild hall zone port clickies",
-    ["Hemicfam"] = "Casts Scrykin then Personal Hemic familiar",
-    ["HunterHUD"] = "Tracks hunter achievements",
-    ["HunterHood"] = "HunterHUD with added features",
-    ["LEM"] = "lua event manager",
-    ["Magellan"] = "/travelto zones with UI",
-    ["Moblist"] = "Tracks spawns in a zone with UI",
-    ["Offtank"] = "Allows selecting specific mobs to offtank automatically",
-    ["OfftankX"] = "Allows selecting a specific xtarget # to offtank automatically",
-    ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
-    ["TCN"] = "Tradeskill Consturction Next",
-
-    -- The Outer Brood scripts
-    ["SilenceTheCannons"] =
-    "Runs away toons called out for the Overcharged Orbs emote during the Silence the Cannons raid",
-    ["LHeartRaid"] = "Loots lenses and swaps targets on the bright/dark engergist during the Leviathan Heart raid",
-    ["HPRaid"] = "Runs toons for the 2 cures and swaps stickhow's during the High Priest raid",
-    ["HPMez"] = "Bard Mez Messengers during the High Priest raid",
-    ["DockoftheBay"] = "Runs the 4 toons to safe spots in the East tunnel during the Dock of the Bay raid",
-    ["BroodRaid"] = "Runs toons to the south tunnel until debuff is gone during the Brood Architect raid",
-    ["ControlRoom"] =
-    "(Run only on the toon you want doing the /say) Will target and /say the correct phrases to the frog during the Control Room raid",
-    ["ToERitual"] = "Run only on the driver of the group. Does the 4 colored circles thing during the ToE raid",
-    ["ToECannons"] = "Run only on the driver of the group. Kills the Cannoneers thing during the ToE raid",
-    ["HHbearer"] = "Handles bearer call out during the Hodstock raid",
-
-    -- Add more tooltips for other scripts as needed
-    ["AK"] = "Runs toons outside the fort to safe spots during the Ankexfen Keep raid",
-    ["FFBandoSwap"] = "Bandolier swaps rogues/bards to stun whips during the Final Fugue raid",
-    ["HFRaid"] = "Runs toons away on Shalowain emote and sends pets to kill eggs during the Hero's Forge raid",
-    ["Moors"] = "Runs to safe spot on the Magus' aura during the Moors of Nokk raid",
-    ["PoMTato"] = "Helper lua for getting Cold Potato achievement during the Plane of Mischief raid",
-    ["TFRaid"] = "Runs toons away on the Seed of Hate debuff during the Timorous Falls raid",
-    ["Darklight"] =
-    "Runs toons away from the green aura if they get the Thinning Skin debuff during the Spirit Fades raid",
-    ["OpenTheDoorBanes"] = "Auto cast corruption cure on the 3 dervishes during the When One Door Closes raid",
-    ["OpenTheDoorRunAway"] = "Does a couple of the run aways during the When One Door Closes raid",
-    ["FreeTheGoranga"] = "Runs toon to SE building out of LoS during the Free the Goranga raid",
-    ["Griklor"] = "Called out toons will auto follow Griklor around during the Griklor the Restless raid",
-    ["VelksRaid"] = "Can't remember, does stuff",
-    ["ShadowsMove"] = "Handles the Setting Sun and Rising Sun emotes during the Firefall Pass raid",
-    ["ToFS3"] = "Calls out which character and race is duplicated for ToFS #3 raid",
-    ["Doomshade"] = "Runs characters to safe spots for the viral and doom emotes during the Doomshade raid",
-}
-
-local function drawluaTab()
-    -- Expansion dropdown and Stop All button
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Expansion text color
-    imgui.Text("Expansion:")
-    imgui.PopStyleColor()
-    imgui.SameLine()
-    imgui.SetNextItemWidth(150) -- Set width for the combo box
-    if imgui.BeginCombo("##Expansion", selectedExpansion or "Select...") then
-        for _, expansion in ipairs(expansions) do
-            if imgui.Selectable(expansion, selectedExpansion == expansion) and selectedExpansion ~= expansion then
-                selectedExpansion = expansion
-                --selectedScripts = {}
-                print("Selected Expansion: " .. expansion)
-            end
-        end
-        imgui.EndCombo()
-    end
-
-    -- Add Stop All button
-    imgui.SameLine(0, 10)
-    if imgui.Button("?", 20, 0) then
-        -- Add functionality to stop all scripts here
-        print("Stopping all scripts...")
-        mq.cmd("/dga /lua stop")
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Mystery Button! What does it do?")
-        imgui.EndTooltip()
-    end
-
-    -- Check for selected expansion
-    if selectedExpansion and expansionScripts[selectedExpansion] then
-        imgui.Separator()
-        imgui.Columns(2, "ScriptsColumns", true) -- Divider
-        imgui.SetColumnWidth(0, 140)
-
-        -- Column headers in lime green
-        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Scripts text color
-        imgui.Text("Scripts:")
-        imgui.NextColumn()
-        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Command text color
-        imgui.Text("Command:")
-        imgui.PopStyleColor(2)                                   -- Pop both style colors
-        imgui.NextColumn()
-
-        for _, script in ipairs(expansionScripts[selectedExpansion]) do
-            -- Column 1: script name
-            imgui.Text(script)
-            if imgui.IsItemHovered() then
-                imgui.BeginTooltip()
-                imgui.Text(scriptTooltips[script] or (script .. " Script"))
-                imgui.EndTooltip()
-            end
-            imgui.NextColumn()
-
-            -- Column 2: Dannet command Buttons
-            imgui.PushID(script)
-
-            if imgui.Button("S") then
-                print("Running script on self: " .. script)
-                mq.cmdf("/lua run %s", script)
-            end
-            if imgui.IsItemHovered() then
-                imgui.BeginTooltip()
-                imgui.Text("Run " .. script .. " on self")
-                imgui.EndTooltip()
-            end
-            imgui.SameLine()
-
-            if imgui.Button("A") then
-                print("Running script on all: " .. script)
-                mq.cmdf("/squelch /dga /lua run %s", script)
-            end
-            if imgui.IsItemHovered() then
-                imgui.BeginTooltip()
-                imgui.Text("Run " .. script .. " on all")
-                imgui.EndTooltip()
-            end
-            imgui.SameLine()
-
-            if imgui.Button("ABS") then
-                print("Running script on all but self: " .. script)
-                mq.cmdf("/squelch /dge /lua run %s", script)
-            end
-            if imgui.IsItemHovered() then
-                imgui.BeginTooltip()
-                imgui.Text("Run " .. script .. " on all but self")
-                imgui.EndTooltip()
-            end
-            imgui.SameLine()
-
-            if imgui.Button("Stop") then
-                print("Stopping script on all: " .. script)
-                mq.cmdf("/squelch /dga /lua stop %s", script)
-            end
-            if imgui.IsItemHovered() then
-                imgui.BeginTooltip()
-                imgui.Text("Stop " .. script .. " on all")
-                imgui.EndTooltip()
-            end
-
-            imgui.PopID()
-            imgui.NextColumn()
-        end
-
-
-        imgui.Columns(1)
-    end
-end
-
---Class Tab UI
-local function drawClassTab()
-    imgui.Separator()
-    imgui.Columns(2)
-    imgui.SetColumnWidth(0, 100) -- fixed width for left column
-
-    -- Column headers in lime green
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Class and Commandtext color
-    imgui.Text("Class")
-    imgui.NextColumn()
-    imgui.Text("Command")
-    imgui.PopStyleColor()
-    imgui.NextColumn()
-
-    local classAbilities = {
-        Bard = {
-            { label = "ADT", cmd = "/squelch /dga /brd ActiveDownTime on", offcmd = "/squelch /dga /brd ActiveDownTime off", tooltip = "ActiveDowntime" },
-            { label = "MST", cmd = "/squelch /dga /brd UseMezST on",       offcmd = "/squelch /dga /brd UseMezST off",       tooltip = "MezST" },
-            { label = "MAE", cmd = "/squelch /dga /brd UseMezAoE on",      offcmd = "/squelch /dga /brd UseMezAoE off",      tooltip = "MezAoE" }
-        },
-        Beastlord = {
-            { label = "FEI", cmd = "/squelch /dga /bst UseFeign on",  offcmd = "/squelch /dga /bst UseFeign off",  tooltip = "Feign" },
-            { label = "SAL", cmd = "/squelch /dga /bst SlowAll on",   offcmd = "/squelch /dga /bst SlowAll off",   tooltip = "SlowAll" },
-            { label = "SAN", cmd = "/squelch /dga /bst SlowNamed on", offcmd = "/squelch /dga /bst SlowNamed off", tooltip = "SlowNamed" }
-        },
-        Berserker = {
-            { label = "DEV", cmd = "/squelch /dga /ber UseDevAssault on", offcmd = "/squelch /dga /ber UseDevAssault off", tooltip = "DevAssault" },
-            { label = "FRZ", cmd = "/squelch /dga /ber UseFrenzied on",   offcmd = "/squelch /dga /ber UseFrenzied off",   tooltip = "Frenzied" },
-            { label = "CRY", cmd = "/squelch /dga /ber UseWarCry on",     offcmd = "/squelch /dga /ber UseWarCry off",     tooltip = "WarCry" }
-        },
-        Cleric = {
-            { label = "SPL", cmd = "/squelch /dga /clr MemSplash on",      offcmd = "/squelch /dga /clr MemSplash off",      tooltip = "MemSplash" },
-            { label = "ANT", cmd = "/squelch /dga /clr UseAnticipated on", offcmd = "/squelch /dga /clr UseAnticipated off", tooltip = "Anticipated" },
-            { label = "RET", cmd = "/squelch /dga /clr UseRetort on",      offcmd = "/squelch /dga /clr UseRetort off",      tooltip = "Retort" }
-        },
-        Monk = {
-            { label = "DEV", cmd = "/squelch /dga /mnk UseDevAssault on",  offcmd = "/squelch /dga /mnk UseDevAssault off",  tooltip = "DevAssault" },
-            { label = "DES", cmd = "/squelch /dga /mnk UseDestructive on", offcmd = "/squelch /dga /mnk UseDestructive off", tooltip = "Destructive" },
-            { label = "FEI", cmd = "/squelch /dga /mnk UseFeign on",       offcmd = "/squelch /dga /mnk UseFeign off",       tooltip = "Feign" }
-        },
-        Paladin = {
-            { label = "SCO", cmd = "/squelch /dga /pal SplashCureOnly on", offcmd = "/squelch /dga /pal SplashCureOnly off", tooltip = "SplashCureOnly" },
-            { label = "AOV", cmd = "/squelch /dga /pal UseActofValor on",  offcmd = "/squelch /dga /pal UseActofValor off",  tooltip = "ActofValor" },
-            { label = "CAL", cmd = "/squelch /dga /pal UseDivineCall on",  offcmd = "/squelch /dga /pal UseDivineCall off",  tooltip = "DivineCall" }
-        },
-        Rogue = {
-            { label = "ACG", cmd = "/squelch /dga /rog AutoCorpseGrab on",   offcmd = "/squelch /dga /rog AutoCorpseGrab off",   tooltip = "AutoCorpseGrab" },
-            { label = "LIG", cmd = "/squelch /dga /rog UseLigamentSlice on", offcmd = "/squelch /dga /rog UseLigamentSlice off", tooltip = "LigamentSlice" },
-            { label = "PET", cmd = "/squelch /dga /rog UsePet on",           offcmd = "/squelch /dga /rog UsePet off",           tooltip = "UsePet" }
-        },
-        Shadowknight = {
-            { label = "INS", cmd = "/squelch /dga /shd UseInsidious on", offcmd = "/squelch /dga /shd UseInsidious off", tooltip = "Insidious" },
-            { label = "PET", cmd = "/squelch /dga /shd UsePet on",       offcmd = "/squelch /dga /shd UsePet off",       tooltip = "Pet" },
-            { label = "FEI", cmd = "/squelch /dga /shd UseFeign on",     offcmd = "/squelch /dga /shd UseFeign off",     tooltip = "Feign" }
-        },
-        Shaman = {
-            { label = "CUR", cmd = "/squelch /dga /shm MemCureAll on", offcmd = "/squelch /dga /shm MemCureAll off", tooltip = "MemCureAll" },
-            { label = "DOT", cmd = "/squelch /dga /shm UseDot on",     offcmd = "/squelch /dga /shm UseDot off",     tooltip = "Dot" },
-            { label = "PET", cmd = "/squelch /dga /shm UsePet on",     offcmd = "/squelch /dga /shm UsePet off",     tooltip = "Pet" }
-        },
-        Warrior = {
-            { label = "T2D", cmd = "/squelch /dga /war T2DefenseOnly on", offcmd = "/squelch /dga /war T2DefenseOnly off", tooltip = "T2DefenseOnly" },
-            { label = "FRT", cmd = "/squelch /dga /war UseFortitude on",  offcmd = "/squelch /dga /war UseFortitude off",  tooltip = "Fortitude" },
-            { label = "PHM", cmd = "/squelch /dga /war UsePhantom on",    offcmd = "/squelch /dga /war UsePhantom off",    tooltip = "Phantom" }
-        },
-    }
-
-    for _, class in ipairs({
-        "Bard", "Beastlord", "Berserker", "Cleric",
-        "Monk", "Paladin",
-        "Rogue", "Shadowknight", "Shaman", "Warrior",
-    }) do
-        -- Column 1: Class name (default color)
-        imgui.Text(class)
-        imgui.NextColumn()
-
-        imgui.PushID(class)
-        local abilities = classAbilities[class]
-        if abilities then
-            local rowY = imgui.GetCursorPosY()
-            local startX = imgui.GetCursorPosX()
-            local slotWidth = 70 -- spacing between checkbox slots
-
-            for i, ability in ipairs(abilities) do
-                imgui.SetCursorPos(startX + (i - 1) * slotWidth, rowY)
-
-                local varName = class .. "_" .. ability.label
-                _G[varName] = _G[varName] or false
-                local checked, changed = imgui.Checkbox(ability.label, _G[varName])
-                _G[varName] = checked
-
-                if imgui.IsItemHovered() and ability.tooltip then
-                    imgui.BeginTooltip()
-                    imgui.TextUnformatted(ability.tooltip)
-                    imgui.EndTooltip()
-                end
-
-                if changed then
-                    if checked then
-                        mq.cmd(ability.cmd)
-                    elseif ability.offcmd then
-                        mq.cmd(ability.offcmd)
-                    end
-                end
-            end
-        else
-            imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Lime green text
-            imgui.Text("No Abilities Defined")
-            imgui.PopStyleColor()
-        end
-        imgui.PopID()
-        imgui.NextColumn()
-    end
-
-    imgui.Columns(1)
-end
-
-
-
---CWTN Tab
-local function drawCWTNTab()
-    if forceRefresh > 0 then
-        forceRefresh = forceRefresh - 1
-    end
-
-    imgui.Separator()
-    local topButtons = {
-        { label = "BON",  command = "BurnAlways ON",  tooltip = "BurnAlways ON" },
-        { label = "BOFF", command = "BurnAlways OFF", tooltip = "BurnAlways OFF" },
-        { label = "CHA",  command = "mode chase",     tooltip = "Chase mode" },
-        { label = "ASS",  command = "mode assist",    tooltip = "Assist mode" },
-        { label = "PON",  command = "pause ON",       tooltip = "Pause ON" },
-        { label = "POFF", command = "pause OFF",      tooltip = "Pause OFF" },
-    }
-
-    -- StyleVar indices (ImGuiStyleVar enum)
-    local STYLEVAR_FramePadding = 5
-
-    imgui.PushStyleVar(STYLEVAR_FramePadding, 1, 1)
-
-    for _, btn in ipairs(topButtons) do
-        imgui.PushID("top_" .. btn.label)
-        if imgui.Button(btn.label, 38, 25) then
-            if btn.label == "BOFF" then
-                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
-                mq.cmdf("%s %s", AllIncludingSelfBind, "BurnAllNamed OFF")
-                print("Issued BurnAlways OFF and BurnAllNamed OFF")
-            else
-                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
-                print("Issued " .. btn.command)
-            end
-        end
-        if imgui.IsItemHovered() then
-            imgui.BeginTooltip()
-            imgui.Text(btn.tooltip)
-            imgui.EndTooltip()
-        end
-        imgui.PopID()
-        imgui.SameLine()
-    end
-
-    imgui.PopStyleVar()
-    imgui.NewLine()
-
-    if imgui.Button("AE On") then
-        --mq.cmdf("%s %s", getCWTNBind(), "UseAoE on")
-        --mq.cmdf("%s %s", getCWTNBind(), "AoECount 2")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDevAssault on")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDestructive on")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseInsidious on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 2")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
-        mq.cmd(
-            "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Turn on all AoE on all characters.")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-
-    if imgui.Button("AE Off") then
-        --mq.cmdf("%s %s", getCWTNBind(), "UseAoE off")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDevAssault off")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDestructive off")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseInsidious off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 99")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious off")
-        mq.cmd(
-            "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861")
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Turn off all AoE on all characters. (includes DevAssault, Destructive, Insidious, Languid Bite)")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-
-    if imgui.Button("D-Glyph") then
-        mq.cmdf("%s /alt act 5100", getCWTNBind())
-        mq.cmdf("%s /alt buy 5100", getCWTNBind())
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Uses Dragon Scale Glyph on all characters but the one you are on now.")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-
-    if imgui.Button("P-Glyph") then
-        mq.cmdf("%s /alt act 5303", getCWTNBind())
-        mq.cmdf("%s /alt buy 5303", getCWTNBind())
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Uses Power/DPS Glyph on all characters but the one you are on now.")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-    imgui.SetCursorPosX(imgui.GetCursorPosX() + 5)
-    -- Store the current state
-    local newState = applytoallChecked
-    -- Update the checkbox and get the new state
-    newState = imgui.Checkbox("All##cwtnall", newState)
-
-    -- Only update and print if the state changed
-    if newState ~= applytoallChecked then
-        applytoallChecked = newState
-        print(applytoallChecked and "Including current character in CWTN commands" or
-            "Excluding current character from CWTN commands")
-    end
-
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Check to include current character in CWTN commands")
-        imgui.EndTooltip()
-    end
-
-
-
-    -- LEFT COLUMN: All current settings
-    -- Utility to wrap settings
-    local function updateSetting(label, currentValue, updateFn)
-        local old = currentValue
-        imgui.PushItemWidth(100) -- Adjust slider width here
-        if forceRefresh > 0 then
-            imgui.SetNextItemWidth(100)
-            imgui.SetKeyboardFocusHere()
-        end
-        currentValue = imgui.InputInt(label, currentValue)
-        imgui.PopItemWidth()
-        if currentValue ~= old then
-            updateFn(currentValue)
-            forceRefresh = 0
-        end
-        return currentValue
-    end
-
-    -- AutoAssistAt
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
-    autoAssistAt = updateSetting("##AutoAssistAt", autoAssistAt, function(val)
-        mq.cmdf("%s autoAssistAt %d", getCWTNBind(), val)
-        print(string.format("Set AutoAssistAt to %d", val))
-    end)
-    imgui.PopStyleColor()
-    imgui.SameLine()
-    imgui.Text("AutoAssistAt")
-
-    -- CampRadius
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
-    CampRadius = updateSetting("##CampRadius", CampRadius, function(val)
-        mq.cmdf("%s CampRadius %d", getCWTNBind(), val)
-        print(string.format("Set CampRadius to %d", val))
-    end)
-    imgui.PopStyleColor()
-    imgui.SameLine()
-    imgui.Text("CampRadius")
-
-    -- ChaseDistance
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
-    ChaseDistance = updateSetting("##ChaseDistance", ChaseDistance, function(val)
-        mq.cmdf("%s ChaseDistance %d", getCWTNBind(), val)
-        print(string.format("Set ChaseDistance to %d", val))
-    end)
-    imgui.PopStyleColor()
-    imgui.SameLine()
-    imgui.Text("ChaseDistance")
-
-    -- AoECount
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
-    AoECount = updateSetting("##AoECount", AoECount, function(val)
-        mq.cmdf("%s AoECount %d", getCWTNBind(), val)
-        print(string.format("Set AoECount to %d", val))
-    end)
-    imgui.PopStyleColor()
-    imgui.SameLine()
-    imgui.Text("AoECount")
-
-    -- BurnCount
-    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
-    BurnCount = updateSetting("##BurnCount", BurnCount, function(val)
-        mq.cmdf("%s BurnCount %d", getCWTNBind(), val)
-        print(string.format("Set BurnCount to %d", val))
-    end)
-    imgui.PopStyleColor()
-    imgui.SameLine()
-    imgui.Text("BurnCount")
-
-    -- StickHow combo box with label to the right
-    local stickHowOptions = {
-        [0] = "0 - Behind 10",
-        [1] = "1 - Left 10",
-        [2] = "2 - Right 10",
-        [3] = "3 - Front 10",
-        [4] = "4 - Behind 15",
-        [5] = "5 - Left 15",
-        [6] = "6 - Right 15",
-        [7] = "7 - Front 15",
-        [8] = "8 - Behind 10",
-        [9] = "9 - 35 Ranger",
-    }
-
-    imgui.PushItemWidth(110)
-    local preview = stickHowOptions[StickHow] or "Select..."
-    -- Set text color for the preview
-    if preview == "Select..." then
-        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "Select..."
-    else
-        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected option
-    end
-
-    if imgui.BeginCombo("##StickHow", preview) then
-        imgui.PopStyleColor() -- Pop the color for the dropdown items
-        for index, label in pairs(stickHowOptions) do
-            local isSelected = (StickHow == index)
-            -- Set text color for selected item in dropdown
-            if isSelected then
-                imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected item
-            end
-            if imgui.Selectable(label, isSelected) then
-                if not isSelected then
-                    StickHow = index
-                    mq.cmdf("%s StickHow %d", getCWTNBind(), StickHow)
-                    print("Set StickHow to " .. label)
-                end
-            end
-            if isSelected then
-                imgui.SetItemDefaultFocus()
-                imgui.PopStyleColor() -- Pop the green color
-            end
-        end
-        imgui.EndCombo()
-    else
-        imgui.PopStyleColor() -- Pop the color if combo is not open
-    end
-    imgui.PopItemWidth()
-
-    imgui.SameLine()
-    -- Keep the label gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text("StickHow")
-    imgui.PopStyleColor()
-
-    -- RaidMode toggle
-    local prevRaidMode = RaidMode
-    RaidMode = imgui.Checkbox("RaidMode", RaidMode)
-    if RaidMode ~= prevRaidMode then
-        local toggleCmd = RaidMode and "on" or "off"
-        mq.cmdf("%s RaidMode %s", getCWTNBind(), toggleCmd)
-        print(string.format("Set RaidMode to %s", toggleCmd))
-    end
-
-    -- Raid Assist dropdown
-    imgui.SameLine()
-    imgui.Text("RA:")
-    imgui.SameLine()
-
-    -- Fetch current assist names
-    local assistOptions = {}
-    for i = 1, 3 do
-        local name = mq.TLO.Raid.MainAssist(i).Name()
-        if name and name ~= "" then
-            table.insert(assistOptions, name)
-        end
-    end
-
-    if #assistOptions == 0 then
-        assistOptions = { "None" }
-    end
-
-    -- Combo UI
-    imgui.PushItemWidth(100) -- limit width
-
-    -- Set text color for the preview
-    local preview = selectedRaidAssist or "Select RA"
-    if preview == "Select RA" then
-        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "Select RA"
-    else
-        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected RA
-    end
-
-    if imgui.BeginCombo("##RaidAssist", preview) then
-        imgui.PopStyleColor() -- Pop the color for the dropdown items
-
-        for _, assist in ipairs(assistOptions) do
-            local isSelected = (assist == selectedRaidAssist)
-            -- Set text color for selected item in dropdown
-            if isSelected then
-                imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected item
-            end
-
-            if imgui.Selectable(assist, isSelected) then
-                -- Only send command if the selection is actually changing
-                if not isSelected then
-                    selectedRaidAssist = assist
-                    mq.cmdf("%s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
-                    print("Set RaidAssist to " .. selectedRaidAssist)
-                end
-            end
-
-            if isSelected then
-                imgui.SetItemDefaultFocus()
-                imgui.PopStyleColor() -- Pop the green color
-            end
-        end
-
-        imgui.EndCombo()
-    else
-        imgui.PopStyleColor() -- Pop the green color if combo is not open
-    end
-
-    imgui.PopItemWidth()
-
-    --[[  -- Comment start
-    imgui.SameLine()
-    local byosText = "BYOS: "
-    local byosStateText = { "SET", "ON", "OFF" }
-    local byosButtonState = BYOS + 1
-
-    -- Set text color based on state
-    local stateColor
-    if BYOS == 0 then
-        stateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif BYOS == 1 then
-        stateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        stateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    end
-
-    -- Draw "BYOS:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(byosText)
-    imgui.PopStyleColor()
-
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)        -- No spacing between text elements
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(stateColor))
-    imgui.PushID("byos_button") -- Add this line
-    if imgui.Button(byosStateText[byosButtonState]) then
-        BYOS = (BYOS + 1) % 3
-        if BYOS == 1 then
-            mq.cmdf("/squelch %s byos on", getCWTNBind())
-            print("Set BYOS to ON")
-        elseif BYOS == 2 then
-            mq.cmdf("/squelch %s byos off", getCWTNBind())
-            print("Set BYOS to OFF")
-        end
-    end
-    imgui.PopID() -- Add this line
-    imgui.PopStyleColor()
---]] -- Comment end
-
-    -- UseAoE toggle
-    local aoeText = "AoE: "
-    local aoeStateText = { "SET", "ON", "OFF" }
-    local aoeButtonState = UseAoE + 1
-
-    -- Set text color based on state
-    local aoeStateColor
-    if UseAoE == 0 then
-        aoeStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseAoE == 1 then
-        aoeStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        aoeStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    end
-
-    -- Draw "AoE:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(aoeText)
-    imgui.PopStyleColor()
-
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(aoeStateColor))
-    imgui.PushID("aoe_button")
-    if imgui.Button(aoeStateText[aoeButtonState]) then
-        UseAoE = (UseAoE + 1) % 3
-        if UseAoE == 1 then
-            mq.cmdf("%s useaoe on", getCWTNBind())
-            print("Set AoE to ON")
-        elseif UseAoE == 2 then
-            mq.cmdf("%s useaoe off", getCWTNBind())
-            print("Set AoE to OFF")
-        end
-    end
-    imgui.PopID()
-    imgui.PopStyleColor()
-
-    imgui.SameLine()
-    local allianceText = "Alliance: "
-    local allianceStateText = { "SET", "ON", "OFF" }
-    local allianceButtonState = UseAlliance + 1
-
-    -- Set text color based on state
-    local allianceStateColor
-    if UseAlliance == 0 then
-        allianceStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseAlliance == 1 then
-        allianceStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        allianceStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    end
-
-    -- Draw "Alliance:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(allianceText)
-    imgui.PopStyleColor()
-
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(allianceStateColor))
-    imgui.PushID("alliance_button")
-    if imgui.Button(allianceStateText[allianceButtonState]) then
-        UseAlliance = (UseAlliance + 1) % 3
-        if UseAlliance == 1 then
-            mq.cmdf("%s usealliance on", getCWTNBind())
-            mq.cmdf("%s forcealliance on", getCWTNBind())
-            print("Set Alliance to ON")
-        elseif UseAlliance == 2 then
-            mq.cmdf("%s usealliance off", getCWTNBind())
-            mq.cmdf("%s forcealliance off", getCWTNBind())
-            print("Set Alliance to OFF")
-        end
-    end
-    imgui.PopID()
-    imgui.PopStyleColor()
-
-    imgui.SameLine()
-    local meleeText = "Melee: "
-    local meleeStateText = { "SET", "ALL", "PRIESTS", "CASTERS", "OFF" }
-    local meleeButtonState = UseMelee + 1
-
-    -- Set text color based on state
-    local meleeStateColor
-    if UseMelee == 0 then
-        meleeStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseMelee == 4 then
-        meleeStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    else
-        meleeStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for other states
-    end
-
-    -- Draw "Melee:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(meleeText)
-    imgui.PopStyleColor()
-
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)         -- No spacing between text elements
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(meleeStateColor))
-    imgui.PushID("melee_button") -- Add this line
-    if imgui.Button(meleeStateText[meleeButtonState]) then
-        UseMelee = (UseMelee + 1) % 5
-        -- For UseMelee commands, we'll use /dga or /dge directly
-        local bindPrefix = applytoallChecked and "/dga" or "/dge"
-        if UseMelee == 1 then -- All ON
-            mq.cmdf("%s usemelee on", getCWTNBind())
-            print("Set Melee to ON for all")
-        elseif UseMelee == 2 then -- Priests Only
-            -- Turn on for priests
-            mq.cmdf("%s /docommand /clr usemelee on", bindPrefix)
-            mq.cmdf("%s /docommand /shm usemelee on", bindPrefix)
-            mq.cmdf("%s /docommand /dru usemelee on", bindPrefix)
-            -- Turn off for casters
-            mq.cmdf("%s /docommand /enc usemelee off", bindPrefix)
-            mq.cmdf("%s /docommand /nec usemelee off", bindPrefix)
-            mq.cmdf("%s /docommand /wiz usemelee off", bindPrefix)
-            mq.cmdf("%s /docommand /mag usemelee off", bindPrefix)
-            print("Set Melee ON for priests only")
-        elseif UseMelee == 3 then -- Casters Only
-            -- Turn on for casters
-            mq.cmdf("%s /docommand /enc usemelee on", bindPrefix)
-            mq.cmdf("%s /docommand /nec usemelee on", bindPrefix)
-            mq.cmdf("%s /docommand /wiz usemelee on", bindPrefix)
-            mq.cmdf("%s /docommand /mag usemelee on", bindPrefix)
-            -- Turn off for priests
-            mq.cmdf("%s /docommand /clr usemelee off", bindPrefix)
-            mq.cmdf("%s /docommand /shm usemelee off", bindPrefix)
-            mq.cmdf("%s /docommand /dru usemelee off", bindPrefix)
-            print("Set Melee ON for casters only")
-        elseif UseMelee == 4 then -- All OFF
-            mq.cmdf("%s usemelee off", getCWTNBind())
-            print("Set Melee to OFF for all")
-        end
-    end
-    imgui.PopID()
-    imgui.PopStyleColor()
-
-    --imgui.NewLine()
-    imgui.Columns(1)
-    if imgui.Button("Save") then
-        saveSettings()
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Save current settings as default")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-
-    -- Load Button
-    if imgui.Button("Load") then
-        loadSettings()
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Load saved settings")
-        imgui.EndTooltip()
-    end
-    -- Reset to single-column layout
-end
-
-
-
--- Main ImGui draw function
-local function drawGUI()
-    if not openGUI then
+--- Checks if a chest has spawned and exits the script if it has.
+---@param chestName string|nil @The name of the chest to check for. Defaults to "a_military_chest".
+function BL.checkChestSpawn(chestName)
+    chestName = chestName or "a_military_chest"
+    local chest = mq.TLO.Spawn(chestName)
+    if chest() and chest.ID() > 0 then
+        BL.info(string.format("Chest '%s' has spawned! Ending script.", chestName))
         mq.exit()
-        return
-    end
-
-    -- Store the number of styles we're pushing
-    local stylePushCount = 0
-    local function pushStyleColor(...)
-        stylePushCount = stylePushCount + 1
-        return imgui.PushStyleColor(...)
-    end
-
-    -- Set styling for window and title bar
-    pushStyleColor(ImGuiCol.WindowBg, 0, 0, 0, 1)         -- Black background
-    pushStyleColor(ImGuiCol.TitleBg, 0, 0, 0, 1)          -- Black title bar (inactive)
-    pushStyleColor(ImGuiCol.TitleBgActive, 0, 0, 0, 1)    -- Black title bar (active)
-    pushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
-
-    -- Tab and button colors (dark grey)
-    pushStyleColor(ImGuiCol.Tab, 0.2, 0.2, 0.2, 1)           -- Inactive tab background
-    pushStyleColor(ImGuiCol.TabActive, 0.3, 0.3, 0.3, 1)     -- Active tab background
-    pushStyleColor(ImGuiCol.TabHovered, 0.4, 0.4, 0.4, 1)    -- Hovered tab background
-    pushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)        -- Button background
-    pushStyleColor(ImGuiCol.ButtonHovered, 0.3, 0.3, 0.3, 1) -- Button hovered
-    pushStyleColor(ImGuiCol.ButtonActive, 0.4, 0.4, 0.4, 1)  -- Button active
-
-    -- Combo box and dropdowns
-    pushStyleColor(ImGuiCol.FrameBg, 0.2, 0.2, 0.2, 1)        -- Combo/Input background
-    pushStyleColor(ImGuiCol.FrameBgHovered, 0.3, 0.3, 0.3, 1) -- Combo/Input hovered
-    pushStyleColor(ImGuiCol.FrameBgActive, 0.4, 0.4, 0.4, 1)  -- Combo/Input active
-    pushStyleColor(ImGuiCol.PopupBg, 0.15, 0.15, 0.15, 1)     -- Dropdown background
-
-    -- Checkboxes and radio buttons
-    pushStyleColor(ImGuiCol.CheckMark, 0.0, 8.85, 0.0, 1.0)     -- Changed to match command text green
-    pushStyleColor(ImGuiCol.SliderGrab, 0.4, 0.4, 0.4, 1)       -- Slider grab
-    pushStyleColor(ImGuiCol.SliderGrabActive, 0.5, 0.5, 0.5, 1) -- Slider grab active
-
-    -- Headers and separators
-    pushStyleColor(ImGuiCol.Header, 0.2, 0.2, 0.2, 1)        -- Header background
-    pushStyleColor(ImGuiCol.HeaderHovered, 0.3, 0.3, 0.3, 1) -- Header hovered
-    pushStyleColor(ImGuiCol.HeaderActive, 0.4, 0.4, 0.4, 1)  -- Header active
-    pushStyleColor(ImGuiCol.Separator, 0.5, 0.5, 0.5, 0.5)   -- Separator color
-
-    -- Add button rounding
-    imgui.PushStyleVar(ImGuiStyleVar.FrameRounding, 6.0) -- Rounded corners for buttons
-
-    -- Create window with default flags to keep the minimize button
-    local windowOpen = openGUI
-    if not imgui.Begin("Raid Prep", windowOpen) then
-        -- Window is being closed
-        openGUI = false
-        imgui.End()
-        imgui.PopStyleVar() -- Pop the frame rounding style var
-        imgui.PopStyleColor(stylePushCount)
-        return
-    end
-
-    -- Store window height when not minimized
-    if not isWindowMinimized then
-        windowHeight = imgui.GetWindowHeight()
-    end
-
-    -- Only show content if not minimized
-    if not isWindowMinimized then
-        -- Safely handle tabs
-        if imgui.BeginTabBar("RaidPrepTabs") then
-            -- Lua tab
-            if imgui.BeginTabItem("lua") then
-                local success, err = pcall(drawluaTab)
-                if not success then
-                    print("[ERROR] In lua tab: " .. tostring(err))
-                end
-                imgui.EndTabItem()
-            end
-
-            -- Class tab
-            if imgui.BeginTabItem("Class") then
-                local success, err = pcall(drawClassTab)
-                if not success then
-                    print("[ERROR] In Class tab: " .. tostring(err))
-                end
-                imgui.EndTabItem()
-            end
-
-            -- CWTN tab
-            if imgui.BeginTabItem("CWTN") then
-                local success, err = pcall(drawCWTNTab)
-                if not success then
-                    print("[ERROR] In CWTN tab: " .. tostring(err))
-                end
-                imgui.EndTabItem()
-            end
-
-            -- Buffs tab
-            if imgui.BeginTabItem("Buffs") then
-                local success, err = pcall(buffUI.drawBuffsTab)
-                if not success then
-                    print("[ERROR] In Buffs tab: " .. tostring(err))
-                end
-                imgui.EndTabItem()
-            end
-
-            -- Add help button after the last tab
-            imgui.SameLine()
-            imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetContentRegionAvail() - 20) -- Position at far right
-            imgui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 0.0, 1.0)                         -- Yellow text
-            imgui.Text("?")
-            imgui.PopStyleColor()
-
-            if imgui.IsItemHovered() then
-                imgui.PushStyleVar(ImGuiStyleVar.WindowPadding, 1, 1) -- Add padding
-                imgui.BeginTooltip()
-                imgui.Text("--- Raid Prep Help ---")
-                imgui.Separator()
-                imgui.BulletText("Burn On/Off and AE On/Off uses /dga : All characters")
-                imgui.BulletText("All other commands uses /dge : All characters except you")
-                imgui.BulletText("Click the All button to use /dga for all commands.")
-                imgui.EndTooltip()
-                imgui.PopStyleVar()
-            end
-        end
-        imgui.EndTabBar()
-    end
-
-    imgui.End()
-
-    -- Clean up styles
-    imgui.PopStyleVar() -- Pop the frame rounding style var
-    imgui.PopStyleColor(stylePushCount)
-
-    -- Check if window was closed
-    if not windowOpen then
-        openGUI = false
     end
 end
 
-mq.imgui.init("RaidPrepUI", drawGUI)
-
-local lastAnnounce = 0
-local lastCleanup = 0
-local lastProcessCleanups = 0
-while true do
-    local now = os.time()
-
-    -- Process pending casts every 100ms
-    if buffUI.processCasts then
-        buffUI.processCasts()
-    end
-
-    -- Process buff UI cleanups every 100ms
-    if now - lastProcessCleanups >= 0.1 then
-        if buffUI.processCleanups then
-            buffUI.processCleanups()
-        end
-        lastProcessCleanups = now
-    end
-
-    -- Every 10 seconds, announce buffs
-    if now - lastAnnounce >= 10 then
-        if buffUI.announceBuffs then
-            buffUI.announceBuffs()
-        end
-        lastAnnounce = now
-    end
-
-    -- Every 5 seconds, clean up stale entries
-    if now - lastCleanup >= 5 then
-        if buffUI.cleanupStaleEntries then
-            buffUI.cleanupStaleEntries()
-        end
-        lastCleanup = now
-    end
-
-    -- Process events and add a small delay
-    mq.doevents()
-    mq.delay(100) -- Check every 100ms
+--- Runs /dgga "cmd", so your whole group will each execute whatever command
+---@param cmd string @The command to be executed on the group.
+function BL.GroupCmd(cmd)
+	mq.cmd("/dgga " .. cmd)
 end
+
+function BL.cmd.ChangeAutomationModeToChase()
+	mq.cmd("/boxr chase")
+end
+
+function BL.cmd.ChangeAutomationModeToManual()
+	mq.cmd("/boxr manual")
+end
+
+function BL.cmd.ChangeAutomationModeToCamp()
+	mq.cmd("/boxr camp")
+end
+
+--- Checks if the given value is neither nil nor a string representation of nil.
+-- ---@alias MQSpawn spawn | fun(): string|nil -- reminder that all the MQ userdatas can be a function or a spawn
+---@param thingToCheckForNilly any @The value to check for nil or "nil" representations.
+---@return boolean @Returns true if the value is nil or "nil", false otherwise.
+function IsNil(thingToCheckForNilly)
+	if type(thingToCheckForNilly) == "function" then
+		thingToCheckForNilly = thingToCheckForNilly()
+	end
+	return thingToCheckForNilly == nil
+		or thingToCheckForNilly == "NULL"
+		or thingToCheckForNilly == "nil"
+		or thingToCheckForNilly == {}
+		or thingToCheckForNilly == ""
+end
+
+BL.IsNil = IsNil
+
+--- Checks if the given value is neither nil nor a string representation of nil.
+---@param thingToCheckForNilly any @The value to check for nil or "nil" representations.
+---@return boolean @Returns true if the value is not nil or "nil", false otherwise.
+function NotNil(thingToCheckForNilly)
+	return IsNil(thingToCheckForNilly) == false
+end
+
+BL.NotNil = NotNil
+
+--- For use in MQ events from the parser, meant to be the "line" that the event handler accepts.
+--- Parses a string of names separated by commas and/or the word 'and', and returns a list of names.
+--- Usually followed by nameListIncludesMe()
+---@seealso BL.nameListIncludesMe
+---@param names string @The string containing names to parse.
+---@return table @Returns a table of parsed names.
+function BL.parseAllNames(names)
+	local withoutAnd = names:gsub(", and", ",")
+
+	-- Handle case where only "and" is used without a comma (e.g., "personA and personB")
+	withoutAnd = withoutAnd:gsub(" and ", ",")
+
+	-- Split string by comma
+	local nameList = {}
+	for name in withoutAnd:gmatch("[^,]+") do
+		-- Trim whitespace and insert into list
+		table.insert(nameList, name:match("^%s*(.-)%s*$"))
+	end
+
+	return nameList
+end
+
+--- Determines if the current character's name is included in a given list of names. Usually preceded by parseAllNames()
+---@param namesString string @A string representing a list of names, separated by commas and/or 'and'.
+---@return boolean @Returns true if the character's name is in the list, false otherwise.
+function BL.nameListIncludesMe(namesString)
+	local names = BL.parseAllNames(namesString)
+	local myname = mq.TLO.Me.CleanName()
+
+	for _, name in ipairs(names) do
+		if name == myname then
+			return true
+		end
+	end
+
+	return false
+end
+
+--- Searches for a spawn by name within an optional radius and returns it if found.
+--- This is intended to be used like `BL.searchForAliveSpawnByName("npc targetable egg", 300)`
+---@param name string @The name of the spawn to search for.
+---@param optionalRadius number|nil @The optional radius within which to search for the spawn.
+---@return nil|string|spawn|function():spawn|nil|string @Returns the spawn userdata if found, nil otherwise.
+function BL.searchForAliveSpawnByName(name, optionalRadius)
+	local searchString = name
+	if optionalRadius then
+		searchString = searchString .. " radius " .. optionalRadius
+	end
+	local spawnFound = mq.TLO.Spawn(searchString)
+
+	if BL.NotNil(spawnFound) then
+		return spawnFound
+	end
+	return nil
+end
+
+--- Targets a spawn by name.  After targeting, navigates to it, with an optional search radius.
+---@param targetName string @The name of the target spawn.
+---@param optionalRadius number|nil @The optional radius within which to search for the target spawn.
+function BL.TargetAndNavTo(targetName, optionalRadius)
+    while not targetSpawned do
+        local targetSpawn = mq.TLO.Spawn(targetName)
+        mq.delay(1000)
+        if BL.NotNil(targetSpawn) then
+            targetSpawned = true
+        end
+    end
+
+    local targetSpawn = mq.TLO.Spawn("targetable " .. targetName)
+    if targetSpawn() then
+        targetSpawn.DoTarget()
+    else
+        BL.warn("WARNING: Could not find targetable spawn: " .. targetName)
+    end
+
+    mq.cmd("/nav target")
+    BL.WaitForNav()
+end
+
+function BL.NavToPos(posX, posY, posZ)
+    mq.cmdf("/nav locyxz %s %s %s", tostring(posX), tostring(posY), tostring(posZ))
+    BL.WaitForNav()
+end
+
+--- Generates a random point on a circle centered around the player's current position.
+---@return number, number @Returns the X and Y coordinates of the random point on the circle.
+function BL.getRandomPointOnCircle()
+	local h, k = mq.TLO.Me.X(), mq.TLO.Me.Y()
+	local r = 160
+	local z = -46
+	-- Generate a random angle between 0 and 2*pi
+	local theta = math.random() * 2 * math.pi
+	
+	-- Calculate the X and Y coordinates based on the random angle
+	local X = h + r * math.cos(theta)
+	local Y = k + r * math.sin(theta)
+
+	return X, Y
+end
+
+--- Pauses automation scripts and stops various character actions.
+function BL.cmd.pauseAutomation()
+	-- mq.TLO.Macro.Paused() is nil if no macro running at all, false/true if there is
+	if not mq.TLO.CWTN.Paused() or (BL.NotNil(mq.TLO.Macro.Paused()) and mq.TLO.Macro.Paused() == false ) then
+	    mq.cmd("/boxr Pause")
+	    mq.delay(250)
+	    mq.cmd("/afollow off")
+	    mq.cmd("/nav stop")
+	    mq.cmd("/stopsong")
+	    mq.cmd("/attack off")
+	    mq.delay(50)
+    end
+end
+
+--- Plain boxr unpause
+function BL.cmd.resumeAutomation()
+	mq.cmd("/boxr Unpause")
+end
+
+-- This function waits for 'delay' seconds, then navigates to a location.
+-- It will not return control until the destination is reached
+---@param x number @The X coordinate of the destination.
+---@param y number @The Y coordinate of the destination.
+---@param z number @The Z coordinate of the destination.
+---@param delay number @The delay in seconds before starting navigation.
+function BL.cmd.runToAfterDelay(x, y, z, delay)
+	mq.delay(delay .. "s")
+	mq.cmdf("/nav locyxz %d %d %d", x, y, z)
+	BL.WaitForNav()
+	print(string.format("Navigation arrived at: " .. x .. y .. z))
+end
+
+function BL.cmd.setRngSeedFromPlayerPosition()
+	local h, k = mq.TLO.Me.X(), mq.TLO.Me.Y()
+	math.randomseed(os.time() * h / k)
+end
+
+--- Navigates to the raid main assist if one is set.
+function BL.cmd.returnToRaidMainAssist()
+	mq.delay(10)
+	--Check to see if we have a raid assist, then return to him
+	local mainAssistName = mq.TLO.Raid.MainAssist(1).Name()
+	if mainAssistName then
+		mq.cmd("/nav spawn pc =" .. mainAssistName)
+	else
+		print("WARNING: No raid main assist set")
+	end
+end
+
+--- Removes the Berserker root discipline if it is active.
+function BL.cmd.removeZerkerRootDisc()
+	local my_class = mq.TLO.Me.Class.ShortName()
+	if my_class == "BER" and mq.TLO.Me.ActiveDisc.Name() == mq.TLO.Spell("Frenzied Resolve Discipline").RankName() then
+		mq.cmd("/stopdisc")
+	end
+end
+
+--- Sends a message to the raid channel.
+---@param messageToSend string @The message to send to the raid channel.
+function BL.cmd.sendRaidChannelMessage(messageToSend)
+	mq.cmdf("/rs %s", messageToSend)
+	BL.info(messageToSend)
+end
+
+--- Sends a message to the group chat.
+---@param messageToSend string @The message to send to the group chat.
+function BL.cmd.sendGroupChatMessage(messageToSend)
+	mq.cmdf("/g %s", messageToSend)
+	BL.info(messageToSend)
+end
+
+---- Sends a message to the fellowship chat channel.
+---@param messageToSend string @The message to send to the raid channel.
+function BL.cmd.sendFellowshipChannelMessage(messageToSend)
+	mq.cmdf("/fs %s", messageToSend)
+	BL.info(messageToSend)
+end
+
+---- Pauses a specific Lua script if it's running.
+---@param scriptName string @The name of the script to pause (without .lua extension).
+function BL.cmd.pauseScript(scriptName)
+	if mq.TLO.Lua.Script(scriptName).Status() == "RUNNING" then
+		mq.cmdf("/lua pause %s", scriptName)
+		BL.info(string.format("Paused %s script", scriptName))
+		return true
+	end
+	return false
+end
+
+---- Resumes a specific Lua script if it's paused.
+---@param scriptName string @The name of the script to resume (without .lua extension).
+function BL.cmd.resumeScript(scriptName)
+	if mq.TLO.Lua.Script(scriptName).Status() == "PAUSED" then
+		mq.cmdf("/lua pause %s", scriptName)
+		BL.info(string.format("Resumed %s script", scriptName))
+		return true
+	end
+	return false
+end
+
+---- Coordinates with a specific script during an event - pauses it if running, resumes after callback.
+---@param scriptName string @The name of the script to coordinate with (without .lua extension).
+---@param eventCallback function @The function to execute while the script is paused.
+function BL.cmd.coordinateWithScript(scriptName, eventCallback)
+	local wasRunning = mq.TLO.Lua.Script(scriptName).Status() == "RUNNING"
+	
+	-- Pause the script if it was running
+	if wasRunning then
+		mq.cmdf("/lua pause %s", scriptName)
+		BL.info(string.format("Paused %s script", scriptName))
+		-- Wait a moment for the pause to take effect
+		mq.delay(500)
+	end
+	
+	-- Execute the event callback
+	eventCallback()
+	
+	-- Resume the script if we paused it
+	if wasRunning then
+		mq.cmdf("/lua pause %s", scriptName)
+		BL.info(string.format("Resumed %s script", scriptName))
+	end
+end
+
+--- Returns true if the current character has the buff with the given name
+---@param buffName string @The name of the buff to check for.
+---@return boolean @Returns true if the character has the buff, false otherwise.
+function BL.IHaveBuff(buffName)
+	local buffID = mq.TLO.Me.Buff(buffName).ID()
+	if buffID ~= nil and buffID > 0 then
+		return true
+	end
+	return false
+end
+
+--- Waits until navigation is complete before continuing.
+--- Intended to be used as a Coroutine yield spin
+function BL.WaitForNav()
+	-- Nav doesn't seem to report Active immediately, force a yield
+	mq.delay(100, function()
+		return mq.TLO.Navigation.Active()
+	end)
+	mq.delay(60000, function()
+		return not mq.TLO.Navigation.Active()
+	end)
+end
+
+
+
+--- Utility function for making your whole group visible
+function BL.MakeGroupVisible()
+	BL.GroupCmd("/makemevisible")
+end
+
+-- #endregion oneoffs
+
+-- #region CLIBinds
+
+-- #endregion CLIBinds
+
+-- #region Enum Library
+
+-- #endregion Enum Library
+
+-- #region Logging Utils
+
+--- Prints to MQ Console in green with prefix of INFO
+BL.info = Log.info
+--- Prints to MQ Console in yellow with prefix of WARN
+BL.warn = Log.warn
+--- Prints to MQ Console in red with prefix of ERROR
+BL.error = Log.logerror
+--- Developer utility dump function.  Prints absolutely any lua variable in human-readable fashion to the MQ console
+BL.dump = Log.dump
+
+BL.log = {
+	info = Log.info,
+	warn = Log.warn,
+	error = Log.logerror,
+	dump = Log.dump,
+}
+
+-------------------------------  END LOGGING UTILS ---------------------------------
+-- #endregion Logging Utils
+
+-- #region Lume
+------------------------------- LUME LIBRARY --------------------------------------
+
+local lume = { _version = "2.3.0" }
+
+local pairs, ipairs = pairs, ipairs
+local type, assert, unpack = type, assert, unpack or table.unpack
+local tostring, tonumber = tostring, tonumber
+local math_floor = math.floor
+local math_ceil = math.ceil
+local math_atan2 = math.atan2 or math.atan
+local math_sqrt = math.sqrt
+local math_abs = math.abs
+
+local noop = function() end
+
+local identity = function(x)
+	return x
+end
+
+local patternescape = function(str)
+	return str:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%1")
+end
+
+local absindex = function(len, i)
+	return i < 0 and (len + i + 1) or i
+end
+
+local iscallable = function(x)
+	if type(x) == "function" then
+		return true
+	end
+	local mt = getmetatable(x)
+	return mt and mt.__call ~= nil
+end
+
+local getiter = function(x)
+	if lume.isarray(x) then
+		return ipairs
+	elseif type(x) == "table" then
+		return pairs
+	end
+	BL.error("expected table", 3)
+end
+
+local iteratee = function(x)
+	if x == nil then
+		return identity
+	end
+	if iscallable(x) then
+		return x
+	end
+	if type(x) == "table" then
+		return function(z)
+			for k, v in pairs(x) do
+				if z[k] ~= v then
+					return false
+				end
+			end
+			return true
+		end
+	end
+	return function(z)
+		return z[x]
+	end
+end
+
+function lume.clamp(x, min, max)
+	return x < min and min or (x > max and max or x)
+end
+
+function lume.round(x, increment)
+	if increment then
+		return lume.round(x / increment) * increment
+	end
+	return x >= 0 and math_floor(x + 0.5) or math_ceil(x - 0.5)
+end
+
+function lume.sign(x)
+	return x < 0 and -1 or 1
+end
+
+function lume.lerp(a, b, amount)
+	return a + (b - a) * lume.clamp(amount, 0, 1)
+end
+
+function lume.smooth(a, b, amount)
+	local t = lume.clamp(amount, 0, 1)
+	local m = t * t * (3 - 2 * t)
+	return a + (b - a) * m
+end
+
+function lume.pingpong(x)
+	return 1 - math_abs(1 - x % 2)
+end
+
+function lume.distance(x1, y1, x2, y2, squared)
+	local dx = x1 - x2
+	local dy = y1 - y2
+	local s = dx * dx + dy * dy
+	return squared and s or math_sqrt(s)
+end
+
+function lume.angle(x1, y1, x2, y2)
+	return math_atan2(y2 - y1, x2 - x1)
+end
+
+function lume.vector(angle, magnitude)
+	return math.cos(angle) * magnitude, math.sin(angle) * magnitude
+end
+
+function lume.random(a, b)
+	if not a then
+		a, b = 0, 1
+	end
+	if not b then
+		b = 0
+	end
+	return a + math.random() * (b - a)
+end
+
+function lume.randomchoice(t)
+	return t[math.random(#t)]
+end
+
+function lume.weightedchoice(t)
+	local sum = 0
+	for _, v in pairs(t) do
+		assert(v >= 0, "weight value less than zero")
+		sum = sum + v
+	end
+	assert(sum ~= 0, "all weights are zero")
+	local rnd = lume.random(sum)
+	for k, v in pairs(t) do
+		if rnd < v then
+			return k
+		end
+		rnd = rnd - v
+	end
+end
+
+function lume.isarray(x)
+	return type(x) == "table" and x[1] ~= nil
+end
+
+function lume.push(t, ...)
+	local n = select("#", ...)
+	for i = 1, n do
+		t[#t + 1] = select(i, ...)
+	end
+	return ...
+end
+
+function lume.remove(t, x)
+	local iter = getiter(t)
+	for i, v in iter(t) do
+		if v == x then
+			if lume.isarray(t) then
+				table.remove(t, i)
+				break
+			else
+				t[i] = nil
+				break
+			end
+		end
+	end
+	return x
+end
+
+function lume.clear(t)
+	local iter = getiter(t)
+	for k in iter(t) do
+		t[k] = nil
+	end
+	return t
+end
+
+function lume.extend(t, ...)
+	for i = 1, select("#", ...) do
+		local x = select(i, ...)
+		if x then
+			for k, v in pairs(x) do
+				t[k] = v
+			end
+		end
+	end
+	return t
+end
+
+function lume.shuffle(t)
+	local rtn = {}
+	for i = 1, #t do
+		local r = math.random(i)
+		if r ~= i then
+			rtn[i] = rtn[r]
+		end
+		rtn[r] = t[i]
+	end
+	return rtn
+end
+
+function lume.sort(t, comp)
+	local rtn = lume.clone(t)
+	if comp then
+		if type(comp) == "string" then
+			table.sort(rtn, function(a, b)
+				return a[comp] < b[comp]
+			end)
+		else
+			table.sort(rtn, comp)
+		end
+	else
+		table.sort(rtn)
+	end
+	return rtn
+end
+
+function lume.array(...)
+	local t = {}
+	for x in ... do
+		t[#t + 1] = x
+	end
+	return t
+end
+
+function lume.each(t, fn, ...)
+	local iter = getiter(t)
+	if type(fn) == "string" then
+		for _, v in iter(t) do
+			v[fn](v, ...)
+		end
+	else
+		for _, v in iter(t) do
+			fn(v, ...)
+		end
+	end
+	return t
+end
+
+function lume.map(t, fn)
+	fn = iteratee(fn)
+	local iter = getiter(t)
+	local rtn = {}
+	for k, v in iter(t) do
+		rtn[k] = fn(v)
+	end
+	return rtn
+end
+
+function lume.all(t, fn)
+	fn = iteratee(fn)
+	local iter = getiter(t)
+	for _, v in iter(t) do
+		if not fn(v) then
+			return false
+		end
+	end
+	return true
+end
+
+function lume.any(t, fn)
+	fn = iteratee(fn)
+	local iter = getiter(t)
+	for _, v in iter(t) do
+		if fn(v) then
+			return true
+		end
+	end
+	return false
+end
+
+function lume.reduce(t, fn, first)
+	local started = first ~= nil
+	local acc = first
+	local iter = getiter(t)
+	for _, v in iter(t) do
+		if started then
+			acc = fn(acc, v)
+		else
+			acc = v
+			started = true
+		end
+	end
+	assert(started, "reduce of an empty table with no first value")
+	return acc
+end
+
+function lume.unique(t)
+	local rtn = {}
+	for k in pairs(lume.invert(t)) do
+		rtn[#rtn + 1] = k
+	end
+	return rtn
+end
+
+function lume.filter(t, fn, retainkeys)
+	fn = iteratee(fn)
+	local iter = getiter(t)
+	local rtn = {}
+	if retainkeys then
+		for k, v in iter(t) do
+			if fn(v) then
+				rtn[k] = v
+			end
+		end
+	else
+		for _, v in iter(t) do
+			if fn(v) then
+				rtn[#rtn + 1] = v
+			end
+		end
+	end
+	return rtn
+end
+
+function lume.reject(t, fn, retainkeys)
+	fn = iteratee(fn)
+	local iter = getiter(t)
+	local rtn = {}
+	if retainkeys then
+		for k, v in iter(t) do
+			if not fn(v) then
+				rtn[k] = v
+			end
+		end
+	else
+		for _, v in iter(t) do
+			if not fn(v) then
+				rtn[#rtn + 1] = v
+			end
+		end
+	end
+	return rtn
+end
+
+function lume.merge(...)
+	local rtn = {}
+	for i = 1, select("#", ...) do
+		local t = select(i, ...)
+		local iter = getiter(t)
+		for k, v in iter(t) do
+			rtn[k] = v
+		end
+	end
+	return rtn
+end
+
+function lume.concat(...)
+	local rtn = {}
+	for i = 1, select("#", ...) do
+		local t = select(i, ...)
+		if t ~= nil then
+			local iter = getiter(t)
+			for _, v in iter(t) do
+				rtn[#rtn + 1] = v
+			end
+		end
+	end
+	return rtn
+end
+
+function lume.find(t, value)
+	local iter = getiter(t)
+	for k, v in iter(t) do
+		if v == value then
+			return k
+		end
+	end
+	return nil
+end
+
+function lume.match(t, fn)
+	fn = iteratee(fn)
+	local iter = getiter(t)
+	for k, v in iter(t) do
+		if fn(v) then
+			return v, k
+		end
+	end
+	return nil
+end
+
+function lume.count(t, fn)
+	local count = 0
+	local iter = getiter(t)
+	if fn then
+		fn = iteratee(fn)
+		for _, v in iter(t) do
+			if fn(v) then
+				count = count + 1
+			end
+		end
+	else
+		if lume.isarray(t) then
+			return #t
+		end
+		for _ in iter(t) do
+			count = count + 1
+		end
+	end
+	return count
+end
+
+function lume.slice(t, i, j)
+	i = i and absindex(#t, i) or 1
+	j = j and absindex(#t, j) or #t
+	local rtn = {}
+	for x = i < 1 and 1 or i, j > #t and #t or j do
+		rtn[#rtn + 1] = t[x]
+	end
+	return rtn
+end
+
+function lume.first(t, n)
+	if not n then
+		return t[1]
+	end
+	return lume.slice(t, 1, n)
+end
+
+function lume.last(t, n)
+	if not n then
+		return t[#t]
+	end
+	return lume.slice(t, -n, -1)
+end
+
+function lume.invert(t)
+	local rtn = {}
+	for k, v in pairs(t) do
+		rtn[v] = k
+	end
+	return rtn
+end
+
+function lume.pick(t, ...)
+	local rtn = {}
+	for i = 1, select("#", ...) do
+		local k = select(i, ...)
+		rtn[k] = t[k]
+	end
+	return rtn
+end
+
+function lume.keys(t)
+	local rtn = {}
+	local iter = getiter(t)
+	for k in iter(t) do
+		rtn[#rtn + 1] = k
+	end
+	return rtn
+end
+
+function lume.clone(t)
+	local rtn = {}
+	for k, v in pairs(t) do
+		rtn[k] = v
+	end
+	return rtn
+end
+
+function lume.fn(fn, ...)
+	assert(iscallable(fn), "expected a function as the first argument")
+	local args = { ... }
+	return function(...)
+		local a = lume.concat(args, { ... })
+		return fn(unpack(a))
+	end
+end
+
+function lume.once(fn, ...)
+	local f = lume.fn(fn, ...)
+	local done = false
+	return function(...)
+		if done then
+			return
+		end
+		done = true
+		return f(...)
+	end
+end
+
+local memoize_fnkey = {}
+local memoize_nil = {}
+
+function lume.memoize(fn)
+	local cache = {}
+	return function(...)
+		local c = cache
+		for i = 1, select("#", ...) do
+			local a = select(i, ...) or memoize_nil
+			c[a] = c[a] or {}
+			c = c[a]
+		end
+		c[memoize_fnkey] = c[memoize_fnkey] or { fn(...) }
+		return unpack(c[memoize_fnkey])
+	end
+end
+
+function lume.combine(...)
+	local n = select("#", ...)
+	if n == 0 then
+		return noop
+	end
+	if n == 1 then
+		local fn = select(1, ...)
+		if not fn then
+			return noop
+		end
+		assert(iscallable(fn), "expected a function or nil")
+		return fn
+	end
+	local funcs = {}
+	for i = 1, n do
+		local fn = select(i, ...)
+		if fn ~= nil then
+			assert(iscallable(fn), "expected a function or nil")
+			funcs[#funcs + 1] = fn
+		end
+	end
+	return function(...)
+		for _, f in ipairs(funcs) do
+			f(...)
+		end
+	end
+end
+
+function lume.call(fn, ...)
+	if fn then
+		return fn(...)
+	end
+end
+
+function lume.time(fn, ...)
+	local start = os.clock()
+	local rtn = { fn(...) }
+	return (os.clock() - start), unpack(rtn)
+end
+
+local lambda_cache = {}
+
+function lume.lambda(str)
+	if not lambda_cache[str] then
+		local args, body = str:match([[^([%w,_ ]-)%->(.-)$]])
+		assert(args and body, "bad string lambda")
+		local s = "return function(" .. args .. ")\nreturn " .. body .. "\nend"
+		lambda_cache[str] = lume.dostring(s)
+	end
+	return lambda_cache[str]
+end
+
+local serialize
+
+local serialize_map = {
+	["boolean"] = tostring,
+	["nil"] = tostring,
+	["string"] = function(v)
+		return string.format("%q", v)
+	end,
+	["number"] = function(v)
+		if v ~= v then
+			return "0/0" --  nan
+		elseif v == 1 / 0 then
+			return "1/0" --  inf
+		elseif v == -1 / 0 then
+			return "-1/0"
+		end -- -inf
+		return tostring(v)
+	end,
+	["table"] = function(t, stk)
+		stk = stk or {}
+		if stk[t] then
+			BL.error("circular reference")
+		end
+		local rtn = {}
+		stk[t] = true
+		for k, v in pairs(t) do
+			rtn[#rtn + 1] = "[" .. serialize(k, stk) .. "]=" .. serialize(v, stk)
+		end
+		stk[t] = nil
+		return "{" .. table.concat(rtn, ",") .. "}"
+	end,
+}
+
+setmetatable(serialize_map, {
+	__index = function(_, k)
+		BL.error("unsupported serialize type: " .. k)
+	end,
+})
+
+serialize = function(x, stk)
+	return serialize_map[type(x)](x, stk)
+end
+
+function lume.serialize(x)
+	return serialize(x)
+end
+
+function lume.deserialize(str)
+	return lume.dostring("return " .. str)
+end
+
+function lume.split(str, sep)
+	if not sep then
+		return lume.array(str:gmatch("([%S]+)"))
+	else
+		assert(sep ~= "", "empty separator")
+		local psep = patternescape(sep)
+		return lume.array((str .. sep):gmatch("(.-)(" .. psep .. ")"))
+	end
+end
+
+function lume.trim(str, chars)
+	if not chars then
+		return str:match("^[%s]*(.-)[%s]*$")
+	end
+	chars = patternescape(chars)
+	return str:match("^[" .. chars .. "]*(.-)[" .. chars .. "]*$")
+end
+
+function lume.wordwrap(str, limit)
+	limit = limit or 72
+	local check
+	if type(limit) == "number" then
+		check = function(s)
+			return #s >= limit
+		end
+	else
+		check = limit
+	end
+	local rtn = {}
+	local line = ""
+	for word, spaces in str:gmatch("(%S+)(%s*)") do
+		local s = line .. word
+		if check(s) then
+			table.insert(rtn, line .. "\n")
+			line = word
+		else
+			line = s
+		end
+		for c in spaces:gmatch(".") do
+			if c == "\n" then
+				table.insert(rtn, line .. "\n")
+				line = ""
+			else
+				line = line .. c
+			end
+		end
+	end
+	table.insert(rtn, line)
+	return table.concat(rtn)
+end
+
+function lume.format(str, vars)
+	if not vars then
+		return str
+	end
+	local f = function(x)
+		return tostring(vars[x] or vars[tonumber(x)] or "{" .. x .. "}")
+	end
+	return (str:gsub("{(.-)}", f))
+end
+
+function lume.trace(...)
+	local info = debug.getinfo(2, "Sl")
+	local t = { info.short_src .. ":" .. info.currentline .. ":" }
+	for i = 1, select("#", ...) do
+		local x = select(i, ...)
+		if type(x) == "number" then
+			x = string.format("%g", lume.round(x, 0.01))
+		end
+		t[#t + 1] = tostring(x)
+	end
+	print(table.concat(t, " "))
+end
+
+function lume.dostring(str)
+	return assert((loadstring or load)(str))()
+end
+
+function lume.uuid()
+	local fn = function(x)
+		local r = math.random(16) - 1
+		r = (x == "x") and (r + 1) or (r % 4) + 9
+		return ("0123456789abcdef"):sub(r, r)
+	end
+	return (("xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"):gsub("[xy]", fn))
+end
+
+function lume.hotswap(modname)
+	local oldglobal = lume.clone(_G)
+	local updated = {}
+	local function update(old, new)
+		if updated[old] then
+			return
+		end
+		updated[old] = true
+		local oldmt, newmt = getmetatable(old), getmetatable(new)
+		if oldmt and newmt then
+			update(oldmt, newmt)
+		end
+		for k, v in pairs(new) do
+			if type(v) == "table" then
+				update(old[k], v)
+			else
+				old[k] = v
+			end
+		end
+	end
+	local err = nil
+	local function onerror(e)
+		for k in pairs(_G) do
+			_G[k] = oldglobal[k]
+		end
+		err = lume.trim(e)
+	end
+	local ok, oldmod = pcall(require, modname)
+	oldmod = ok and oldmod or nil
+	xpcall(function()
+		package.loaded[modname] = nil
+		local newmod = require(modname)
+		if type(oldmod) == "table" then
+			update(oldmod, newmod)
+		end
+		for k, v in pairs(oldglobal) do
+			if v ~= _G[k] and type(v) == "table" then
+				update(v, _G[k])
+				_G[k] = v
+			end
+		end
+	end, onerror)
+	package.loaded[modname] = oldmod
+	if err then
+		return nil, err
+	end
+	return oldmod
+end
+
+local ripairs_iter = function(t, i)
+	i = i - 1
+	local v = t[i]
+	if v ~= nil then
+		return i, v
+	end
+end
+
+function lume.ripairs(t)
+	return ripairs_iter, t, (#t + 1)
+end
+
+function lume.color(str, mul)
+	mul = mul or 1
+	local r, g, b, a
+	r, g, b = str:match("#(%x%x)(%x%x)(%x%x)")
+	if r then
+		r = tonumber(r, 16) / 0xff
+		g = tonumber(g, 16) / 0xff
+		b = tonumber(b, 16) / 0xff
+		a = 1
+	elseif str:match("rgba?%s*%([%d%s%.,]+%)") then
+		local f = str:gmatch("[%d.]+")
+		r = (f() or 0) / 0xff
+		g = (f() or 0) / 0xff
+		b = (f() or 0) / 0xff
+		a = f() or 1
+	else
+		BL.error("bad color string %s", str)
+	end
+	return r * mul, g * mul, b * mul, a * mul
+end
+
+local chain_mt = {}
+chain_mt.__index = lume.map(lume.filter(lume, iscallable, true), function(fn)
+	return function(self, ...)
+		self._value = fn(self._value, ...)
+		return self
+	end
+end)
+chain_mt.__index.result = function(x)
+	return x._value
+end
+
+function lume.chain(value)
+	return setmetatable({ _value = value }, chain_mt)
+end
+
+setmetatable(lume, {
+	__call = function(_, ...)
+		return lume.chain(...)
+	end,
+})
+
+BL.Lume = lume
+------------------------------- END LUME LIBRARY ----------------------------------
+-- #endregion lume
+
+-- #region ZenArray
+------------------------------- FUNCTIONAL ARRAY UTILS ----------------------------
+ZenArray = {}
+
+function newArray(baseMetatable, ...)
+	local data = { ... }
+
+	local instance = {
+
+		_data = data,
+
+		filter = ZenArray.filter,
+		contains = ZenArray.contains,
+		remove = ZenArray.remove,
+		forEach = ZenArray.forEach,
+		isarray = ZenArray.isarray,
+		clear = ZenArray.clear,
+		match = ZenArray.match,
+		find = ZenArray.find,
+		count = ZenArray.count,
+		clone = ZenArray.clone,
+		keys = ZenArray.keys,
+		map = ZenArray.map,
+		push = ZenArray.push,
+		insert = ZenArray.insert,
+	}
+
+	local arrayWithMetatable = setmetatable(instance, baseMetatable)
+
+	return arrayWithMetatable
+end
+
+function ZenArray.map(self, fn)
+	local mappedData = lume.map(self._data, fn)
+	local newZenArray = newArray()
+	newZenArray._data = mappedData
+	return newZenArray
+end
+
+function ZenArray.forEach(self, fn, ...)
+	for _, value in ipairs(self._data) do
+		fn(value, ...)
+	end
+	return self
+end
+
+function ZenArray.count(self, predicate)
+	return lume.count(self._data, predicate)
+end
+
+function ZenArray.keys(self)
+	return lume.keys(self._data)
+end
+
+function ZenArray.clone(self)
+	return lume.clone(self)
+end
+
+function ZenArray.match(self, func)
+	return lume.match(self._data, func)
+end
+
+function ZenArray.insert(self, value)
+	table.insert(self._data, value)
+	return self
+end
+
+function ZenArray.push(self, value)
+	self:insert(value)
+	return self
+end
+
+function ZenArray.contains(self, value)
+	return lume.find(self._data, value) ~= nil
+end
+
+function ZenArray.remove(self, value)
+	local index = lume.find(self._data, value)
+	if index then
+		table.remove(self._data, index)
+		return true
+	end
+	return false
+end
+
+function ZenArray.isarray(self)
+	return lume.isarray(self._data)
+end
+
+function ZenArray.clear(self)
+	lume.clear(self._data)
+end
+
+function ZenArray.filter(self, func, retainkeys)
+	local filteredData = lume.filter(self._data, func, retainkeys)
+	local newZenArray = newArray()
+	newZenArray._data = filteredData
+	return newZenArray
+end
+
+function ZenArray.find(self, value)
+	return lume.find(self._data, value)
+end
+
+BL.ZenArray = ZenArray
+
+-- #endregion ZenArray
+
+--- Utility TODO marker
+function BL.todo()
+	BL.error("TODO")
+	error("TODO")
+	-- panic script
+end
+
+return BL
