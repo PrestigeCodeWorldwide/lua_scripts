@@ -499,10 +499,12 @@ local DrawUI = function()
 		if State.Paused then
 			-- Start tanking
 			State.Paused = false
+			mq.cmd("/" .. State.my_class .. " aoecount 99 nosave")
 			BL.info("Offtank started - ready to tank")
 		else
 			-- Stop tanking
 			State.Paused = true
+			mq.cmd("/" .. State.my_class .. " reload")
 			mq.cmd("/attack off")
 			mq.cmd("/target clear")
 			cwtnCHOSEN()
@@ -521,12 +523,18 @@ local DrawUI = function()
 	local mobname_selected = (State.targeting_mode == "mobname")
 	
 	xtar_selected, changed = ImGui.Checkbox("XTar", xtar_selected)
+	if ImGui.IsItemHovered() then
+		ImGui.SetTooltip("Offtanks mobs based on selected Extended Target selection (1-20)")
+	end
 	if changed and xtar_selected then
 		State.targeting_mode = "xtar"
 	end
 	
 	ImGui.SameLine()
 	mobname_selected, changed = ImGui.Checkbox("Name", mobname_selected)
+	if ImGui.IsItemHovered() then
+		ImGui.SetTooltip("Offtanks mobs based on the list of NPC names below")
+	end
 	if changed and mobname_selected then
 		State.targeting_mode = "mobname"
 	end
