@@ -262,7 +262,9 @@ end
 --- Pauses automation scripts and stops various character actions.
 function BL.cmd.pauseAutomation()
 	-- mq.TLO.Macro.Paused() is nil if no macro running at all, false/true if there is
-	if not mq.TLO.CWTN.Paused() or (BL.NotNil(mq.TLO.Macro.Paused()) and mq.TLO.Macro.Paused() == false ) then
+	-- Check if CWTN is available before accessing it
+	local cwtnAvailable = BL.NotNil(mq.TLO.CWTN) and mq.TLO.CWTN.Paused()
+	if not cwtnAvailable or (BL.NotNil(mq.TLO.Macro.Paused()) and mq.TLO.Macro.Paused() == false ) then
 	    mq.cmd("/boxr Pause")
 	    mq.delay(250)
 	    mq.cmd("/afollow off")
