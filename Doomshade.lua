@@ -2,7 +2,7 @@ local mq = require('mq')
 local os = require('os')
 local BL = require('biggerlib')
 
-BL.info("Doomshade script v1.05 loaded.")
+BL.info("Doomshade script v1.06 loaded.")
 
 local viralLocs = {
     { -99, -310, -49 },  -- Viral 4 on map
@@ -28,6 +28,54 @@ local function delayTillSafeSpot()
     print("You reached the safe spot.")
 end
 
+local function waitForBuffToClearAndReturn(safeSpot)
+    print("Waiting for 'Shade's Doom' buff to clear...")
+    while true do
+        -- Wait at safe spot until buff clears (check all buff types)
+        while mq.TLO.Me.Buff("Shade's Doom")() or mq.TLO.Me.Song("Shade's Doom")() do
+            mq.delay(500)
+        end
+        print("'Shade's Doom' buff cleared. Attempting to return to raid...")
+        
+        -- Start returning
+        BL.cmd.returnToRaidMainAssist()
+        
+        -- Monitor for re-infection during return
+        local startTime = mq.gettime()
+        local reinfected = false
+        
+        while mq.TLO.Navigation.Active() do
+            if mq.TLO.Me.Buff("Shade's Doom")() or mq.TLO.Me.Song("Shade's Doom")() then
+                print("Re-infected during return! Running back to safe spot...")
+                -- Cancel current navigation
+                mq.cmd('/nav stop')
+                mq.delay(500)
+                reinfected = true
+                break
+            end
+            mq.delay(500)
+            
+            -- Safety timeout to prevent infinite loop
+            if mq.gettime() - startTime > 30000 then
+                print("Return timeout, proceeding anyway")
+                break
+            end
+        end
+        
+        -- If we got re-infected, navigate back to safe spot and continue waiting
+        if reinfected then
+            print("Back at safe spot, waiting for buff to clear again...")
+            mq.cmdf('/nav locxyz %d %d %d', safeSpot[1], safeSpot[2], safeSpot[3])
+            delayTillSafeSpot()
+        else
+            -- Successfully returned without re-infection
+            break
+        end
+    end
+    
+    print("Successfully returned to raid.")
+end
+
 local function waitAtSafeSpotCountdown(seconds)
     for i = 1, (seconds or DELAY / 1000) do
         print(string.format('Return in %d', i))
@@ -44,19 +92,23 @@ local function handleViralEvent(somenames)
         
         local names = BL.parseAllNames(somenames)
         local myname = mq.TLO.Me.CleanName()
+        local mySafeSpot = nil
         
         for i, name in ipairs(names) do
             if name == myname and viralLocs[i] then
+                mySafeSpot = viralLocs[i]
                 print(string.format("Running to Viral spot %d: %d, %d, %d", 
-                      i, viralLocs[i][1], viralLocs[i][2], viralLocs[i][3]))
-                mq.cmdf('/nav locxyz %d %d %d', viralLocs[i][1], viralLocs[i][2], viralLocs[i][3])
+                      i, mySafeSpot[1], mySafeSpot[2], mySafeSpot[3]))
+                mq.cmdf('/nav locxyz %d %d %d', mySafeSpot[1], mySafeSpot[2], mySafeSpot[3])
                 break
             end
         end
         
-        delayTillSafeSpot()
-        waitAtSafeSpotCountdown()
-        BL.cmd.returnToRaidMainAssist()
+        if mySafeSpot then
+            delayTillSafeSpot()
+            waitForBuffToClearAndReturn(mySafeSpot)
+        end
+        
         BL.cmd.resumeAutomation()
     end)
 end
@@ -81,7 +133,7 @@ local function handleDarknessEvent(somenames)
         end
         
         delayTillSafeSpot()
-        waitAtSafeSpotCountdown(15) -- Shorter wait for darkness
+        waitAtSafeSpotCountdown(15)
         BL.cmd.returnToRaidMainAssist()
         BL.cmd.resumeAutomation()
     end)
