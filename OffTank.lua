@@ -72,7 +72,12 @@ local State = {
 
 local function initMQBindings()
 	mq.bind("/offtank reset", function()
-		State.chosenMode = mq.TLO.CWTN.Mode()
+		-- Check if CWTN is available before accessing it
+		if BL.NotNil(mq.TLO.CWTN) then
+			State.chosenMode = mq.TLO.CWTN.Mode()
+		else
+			State.chosenMode = "Manual"
+		end
 		print("Setting idle mode to " .. State.chosenMode)
 	end)
 	
@@ -96,8 +101,8 @@ end
 
 
 local function cwtnCHOSEN()
-
-	if mq.TLO.CWTN.Mode() ~= State.chosenMode then
+	-- Check if CWTN is available before accessing it
+	if BL.NotNil(mq.TLO.CWTN) and mq.TLO.CWTN.Mode() ~= State.chosenMode then
 		BL.info("Returning to chosen non-tank mode")
 		mq.cmd("/squelch /nav stop")
 		mq.cmd("/target clear")
@@ -107,7 +112,8 @@ local function cwtnCHOSEN()
 end
 
 local function cwtnTANK()
-	if mq.TLO.CWTN.Mode() ~= "Tank" then
+	-- Check if CWTN is available before accessing it
+	if BL.NotNil(mq.TLO.CWTN) and mq.TLO.CWTN.Mode() ~= "Tank" then
 		mq.cmdf("/%s mode 4", State.my_class)
 	end
 end
@@ -351,7 +357,8 @@ local function DoTanking()
 	end
 	local spawn_distance = spawn_to_tank.Distance()
 	local spawn_los = spawn_to_tank.LineOfSight()
-	local current_mode = mq.TLO.CWTN.Mode()
+	-- Check if CWTN is available before accessing it
+	local current_mode = BL.NotNil(mq.TLO.CWTN) and mq.TLO.CWTN.Mode() or 0
 	
 	-- Check if we're currently in manual mode (navigating) and should continue
 	if current_mode == 0 and State.IAmTanking then
@@ -736,7 +743,12 @@ end
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 local function init()
 	initMQBindings()	
-	State.chosenMode = mq.TLO.CWTN.Mode()
+	-- Check if CWTN is available before accessing it
+	if BL.NotNil(mq.TLO.CWTN) then
+		State.chosenMode = mq.TLO.CWTN.Mode()
+	else
+		State.chosenMode = "Manual"  -- Default mode when no CWTN plugin
+	end
 	--UI Init
 	BL.Gui:Init({
 		            WindowName = "Offtank",
