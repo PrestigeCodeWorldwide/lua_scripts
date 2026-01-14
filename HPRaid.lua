@@ -3,12 +3,11 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.01 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.02 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
-BL.warn("Untested as of 12-16-25. Reminder to test when MQ is back up.")
 
 -- Shared State
-local mezSpell = "Slumber of Keftlik"
+local mezSpell = ""
 local shouldDoMez = false
 local isMezPaused = false
 local isHandlingDebuff = false
@@ -230,11 +229,30 @@ if #args > 0 then
     messengerType = args[1]:gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
     shouldDoMez = true                                 -- Only enable mez if messenger type is provided
     if shouldDoMez then
+        local myClass = mq.TLO.Me.Class.ShortName()
         local myLevel = mq.TLO.Me.Level() or 125       -- Default to 125 if level check fails
-        if myLevel >= 130 then
-            mezSpell = "Slumber of Keftlik"
+        
+        if myClass == "BRD" then
+            -- Bard mez spells
+            if myLevel >= 130 then
+                mezSpell = "Slumber of Keftlik"
+            else
+                mezSpell = "Slumber of Suja"
+            end
+        elseif myClass == "ENC" then
+            -- Enchanter mez spells
+            if myLevel >= 130 then
+                mezSpell = "Chaotic Enticement X"
+            else
+                mezSpell = "Chaotic Conundrum"
+            end
+        else
+            BL.info("Mez mode ENABLED - but you are not a Bard or Enchanter!")
+            shouldDoMez = false
+            return
         end
-        BL.info(string.format("Mez mode ENABLED - Using %s for mezzing", mezSpell))
+        
+        BL.info(string.format("Mez mode ENABLED - Using %s for mezzing (%s)", mezSpell, myClass))
     end
     BL.info(string.format("Mez mode ENABLED - Using messenger type: %s", messengerType))
 end
