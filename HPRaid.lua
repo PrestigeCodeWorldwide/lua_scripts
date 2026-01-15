@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.03 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.04 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 
 -- Shared State
@@ -20,7 +20,7 @@ local messengerType = "messenger" -- Can be overridden by command line arg
 -- Boss Campfire Location: /nav locxyz-113 539 1470
 -- Safe Spot Campfire Location: /nav locxyz 42 380 1470
 
--- Debuff names
+-- Debuff names: SE== "Purification of Veeshan" NW= "Penance for Disobedience"
 local debuffNameSE = "Purification of Veeshan"
 local debuffNameNW = "Penance for Disobedience"
 
@@ -37,7 +37,7 @@ end
 
 -- Function to stick Behind
 local function StickBehind(line, arg1)
-    if mq.TLO.Target.CleanName() ~= "High Priest Yaran" then ---High Priest Yaran
+    if mq.TLO.Target.CleanName() ~= "Yaran" then ---High Priest Yaran
         return
     end
     BL.info("Changing StickHow to Behind")
@@ -76,19 +76,24 @@ local function handleDebuffs()
         iAmWaiting = true
         isHandlingDebuff = true
         BL.info('I have the SE Purification debuff, running to cure spot')
-        -- Coordinate with off-tanks before running away
+        -- Coordinate with off-tanks - handle everything inside the coordination block
         BL.cmd.coordinateWithScript("offtank", function()
             BL.info("Coordinating with off-tanks - pausing their automation during SE run away")
+            BL.cmd.pauseAutomation()
+            mq.delay(100)
+            mq.cmd("/tar")
+            BL.cmd.removeZerkerRootDisc()
+            BL.cmd.StandIfFeigned()
+            mq.cmdf('/nav locyx %s %s', locX1, locY1)
+            BL.WaitForNav()
+            mq.delay(1200)
+            BL.info("Arrived at cure spot")
+            -- Wait here for debuff to clear
+            while BL.IHaveBuff(debuffNameSE) do
+                mq.delay(1000) -- Check every second
+            end
+            BL.info("SE debuff cleared, ending coordination")
         end)
-        BL.cmd.pauseAutomation()
-        mq.delay(100)
-        mq.cmd("/tar")
-        BL.cmd.removeZerkerRootDisc()
-        BL.cmd.StandIfFeigned()
-        mq.cmdf('/nav locyx %s %s', locX1, locY1)
-        BL.WaitForNav()
-        mq.delay(1200)
-        BL.info("Arrived at cure spot")
         return
     end
 
@@ -97,19 +102,24 @@ local function handleDebuffs()
         iAmWaiting = true
         isHandlingDebuff = true
         BL.info('I have the NW Penance debuff, running to cure spot')
-        -- Coordinate with off-tanks before running away
+        -- Coordinate with off-tanks - handle everything inside the coordination block
         BL.cmd.coordinateWithScript("offtank", function()
             BL.info("Coordinating with off-tanks - pausing their automation during NW run away")
+            BL.cmd.pauseAutomation()
+            BL.cmd.removeZerkerRootDisc()
+            mq.delay(100)
+            mq.cmd("/tar")
+            BL.cmd.StandIfFeigned()
+            mq.cmdf('/nav locyx %s %s', locX2, locY2)
+            BL.WaitForNav()
+            mq.delay(1200)
+            BL.info("Arrived at cure spot")
+            -- Wait here for debuff to clear
+            while BL.IHaveBuff(debuffNameNW) do
+                mq.delay(1000) -- Check every second
+            end
+            BL.info("NW debuff cleared, ending coordination")
         end)
-        BL.cmd.pauseAutomation()
-        BL.cmd.removeZerkerRootDisc()
-        mq.delay(100)
-        mq.cmd("/tar")
-        BL.cmd.StandIfFeigned()
-        mq.cmdf('/nav locyx %s %s', locX2, locY2)
-        BL.WaitForNav()
-        mq.delay(1200)
-        BL.info("Arrived at cure spot")
         return
     end
 
