@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.02 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.03 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 
 -- Shared State
@@ -76,6 +76,10 @@ local function handleDebuffs()
         iAmWaiting = true
         isHandlingDebuff = true
         BL.info('I have the SE Purification debuff, running to cure spot')
+        -- Coordinate with off-tanks before running away
+        BL.cmd.coordinateWithScript("offtank", function()
+            BL.info("Coordinating with off-tanks - pausing their automation during SE run away")
+        end)
         BL.cmd.pauseAutomation()
         mq.delay(100)
         mq.cmd("/tar")
@@ -93,6 +97,10 @@ local function handleDebuffs()
         iAmWaiting = true
         isHandlingDebuff = true
         BL.info('I have the NW Penance debuff, running to cure spot')
+        -- Coordinate with off-tanks before running away
+        BL.cmd.coordinateWithScript("offtank", function()
+            BL.info("Coordinating with off-tanks - pausing their automation during NW run away")
+        end)
         BL.cmd.pauseAutomation()
         BL.cmd.removeZerkerRootDisc()
         mq.delay(100)
