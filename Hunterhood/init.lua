@@ -18,7 +18,7 @@ local navActive = false
 local showSettings = false
 local lastInvisCheck = 0
 
-BL.info('HunterHood v2.194 loaded')
+BL.info('HunterHood v2.195 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -977,7 +977,7 @@ local function renderHoodTab()
 
 
     -- Expansion selector combo
-    ImGui.SetNextItemWidth(165)
+    ImGui.SetNextItemWidth(150)
     if ImGui.BeginCombo("##:", combo_items[selected_index]) then
         for i, item in ipairs(combo_items) do
             if ImGui.Selectable(item, i == selected_index) then
@@ -1005,10 +1005,24 @@ local function renderHoodTab()
     end
 
     ImGui.SameLine(0, 10)
-    ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1)
-    ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
-    if ImGui.Button("GO##ExecuteAction") then
-        if not navActive then
+    -- Set button color based on navigation state
+    if navActive then
+        ImGui.PushStyleColor(ImGuiCol.Button, 0.8, 0.2, 0.2, 1) -- Red for stop
+        ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 1, 1) -- White text
+    else
+        ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1) -- Gray for go
+        ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- White text
+    end
+    
+    if navActive then
+        if ImGui.Button("STOP##ExecuteAction") then
+            navActive = false
+            navCoroutine = nil
+            mq.cmd("/nav stop")
+            printf("\ayStopped navigation")
+        end
+    else
+        if ImGui.Button("Start##ExecuteAction") then
             -- Check if group needs invisibility before starting navigation
             if useInvis and helpers.groupNeedsInvis() then
                 printf("\ayGroup members need invisibility, casting...")
@@ -1017,17 +1031,13 @@ local function renderHoodTab()
             navActive = true
             navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
             printf("\ayStarted navigation to selected mobs")
-        else
-            navActive = false
-            navCoroutine = nil
-            mq.cmd("/nav stop")
-            printf("\ayStopped navigation")
         end
     end
+    
+    ImGui.PopStyleColor(2) -- Pop button and text colors
     if ImGui.IsItemHovered() then
         ImGui.SetTooltip("Start/Stop navigation to selected mobs")
     end
-    ImGui.PopStyleColor(2)
     -- Zone selector combo
     local currentZoneName = "Select a zone"
     local zones = zone_lists[combo_items[selected_index] or ""] or {}
