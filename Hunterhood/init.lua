@@ -16,8 +16,9 @@ local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helper
 local navCoroutine = nil
 local navActive = false
 local showSettings = false
+local lastInvisCheck = 0
 
-BL.info('HunterHood v2.193 loaded')
+BL.info('HunterHood v2.194 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -98,10 +99,12 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             if spawnID ~= nil and spawnID > 0 then
                                 local spawn = mq.TLO.Spawn(spawnID)
                                 if spawn() and not spawn.Dead() then
-                                    local distance = spawn.Distance3D() or math.huge
-                                    if distance < closestDistance then
-                                        closestDistance = distance
-                                        closestSpawn = spawn
+                                    if helpers.hasValidPath(spawn) then
+                                        local distance = spawn.Distance3D() or math.huge
+                                        if distance < closestDistance then
+                                            closestDistance = distance
+                                            closestSpawn = spawn
+                                        end
                                     end
                                 end
                             end
@@ -114,10 +117,12 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                     if phID ~= nil and phID > 0 then
                                         local phSpawn = mq.TLO.Spawn(phID)
                                         if phSpawn() and not phSpawn.Dead() then
-                                            local distance = phSpawn.Distance3D() or math.huge
-                                            if distance < closestDistance then
-                                                closestDistance = distance
-                                                closestSpawn = phSpawn
+                                            if helpers.hasValidPath(phSpawn) then
+                                                local distance = phSpawn.Distance3D() or math.huge
+                                                if distance < closestDistance then
+                                                    closestDistance = distance
+                                                    closestSpawn = phSpawn
+                                                end
                                             end
                                         end
                                     end
@@ -127,7 +132,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
 
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
                             -- Add a small delay to ensure the mob is fully dead and removed from xtarget
-                            for i = 1, 10 do -- 10 ticks delay
+                            for i = 1, 5 do -- 5 ticks delay (0.5s)
                                 if not navActive then break end
                                 -- Check for adds during the delay
                                 local hasAdd, addSpawn = helpers.hasNonPHTargets(phList, hoodAch, currentZoneID)
@@ -231,7 +236,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                             targetDistance = currentNavTarget and currentNavTarget.Distance3D() or 0
 
                                             -- Wait a bit before checking again
-                                            for i = 1, 10 do -- 10 tick delay (1s) between attempts
+                                            for i = 1, 5 do -- 5 tick delay (0.5s) between attempts
                                                 if not navActive then break end
                                                 coroutine.yield()
                                             end
@@ -379,12 +384,19 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     printf("\ayNo valid targets - ensuring group invisibility...")
                     mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
                     mq.cmd("/squelch /alt act 231")
+                    
+                    -- Wait for cast to complete before sitting
+                    for i = 1, 10 do -- 1 second delay for cast
+                        if not navActive then break end
+                        coroutine.yield()
+                    end
+                    
                     if not mq.TLO.Me.Sitting() then
                         mq.cmd("/sit")
                     end
 
-                    -- Short wait after casting
-                    for i = 1, 10 do
+                    -- Short wait after sitting
+                    for i = 1, 5 do -- 0.5 second delay after sitting
                         if not navActive then break end
                         coroutine.yield()
                     end
@@ -394,7 +406,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 engagedTarget = nil
 
                 -- Wait a bit before checking for targets again
-                for i = 1, 20 do -- 2 second delay
+                for i = 1, 10 do -- 1 second delay
                     if not navActive then break end
                     coroutine.yield()
                 end

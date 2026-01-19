@@ -1,4 +1,4 @@
--- v1.113
+-- v1.114
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -299,6 +299,26 @@ end
         end
 
         return nil, nil
+    end
+
+    -- Simple path validation using PathLength
+    -- @param spawn table - The spawn to check
+    -- @return boolean - True if spawn has valid path, false otherwise
+    function helpers.hasValidPath(spawn)
+        if not spawn or not spawn() then 
+            return false 
+        end
+        
+        local pathLength = mq.TLO.Navigation.PathLength("id " .. spawn.ID())()
+        local hasPath = pathLength and pathLength > 0
+        
+        -- printf("DEBUG: Spawn '%s' (ID: %d) -> PathLength: %s, HasPath: %s", 
+        --     spawn.CleanName() or "unknown", 
+        --     spawn.ID(), 
+        --     pathLength and tostring(pathLength) or "nil",
+        --     hasPath and "YES" or "NO")
+        
+        return hasPath
     end
 
     function helpers.findNearestSpawnWithPathing(spawns, maxCandidates)

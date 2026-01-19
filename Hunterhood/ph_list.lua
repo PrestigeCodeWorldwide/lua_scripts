@@ -1,4 +1,4 @@
--- v1.137
+-- v1.138
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -1951,9 +1951,22 @@ local ph_list = {
     ["icefall_glacier_14"] = {
         "icefall_glacier_14"
     },
-    --Stone Hive
-    ["stone_hive_1"] = {
-        "stone_hive_1"
+    [396] = { -- Stonehive
+        ["Advisor Vaxa"] = { "a bixie advisor" },
+        ["Arcanist Moxia"] = { "a bixie archanist" },
+        ["Botanist Lyxia"] = { "a field botanist" },
+        ["Enchanted Shrubbery"] = { "unknown" },
+        ["Fleurmielle"] = { "a honeytender", },
+        ["Fum the Mad"] = { "unknown" },
+        ["Harvester Velza"] = { "a bixie harvester" },
+        ["Honeytender Jozy"] = { "a honeyblaster" },
+        ["Manic Mushroom"] = { "a garden mushroom" },
+        ["Poisonmaker Maliza"] = { "a bixie poisonmaker" },
+        ["Servant Rexi"] = { "a bixie servant" },
+        ["Slavemistress Hizja"] = { "unknown" },
+        ["Suitor Drezia"] = { "a skeletal suitor" },
+        ["Wasp Infiltrator"] = { "a hedge infiltrator" },
+        ["Wing Commander Drixi"] = { "uknown" },
     },
     --Sunderock Springs
     ["sunderock_springs_1"] = {
