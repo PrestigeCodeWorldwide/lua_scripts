@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.13 loaded")
+BL.info("Offtank v1.15 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -19,6 +19,7 @@ local State = {
 	waypoints = {},  -- Store waypoint data
 	current_waypoint = nil,  -- Active waypoint for tanking
 	use_waypoint = false,  -- Whether to use waypoint positioning
+	use_nav_target = false,  -- Whether to use navigation target positioning
 	cwtnModeList = {
 		"Manual",
 		"Assist",
@@ -68,6 +69,9 @@ local State = {
 	current_mob_target = nil,  -- Current target when in mobname mode
 	last_mob_input_change = 0,  -- Track last mob name input change for debouncing
 	last_mode_change = 0,  -- Track last mode change for UI context detections
+	nav_target_name = "",  -- Input field for PC/NPC name to navigate to
+	nav_target_spawn = nil,  -- Current spawn object for navigation target
+	last_nav_update = 0,  -- Track last navigation target update
 }
 
 local function initMQBindings()
@@ -240,6 +244,39 @@ local function FindMobByName()
 	end
 	
 	return closestMob
+end
+
+local function FindNavTargetByName(targetName)
+	if not targetName or targetName == "" then
+		return nil
+	end
+	
+	-- Search for spawn by exact name match (PC or NPC)
+	local spawn = mq.TLO.Spawn(targetName)
+	if spawn() and not spawn.Dead() then
+		return spawn
+	end
+	
+	return nil
+end
+
+local function MoveToNavTarget()
+	if not State.nav_target_spawn then
+		print("\arNo navigation target found\ax")
+		return false
+	end
+	
+	-- Use the same navigation logic as MoveToWaypoint
+	local spawn = State.nav_target_spawn
+	if spawn() and spawn.Y() and spawn.X() and spawn.Z() then
+		mq.cmdf("/nav loc %f %f %f", spawn.Y(), spawn.X(), spawn.Z())
+		print("\arMoving to %s at (%.1f, %.1f, %.1f)\ax", spawn.CleanName() or "Unknown", spawn.Y(), spawn.X(), spawn.Z())
+		return true
+	else
+		print("\arNavigation target is no longer valid\ax")
+		State.nav_target_spawn = nil
+		return false
+	end
 end
 
 local function IsNotIgnored(targetName)
@@ -438,6 +475,37 @@ local function DoTanking()
 				State.last_waypoint_time = current_time
 			else
 				-- Stop navigation and switch back to tank mode when at waypoint
+				mq.cmd("/squelch /nav stop")
+				cwtnTANK()
+			end
+		end
+	end
+	
+	-- Move to navigation target if we have 100% aggro and a nav target is selected
+	if State.IAmTanking and State.use_nav_target and State.nav_target_spawn and State.nav_target_spawn() then
+		local target = mq.TLO.Target
+		local current_time = mq.gettime()
+		local my_x = mq.TLO.Me.X()
+		local my_y = mq.TLO.Me.Y()
+		local nav_spawn = State.nav_target_spawn
+		local nav_distance = math.sqrt((my_x - nav_spawn.X())^2 + (my_y - nav_spawn.Y())^2)
+		
+		-- Always check aggro and switch back to tank mode if not 100%
+		if target() and target.PctAggro() < 100 then
+			cwtnTANK()
+			mq.cmd("/squelch /nav stop")
+			return
+		end
+		
+		-- Only move to nav target every 3 seconds when at 100% aggro and not already at target
+		if target() and target.PctAggro() == 100 and (current_time - State.last_waypoint_time) > 3000 then
+			if nav_distance > 20 then  -- Only nav if more than 20 units away
+				-- Switch to manual mode to prevent fighting with navigation
+				mq.cmdf("/%s mode 0", State.my_class)
+				MoveToNavTarget()
+				State.last_waypoint_time = current_time
+			else
+				-- Stop navigation and switch back to tank mode when at nav target
 				mq.cmd("/squelch /nav stop")
 				cwtnTANK()
 			end
@@ -648,13 +716,17 @@ local DrawUI = function()
 	
 	-- Waypoint controls
 	ImGui.Separator()
+	ImGui.TextColored(0.0, 1.0, 0.0, 1.0, "Navigate to Waypoint:")
+	if ImGui.IsItemHovered() then
+		ImGui.SetTooltip("Will attempt to pull and tank a mob at the selected WP")
+	end
 	
 	-- Save current position as waypoint
 	if ImGui.Button("Save WP") then
 		SaveWaypoint()
 	end
 	ImGui.SameLine()
-	if ImGui.Button("Go to Selected WP") then
+	if ImGui.Button("Nav to Selected WP") then
 		MoveToWaypoint(State.current_waypoint)
 	end
 	
@@ -697,6 +769,63 @@ local DrawUI = function()
 					break
 				end
 			end
+		end
+	end
+	
+	-- Navigation to PC/NPC controls
+	ImGui.Separator()
+	ImGui.TextColored(0.0, 1.0, 0.0, 1.0, "Navigate to PC/NPC:")
+	if ImGui.IsItemHovered() then
+		ImGui.SetTooltip("Will attempt to pull and tank a mob at the selected PC or NPC")
+	end
+	
+	-- Navigation buttons
+	if ImGui.Button("Use Current Target") then
+		local currentTarget = mq.TLO.Target
+		if currentTarget() then
+			State.nav_target_name = currentTarget.CleanName()
+			State.nav_target_spawn = currentTarget
+			State.use_nav_target = true  -- Enable auto-navigation when using current target
+			print("\arNavigation target auto-nav enabled for: " .. currentTarget.CleanName() .. "\ax")
+		else
+			print("\arNo current target\ax")
+		end
+	end
+	
+	ImGui.SameLine()
+	if ImGui.Button("Nav to Target") then
+		MoveToNavTarget()
+	end
+	
+	-- Show current navigation target status
+	if State.nav_target_spawn and State.nav_target_spawn() then
+		local spawn = State.nav_target_spawn
+		ImGui.Text(" %s (%.1f, %.1f, %.1f) - %s", 
+			spawn.CleanName() or "Unknown", 
+			spawn.Y() or 0, spawn.X() or 0, spawn.Z() or 0,
+			spawn.Type() or "Unknown")
+	else
+		ImGui.Text("Current Target: None")
+	end
+	
+	-- Input field for target name
+	ImGui.SetNextItemWidth(200)
+	local navTargetInput = State.nav_target_name or ""
+	local changed = false
+	navTargetInput, changed = ImGui.InputText("Type Name", navTargetInput, 256)
+	if changed then
+		State.nav_target_name = navTargetInput
+		-- Update spawn reference when name changes
+		State.nav_target_spawn = FindNavTargetByName(navTargetInput)
+		State.last_nav_update = mq.gettime()
+		-- Auto-enable/disable navigation based on whether name is provided
+		if navTargetInput and navTargetInput ~= "" then
+			State.use_nav_target = true
+			print("\arNavigation target auto-nav enabled for: " .. navTargetInput .. "\ax")
+		else
+			State.use_nav_target = false
+			print("\arNavigation target auto-nav disabled\ax")
+			mq.cmd("/squelch /nav stop")
 		end
 	end
 	
@@ -760,12 +889,32 @@ local function init()
 	return checkGroupTankRoleIsEmpty()
 end
 
+local function UpdateNavTarget()
+	-- Update navigation target reference periodically to handle moving targets
+	if State.nav_target_name and State.nav_target_name ~= "" then
+		local current_time = mq.gettime()
+		-- Update every 2 seconds to track moving targets
+		if (current_time - State.last_nav_update) > 2000 then
+			local updatedSpawn = FindNavTargetByName(State.nav_target_name)
+			if updatedSpawn then
+				State.nav_target_spawn = updatedSpawn
+			else
+				-- Target disappeared
+				State.nav_target_spawn = nil
+			end
+			State.last_nav_update = current_time
+		end
+	end
+end
+
 local function main()
 	if State.Paused then
 		return
 	end
 	-- Make sure group MT role didn't get switched back on
 	checkGroupTankRoleIsEmpty()
+	-- Update navigation target for moving PCs/NPCs
+	UpdateNavTarget()
 	-- update from xtar
 	UpdateAggroState()
 	DoTanking()
