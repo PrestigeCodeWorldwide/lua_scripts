@@ -18,7 +18,7 @@ local navActive = false
 local showSettings = false
 local lastInvisCheck = 0
 
-BL.info('HunterHood v2.195 loaded')
+BL.info('HunterHood v2.196 loaded')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -792,7 +792,33 @@ end
 
 local function InfoLine()
     ImGui.Separator()
-    ImGui.TextColored(0.690, 0.553, 0.259, 1, '\xee\x9f\xbc')
+    
+    -- Make the icon clickable with black background and no border
+    ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)           -- Black background
+    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 0, 0, 1)      -- Black background on hover
+    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
+    ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1) -- Original icon color
+    ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
+    
+    if ImGui.Button('\xee\x9f\xbc##pc_count_info') then
+        mq.cmd("/who pc")
+    end
+    
+    -- Handle right-click for / command
+    if ImGui.IsItemClicked(1) then -- Right click (button 1)
+        mq.cmd("/")
+    end
+    
+    ImGui.PopStyleVar(1)  -- Pop the border style
+    ImGui.PopStyleColor(4) -- Pop the colors
+    
+    if ImGui.IsItemHovered() then
+        ImGui.BeginTooltip()
+        ImGui.Text("Left click for /who PC")
+        ImGui.Text("Right click for /")
+        ImGui.EndTooltip()
+    end
+    
     ImGui.SameLine()
     local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
 
@@ -1148,9 +1174,34 @@ local function renderHoodTab()
 
 
         -- Status bar with slightly reduced spacing
-        ImGui.TextColored(0.690, 0.553, 0.259, 1, '\xee\x9f\xbc')
-        local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
+        -- Make the icon clickable with black background and no border
+        ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)           -- Black background
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 0, 0, 1)      -- Black background on hover
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1) -- Original icon color
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
+        
+        if ImGui.Button('\xee\x9f\xbc##pc_count_hood') then
+            mq.cmd("/who")
+        end
+        
+        -- Handle right-click for / command
+        if ImGui.IsItemClicked(1) then -- Right click (button 1)
+            mq.cmd("/")
+        end
+        
+        ImGui.PopStyleVar(1)  -- Pop the border style
+        ImGui.PopStyleColor(4) -- Pop the colors
+        
+        if ImGui.IsItemHovered() then
+            ImGui.BeginTooltip()
+            ImGui.Text("Left click for /who")
+            ImGui.Text("Right click for /")
+            ImGui.EndTooltip()
+        end
+        
         ImGui.SameLine(0, 4) -- Slightly reduced from default
+        local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
 
         if pcs > 50 then
             ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs))
