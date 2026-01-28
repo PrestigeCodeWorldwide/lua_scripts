@@ -1,4 +1,4 @@
---v1.05
+--v1.06
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -10,8 +10,8 @@ local ActorsLib = require("actors")
 
 local myBuffs = {
     CLR = {
-        {name = "Unified Hand of Aegolism XV",    type = "group"},
-        {name = "Unified Hand of Sharosh",        type = "group"},
+        {name = "Unified Hand of Aegolism XV",    type = "group", checkName = "Aegolism XV"},
+        {name = "Unified Hand of Sharosh",        type = "group", checkName = "Symbol of Sharosh"},
         {name = "Shining Rampart IX",             type = "single"},
         { name = "Unified Hand of Helmsbane",     type = "group" },
         { name = "Unified Hand of Infallibility", type = "group" },
@@ -49,6 +49,12 @@ local availableBuffs = {} -- charName → list of buff names
 local activeRequests = {}
 local requestId = 0
 local ACTOR_NAME = "buffactors"
+
+-- Auto-request checkbox states for each buff
+local autoRequestBuffs = {}
+local lastBuffCheck = 0
+local BUFF_CHECK_INTERVAL = 5 -- Check buffs every 5 seconds
+local knownBuffs = {} -- Track which buffs we currently have
 
 -- Function to queue a cast (called from actor callback)
 local function queueCast(targetName, spellName, requestId, requester)
@@ -188,34 +194,48 @@ local function handleMessage(message)
         if myBuffs[myClass] then
             BL.info("I have buffs for my class")
             for _, buff in ipairs(myBuffs[myClass]) do
-                BL.info(string.format("Checking buff: %s == %s ?", tostring(buff.name), tostring(content.buffName)))
+                --print(string.format("Checking buff: %s == %s ?", tostring(buff.name), tostring(content.buffName)))
 
                 if buff.name == content.buffName then
+                    print(string.format("Found matching buff: %s", buff.name))
                     local myName = mq.TLO.Me.CleanName()
-                    local requestKey = string.format("%s:%s", content.requestId, content.requester) -- Use requester instead of myName
+                    local requestType = content.requestType or "manual"
+                    local requestKey = string.format("%s:%s:%s", content.requestId, content.requester, requestType)
+                    print(string.format("Request key: %s", requestKey))
 
                     if not activeRequests[requestKey] then
+                        print("Not already processing this request, proceeding...")
                         activeRequests[requestKey] = true
                         BL.info(string.format("Buff %s matches for %s (requestId: %s, key: %s)",
                             content.buffName, content.requester, content.requestId, requestKey))
 
                         -- Let the requester know we're handling it
+                        print("Sending buffClaim message...")
                         if actor and actor.send then
                             actor:send({
                                 id = "buffClaim",
                                 requestId = content.requestId,
                                 from = mq.TLO.Me.CleanName()
                             })
+                            print("buffClaim sent successfully")
+                        else
+                            print("ERROR: actor or actor.send is nil")
                         end
 
                         -- Queue the cast instead of executing immediately
+                        print("Queuing cast...")
                         queueCast(content.requester, content.buffName, content.requestId, content.requester)
+                        print("Cast queued successfully")
 
                         -- Schedule cleanup
+                        print("Scheduling cleanup...")
                         table.insert(pendingCleanups, {
-                            requestId = requestKey,
+                            requestId = tostring(content.requestId), -- Use only requestId, not requestKey
                             expireTime = os.clock() + 300 -- 5 minutes from now
                         })
+                        print("Cleanup scheduled")
+                    else
+                        print("Already processing this request, skipping...")
                     end
                     return
                 end
@@ -299,48 +319,67 @@ local function drawBuffsTab()
         end
         imgui.Separator()
         for _, buff in ipairs(myBuffs[selectedClass] or {}) do
+            imgui.PushID(buff.name) -- Unique ID for each checkbox/button pair
+            
+            -- Auto-request checkbox on the left
+            local varName = "auto_" .. buff.name:gsub("[^%w_]", "_")
+            autoRequestBuffs[varName] = autoRequestBuffs[varName] or false
+            local autoChecked, autoChanged = imgui.Checkbox("##" .. varName, autoRequestBuffs[varName])
+            autoRequestBuffs[varName] = autoChecked
+            
+            if imgui.IsItemHovered() then
+                imgui.BeginTooltip()
+                imgui.Text(string.format("Auto-request %s when the buff drops", buff.name))
+                imgui.EndTooltip()
+            end
+            
+            imgui.SameLine()
+            
+            -- Buff request button
             if imgui.Button(buff.name) then
                 -- Check cooldown
                 local now = os.clock()
                 if lastBuffRequest[buff.name] and (now - lastBuffRequest[buff.name] < REQUEST_COOLDOWN) then
                     BL.warn(string.format("Please wait before requesting %s again", buff.name))
-                    return
-                end
-                lastBuffRequest[buff.name] = now
-                -- Generate a unique request ID
-                requestId = requestId + 1
-                local request = {
-                    id = "buffRequest",
-                    requestId = requestId,
-                    buffName = buff.name,
-                    requester = mq.TLO.Me.CleanName(),
-                    timestamp = os.time()
-                }
-
-                BL.info(string.format("Sending buff request for %s to %s class", buff.name, selectedClass))
-
-                -- Send the request to all characters (broadcast)
-                local chars = getCharsOfClass(selectedClass)
-                BL.info(string.format("Found %d characters of class %s", #chars, selectedClass))
-
-                if actor and actor.send then
-                    -- Broadcast to all instances of the actor
-                    actor:send(request)
-
-                    -- Schedule cleanup for this request
-                    local requestKey = tostring(requestId)
-                    table.insert(pendingCleanups, {
-                        requestId = requestKey,
-                        expireTime = os.clock() + 300 -- 5 minutes from now
-                    })
                 else
-                    if not actor then
-                        BL.error("Actor is nil when trying to send buff request")
-                    elseif not actor.send then
-                        BL.error("Actor.send is not available")
+                    lastBuffRequest[buff.name] = now
+                    -- Generate a unique request ID
+                    requestId = requestId + 1
+                    local request = {
+                        id = "buffRequest",
+                        requestId = requestId,
+                        buffName = buff.name,
+                        requester = mq.TLO.Me.CleanName(),
+                        timestamp = os.time()
+                    }
+
+                    BL.info(string.format("Sending buff request for %s to %s class", buff.name, selectedClass))
+
+                    -- Send the request to all characters (broadcast)
+                    local chars = getCharsOfClass(selectedClass)
+                    BL.info(string.format("Found %d characters of class %s", #chars, selectedClass))
+
+                    if actor and actor.send then
+                        -- Broadcast to all instances of the actor
+                        actor:send(request)
+
+                        -- Schedule cleanup for this request
+                        local requestKey = tostring(requestId)
+                        table.insert(pendingCleanups, {
+                            requestId = requestKey,
+                            expireTime = os.clock() + 300 -- 5 minutes from now
+                        })
+                    else
+                        if not actor then
+                            BL.error("Actor is nil when trying to send buff request")
+                        elseif not actor.send then
+                            BL.error("Actor.send is not available")
+                        end
                     end
                 end
             end
+            
+            imgui.PopID()
         end
     end
 end
@@ -388,38 +427,175 @@ end
 local function processCleanups()
     local now = os.clock()
     local removed = 0
+    local activeCount = table_count(activeRequests)
+    
+    -- Debug logging every 30 seconds
+    --[[ Commented out to reduce spam
+    if math.floor(now) % 30 == 0 then
+        local activeCount = table_count(activeRequests)
+        BL.info(string.format("Active requests: %d, Pending cleanups: %d", activeCount, #pendingCleanups))
+    end
+    ]]
     
     for i = #pendingCleanups, 1, -1 do
         local cleanup = pendingCleanups[i]
         if cleanup.expireTime <= now then
+            local removedCount = 0
+            
             -- Remove all variations of this request
             for k, _ in pairs(activeRequests) do
                 if k:match("^" .. cleanup.requestId .. ":") then
                     activeRequests[k] = nil
-                    BL.info(string.format("Cleaned up request: %s", k))
-                    removed = removed + 1
+                    removedCount = removedCount + 1
                 end
+            end
+            
+            if removedCount > 0 then
+                BL.info(string.format("Cleaned up %d requests for ID %s", removedCount, cleanup.requestId))
             end
             table.remove(pendingCleanups, i)
         end
     end
     
     -- If we still have too many active requests, clean up the oldest ones
-    if removed == 0 and table_count(activeRequests) > 20 then
+    if table_count(activeRequests) > 20 then
         BL.warn("Too many active requests, forcing cleanup")
-        local oldest = nil
-        for _, cleanup in ipairs(pendingCleanups) do
-            if not oldest or cleanup.expireTime < oldest.expireTime then
-                oldest = cleanup
+        
+        -- Find the oldest cleanup entry
+        local oldestIndex = nil
+        local oldestTime = math.huge
+        for i, cleanup in ipairs(pendingCleanups) do
+            if cleanup.expireTime < oldestTime then
+                oldestTime = cleanup.expireTime
+                oldestIndex = i
             end
         end
-        if oldest then
+        
+        if oldestIndex then
+            local oldest = pendingCleanups[oldestIndex]
+            -- Remove all variations of this request
             for k, _ in pairs(activeRequests) do
                 if k:match("^" .. oldest.requestId .. ":") then
                     activeRequests[k] = nil
                     BL.info(string.format("Force cleaned up old request: %s", k))
                 end
             end
+            -- Remove the cleanup entry itself
+            table.remove(pendingCleanups, oldestIndex)
+            BL.info("Removed oldest cleanup entry")
+        else
+            -- If no cleanup entries, just clear half the active requests
+            local toRemove = {}
+            local count = 0
+            for k, _ in pairs(activeRequests) do
+                table.insert(toRemove, k)
+                count = count + 1
+                if count >= 10 then break end
+            end
+            for _, k in ipairs(toRemove) do
+                activeRequests[k] = nil
+                BL.info(string.format("Emergency cleanup removed request: %s", k))
+            end
+        end
+    end
+end
+
+-- Function to get the actual buff name to check for a given spell
+local function getBuffCheckName(spellName)
+    -- Search through all classes to find the buff entry
+    for className, buffs in pairs(myBuffs) do
+        for _, buff in ipairs(buffs) do
+            if buff.name == spellName then
+                return buff.checkName or buff.name
+            end
+        end
+    end
+    return spellName -- Fallback to spell name if not found
+end
+
+-- Function to check if we currently have a specific buff
+local function hasBuff(buffName)
+    local checkName = getBuffCheckName(buffName)
+    return mq.TLO.Me.Buff(checkName)() ~= nil
+end
+
+-- Function to get the class that provides a specific buff
+local function getClassForBuff(buffName)
+    for className, buffs in pairs(myBuffs) do
+        for _, buff in ipairs(buffs) do
+            if buff.name == buffName then
+                return className
+            end
+        end
+    end
+    return nil
+end
+
+-- Function to auto-request a buff when it drops
+local function autoRequestBuff(buffName)
+    local classForBuff = getClassForBuff(buffName)
+    if not classForBuff then
+        BL.warn(string.format("No class found for buff: %s", buffName))
+        return
+    end
+    
+    -- Check cooldown
+    local now = os.clock()
+    if lastBuffRequest[buffName] and (now - lastBuffRequest[buffName] < REQUEST_COOLDOWN) then
+        return -- Skip if still on cooldown
+    end
+    lastBuffRequest[buffName] = now
+    
+    -- Generate a unique request ID
+    requestId = requestId + 1
+    local request = {
+        id = "buffRequest",
+        requestId = requestId,
+        buffName = buffName,
+        requester = mq.TLO.Me.CleanName(),
+        timestamp = os.time(),
+        requestType = "auto" -- Mark this as an auto-request
+    }
+
+    BL.info(string.format("Auto-requesting buff %s from %s class", buffName, classForBuff))
+
+    -- Send the request to all characters of the appropriate class
+    if actor and actor.send then
+        actor:send(request)
+        
+        -- Schedule cleanup for this request
+        local requestKey = tostring(requestId)
+        table.insert(pendingCleanups, {
+            requestId = requestKey, -- Store only the requestId, not the full key
+            expireTime = os.clock() + 300 -- 5 minutes for normal operation
+        })
+    end
+end
+
+-- Function to monitor buffs and auto-request when they're missing
+local function monitorBuffs()
+    local now = os.clock()
+    if now - lastBuffCheck < BUFF_CHECK_INTERVAL then
+        return
+    end
+    lastBuffCheck = now
+
+    -- Check all buffs that have auto-request enabled
+    for varName, enabled in pairs(autoRequestBuffs) do
+        if enabled then
+            -- Extract buff name from variable name
+            local buffName = varName:gsub("^auto_", ""):gsub("_", " ")
+            
+            -- Check if we currently have this buff
+            local currentlyHasBuff = hasBuff(buffName)
+            
+            -- If we don't have the buff, auto-request it (respecting cooldown)
+            if not currentlyHasBuff then
+                autoRequestBuff(buffName)
+            end
+            
+            -- Update our knowledge of this buff
+            knownBuffs[varName] = currentlyHasBuff
         end
     end
 end
@@ -432,5 +608,6 @@ return {
     cleanupStaleEntries = cleanupStaleEntries,
     announceBuffs = announceBuffs,
     processCleanups = processCleanups,
-    processCasts = processCasts
+    processCasts = processCasts,
+    monitorBuffs = monitorBuffs
 }

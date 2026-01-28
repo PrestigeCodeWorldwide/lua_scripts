@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.80 Started")
+BL.info("RaidPrep v1.81 Started")
 
 local openGUI = true
 --local selectedScripts = {}
@@ -1133,6 +1133,11 @@ while true do
     -- Process pending casts every 100ms
     if buffUI.processCasts then
         buffUI.processCasts()
+    end
+
+    -- Monitor buffs and auto-request when they drop every 100ms
+    if buffUI.monitorBuffs then
+        buffUI.monitorBuffs()
     end
 
     -- Process buff UI cleanups every 100ms
