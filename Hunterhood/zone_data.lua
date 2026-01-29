@@ -1,4 +1,4 @@
--- v1.1
+-- v1.12
 -- Zone data for Hunterhood
 local function createZoneData(mq)
     local zoneMap = {
@@ -57,7 +57,7 @@ local function createZoneData(mq)
 
     -- Expansion zone lists
     local zone_lists = {
-        ["SoR"] = {
+        ["Shattering of Ro"] = {
             {id = 879, name = function() return getZoneDisplayName(879) end, shortname = "candlemakers"},
             {id = 880, name = function() return getZoneDisplayName(880) end, shortname = "embattledpogrowth"},
             {id = 881, name = function() return getZoneDisplayName(881) end, shortname = "arcstoneruins"},
@@ -65,7 +65,7 @@ local function createZoneData(mq)
             {id = 883, name = function() return getZoneDisplayName(883) end, shortname = "vortex"},
             {id = 884, name = function() return getZoneDisplayName(884) end, shortname = "spite"},
         },
-        ["ToB"] = {
+        ["The Outer Brood"] = {
             {id = 872, name = function() return getZoneDisplayName(872) end, shortname = "aureatecovert"},
             {id = 870, name = function() return getZoneDisplayName(870) end, shortname = "hodstock"},
             {id = 874, name = function() return getZoneDisplayName(874) end, shortname = "puissance"},
@@ -73,7 +73,7 @@ local function createZoneData(mq)
             {id = 873, name = function() return getZoneDisplayName(873) end, shortname = "harbingerscradle"},
             {id = 871, name = function() return getZoneDisplayName(871) end, shortname = "toe"},
         },
-        ["LS"] = {
+        ["Laurion's Song"] = {
             {id = 860, name = function() return getZoneDisplayName(860) end, shortname = "ankexfen"},
             {id = 859, name = function() return getZoneDisplayName(859) end, shortname = "laurioninn"},
             {id = 863, name = function() return getZoneDisplayName(863) end, shortname = "moorsofnokk"},
@@ -82,7 +82,7 @@ local function createZoneData(mq)
             {id = 865, name = function() return getZoneDisplayName(865) end, shortname = "timorousfalls"},
             {id = 864, name = function() return getZoneDisplayName(864) end, shortname = "unkemptwoods"},
         },
-        ["NoS"] = {
+        ["Night of Shadows"] = {
             {id = 855, name = function() return getZoneDisplayName(855) end, shortname = "darklightcaverns"},
             {id = 856, name = function() return getZoneDisplayName(856) end, shortname = "deepshade"},
             {id = 857, name = function() return getZoneDisplayName(857) end, shortname = "firefallpass"},
@@ -91,7 +91,7 @@ local function createZoneData(mq)
             {id = 854, name = function() return getZoneDisplayName(854) end, shortname = "shadeweavertwo"},
             {id = 852, name = function() return getZoneDisplayName(852) end, shortname = "sharvahltwo"},
         },
-        ["ToL"] = {
+        ["Terror of Luclin"] = {
             {id = 848, name = function() return getZoneDisplayName(848) end, shortname = "basilica"},
             {id = 849, name = function() return getZoneDisplayName(849) end, shortname = "bloodfalls"},
             {id = 845, name = function() return getZoneDisplayName(845) end, shortname = "akhevatwo"},
@@ -100,7 +100,7 @@ local function createZoneData(mq)
             {id = 844, name = function() return getZoneDisplayName(844) end, shortname = "umbraltwo"},
             {id = 846, name = function() return getZoneDisplayName(846) end, shortname = "vexthaltwo"},
         },
-        ["CoV"] = {
+        ["Claws of Veeshan"] = {
             {id = 833, name = function() return getZoneDisplayName(833) end, shortname = "cobaltscartwo"},
             {id = 832, name = function() return getZoneDisplayName(832) end, shortname = "necropolistwo"},
             {id = 835, name = function() return getZoneDisplayName(835) end, shortname = "skyshrinetwo"},
@@ -108,7 +108,7 @@ local function createZoneData(mq)
             {id = 836, name = function() return getZoneDisplayName(836) end, shortname = "templeveeshantwo"},
             {id = 834, name = function() return getZoneDisplayName(834) end, shortname = "westwastestwo"},
         },
-        ["ToV"] = {
+        ["Torment of Velious"] = {
             {id = 830, name = function() return getZoneDisplayName(830) end, shortname = "crystaltwob"},
             {id = 829, name = function() return getZoneDisplayName(829) end, shortname = "kaeltwo"},
             {id = 824, name = function() return getZoneDisplayName(824) end, shortname = "eastwastestwo"},
@@ -117,7 +117,7 @@ local function createZoneData(mq)
             {id = 825, name = function() return getZoneDisplayName(825) end, shortname = "frozenshadowtwo"},
             {id = 828, name = function() return getZoneDisplayName(828) end, shortname = "velketortwo"},
         },
-        ["TBL"] = {
+        ["The Burning Lands"] = {
             {id = 819, name = function() return getZoneDisplayName(819) end, shortname = "aalishai"},
             {id = 820, name = function() return getZoneDisplayName(820) end, shortname = "empyr"},
             {id = 821, name = function() return getZoneDisplayName(821) end, shortname = "esianti"},
@@ -127,7 +127,7 @@ local function createZoneData(mq)
             {id = 823, name = function() return getZoneDisplayName(823) end, shortname = "chamberoftears"},
             {id = 787, name = function() return getZoneDisplayName(787) end, shortname = "gnomemtn"},
         },
-        ["RoS"] = {
+        ["Ring of Scale"] = {
             {id = 789, name = function() return getZoneDisplayName(789) end, shortname = "charasisb"},
             {id = 792, name = function() return getZoneDisplayName(792) end, shortname = "gorowyn"},
             {id = 813, name = function() return getZoneDisplayName(813) end, shortname = "charasistwo"},
@@ -135,7 +135,7 @@ local function createZoneData(mq)
             {id = 815, name = function() return getZoneDisplayName(815) end, shortname = "overtheretwo"},
             {id = 816, name = function() return getZoneDisplayName(816) end, shortname = "veeshantwo"},
         },
-        ["EoK"] = {
+        ["Empires of Kunark"] = {
             {id = 800, name = function() return getZoneDisplayName(800) end, shortname = "chardoktwo"},
             {id = 791, name = function() return getZoneDisplayName(791) end, shortname = "frontiermtnsb"},
             {id = 793, name = function() return getZoneDisplayName(793) end, shortname = "korshaext"},
@@ -144,14 +144,14 @@ local function createZoneData(mq)
             {id = 790, name = function() return getZoneDisplayName(790) end, shortname = "scorchedwoods"},
             {id = 788, name = function() return getZoneDisplayName(788) end, shortname = "drogab"},
         },
-        ["TBM"] = {
+        ["The Broken Mirror"] = {
             {id = 795, name = function() return getZoneDisplayName(795) end, shortname = "cosul"},
             {id = 796, name = function() return getZoneDisplayName(796) end, shortname = "codecayb"},
             {id = 777, name = function() return getZoneDisplayName(777) end, shortname = "exalted"},
             {id = 797, name = function() return getZoneDisplayName(797) end, shortname = "exaltedb"},
             {id = 798, name = function() return getZoneDisplayName(798) end, shortname = "pohealth"},
         },
-        ["TDS"] = {
+        ["The Darkened Sea"] = {
             {id = 778, name = function() return getZoneDisplayName(778) end, shortname = "arxmentis"},
             {id = 779, name = function() return getZoneDisplayName(779) end, shortname = "brotherisland"},
             {id = 782, name = function() return getZoneDisplayName(782) end, shortname = "endlesscaverns"},
@@ -161,7 +161,7 @@ local function createZoneData(mq)
             {id = 785, name = function() return getZoneDisplayName(785) end, shortname = "tempesttemple"},
             {id = 783, name = function() return getZoneDisplayName(783) end, shortname = "thuliasaur"},
         },
-        ["CoTF"] = {
+        ["Call of the Forsaken"] = {
             {id = 776, name = function() return getZoneDisplayName(776) end, shortname = "arginhiz"},
             {id = 770, name = function() return getZoneDisplayName(770) end, shortname = "bixiewarfront"},
             {id = 772, name = function() return getZoneDisplayName(772) end, shortname = "ethernere"},
@@ -170,7 +170,7 @@ local function createZoneData(mq)
             {id = 773, name = function() return getZoneDisplayName(773) end, shortname = "thevoidh"},
             {id = 775, name = function() return getZoneDisplayName(775) end, shortname = "towerofrot"},
         },
-        ["RoF"] = {
+        ["Rain of Fear"] = {
             {id = 760, name = function() return getZoneDisplayName(760) end, shortname = "chapterhouse"},
             {id = 763, name = function() return getZoneDisplayName(763) end, shortname = "chelsithreborn"},
             {id = 755, name = function() return getZoneDisplayName(755) end, shortname = "eastwastesshard"},
@@ -186,7 +186,7 @@ local function createZoneData(mq)
             {id = 756, name = function() return getZoneDisplayName(756) end, shortname = "crystalshard"},
             {id = 753, name = function() return getZoneDisplayName(753) end, shortname = "xorbb"},
         },
-        ["VoA"] = {
+        ["Veil of Alaris"] = {
             {id = 724, name = function() return getZoneDisplayName(724) end, shortname = "argath"},
             {id = 728, name = function() return getZoneDisplayName(728) end, shortname = "beastdomain"},
             {id = 732, name = function() return getZoneDisplayName(732) end, shortname = "cityofbronze"},
@@ -200,7 +200,7 @@ local function createZoneData(mq)
             {id = 735, name = function() return getZoneDisplayName(735) end, shortname = "westsepulcher"},
             {id = 731, name = function() return getZoneDisplayName(731) end, shortname = "windsong"},
         },
-        ["HoT"] = {
+        ["House of Thule"] = {
             {id = 709, name = function() return getZoneDisplayName(709) end, shortname = "alkabormare"},
             {id = 706, name = function() return getZoneDisplayName(706) end, shortname = "fallen"},
             {id = 711, name = function() return getZoneDisplayName(711) end, shortname = "thuledream"},
@@ -215,7 +215,7 @@ local function createZoneData(mq)
             {id = 704, name = function() return getZoneDisplayName(704) end, shortname = "thulelibrary"},
             {id = 705, name = function() return getZoneDisplayName(705) end, shortname = "well"},
         },
-        ["UF"] = {
+        ["Underfoot"] = {
             {id = 485, name = function() return getZoneDisplayName(485) end, shortname = "arthicrex"},
             {id = 492, name = function() return getZoneDisplayName(492) end, shortname = "brellsarena"},
             {id = 480, name = function() return getZoneDisplayName(480) end, shortname = "brellsrest"},
@@ -232,7 +232,7 @@ local function createZoneData(mq)
             {id = 489, name = function() return getZoneDisplayName(489) end, shortname = "stonesnake"},
             {id = 493, name = function() return getZoneDisplayName(493) end, shortname = "weddingchapel"},
         },
-        ["SoD"] = {
+        ["Seeds of Destruction"] = {
             {id = 456, name = function() return getZoneDisplayName(456) end, shortname = "oldkithicor"},
             {id = 471, name = function() return getZoneDisplayName(471) end, shortname = "discordtower"},
             {id = 474, name = function() return getZoneDisplayName(474) end, shortname = "olddranik"},
@@ -253,7 +253,7 @@ local function createZoneData(mq)
             {id = 473, name = function() return getZoneDisplayName(473) end, shortname = "precipiceofwar"},
             {id = 475, name = function() return getZoneDisplayName(475) end, shortname = "toskirakk"},
         },
-        ["SoF"] = {
+        ["Secrets of Faydwer"] = {
             {id = 445, name = function() return getZoneDisplayName(445) end, shortname = "bloodmoon"},
             {id = 449, name = function() return getZoneDisplayName(449) end, shortname = "cryptofshade"},
             {id = 446, name = function() return getZoneDisplayName(446) end, shortname = "crystallos"},
@@ -269,7 +269,7 @@ local function createZoneData(mq)
             {id = 438, name = function() return getZoneDisplayName(438) end, shortname = "steamfactory"},
             {id = 447, name = function() return getZoneDisplayName(447) end, shortname = "guardian"},
         },
-        ["TBS"] = {
+        ["The Buried Sea"] = {
             {id = 422, name = function() return getZoneDisplayName(422) end, shortname = "barren"},
             {id = 428, name = function() return getZoneDisplayName(428) end, shortname = "blacksail"},
             {id = 427, name = function() return getZoneDisplayName(427) end, shortname = "deadbone"},
@@ -286,7 +286,7 @@ local function createZoneData(mq)
             {id = 423, name = function() return getZoneDisplayName(423) end, shortname = "buriedsea"},
             {id = 419, name = function() return getZoneDisplayName(419) end, shortname = "zhisza"},
         },
-        ["TSS"] = {
+        ["The Serpent's Spine"] = {
             {id = 406, name = function() return getZoneDisplayName(406) end, shortname = "ashengate"},
             {id = 398, name = function() return getZoneDisplayName(398) end, shortname = "roost"},
             {id = 395, name = function() return getZoneDisplayName(395) end, shortname = "moors"},
@@ -309,8 +309,8 @@ local function createZoneData(mq)
     }
 
     -- Expansion display order
-    local combo_items = { "SoR","ToB", "LS", "NoS", "ToL", "CoV", "ToV", "TBL", "RoS", "EoK", "TBM", "TDS", "CoTF", "RoF", "VoA",
-        "HoT", "UF", "SoD", "SoF", "TBS", "TSS", "Debug" }
+    local combo_items = { "Shattering of Ro","The Outer Brood", "Laurion's Song", "Night of Shadows", "Terror of Luclin", "Claws of Veeshan", "Torment of Velious", "The Burning Lands", "Ring of Scale", "Empires of Kunark", "The Broken Mirror", "The Darkened Sea", "Call of the Forsaken", "Rain of Fear", "Veil of Alaris",
+        "House of Thule", "Underfoot", "Seeds of Destruction", "Secrets of Faydwer", "The Buried Sea", "The Serpent's Spine", "Debug" }
 
     return {
         zoneMap = zoneMap,

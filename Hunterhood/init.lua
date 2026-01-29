@@ -15,10 +15,18 @@ local myAch = mq.TLO.Achievement
 local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helpers
 local navCoroutine = nil
 local navActive = false
-local showSettings = false
+local showOptionsWindow = false -- New options window state
 local lastInvisCheck = 0
+local pullRadius = 200 -- State variable for pull radius
+local zHighValue = 100 -- State variable for Z-High
+local zLowValue = -100 -- State variable for Z-Low
+local distanceSettingsEnabled = false -- State variable for distance settings toggle
 
-BL.info('HunterHood v2.196 loaded')
+BL.info('HunterHood v2.20 loaded')
+
+-- Reset pull radius on script startup
+mq.cmd('/mapfilter pullradius off')
+BL.info('HunterHood: Reset pull radius filter on startup')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -878,6 +886,198 @@ local function RenderTitle()
     end
 end
 
+local function RenderOptionsWindow()
+    if showOptionsWindow then
+        ImGui.SetNextWindowSize(170, 200, ImGuiCond.FirstUseEver)
+        
+        -- Only remove title bar, keep resize functionality
+        local windowFlags = ImGuiWindowFlags.NoTitleBar
+        
+        -- Use a dummy variable for the open state to avoid conflicts
+        local dummyOpen = true
+        if ImGui.Begin('HunterHood Settings', dummyOpen, windowFlags) then
+            -- Apply gold color scheme
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
+            --ImGui.Text("HunterHood Options")
+            ImGui.PopStyleColor(1)
+            
+            ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
+            ImGui.Separator()
+            ImGui.PopStyleColor(1)
+            
+            -- Navigation Settings
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
+            ImGui.Text("Navigation Settings:")
+            ImGui.PopStyleColor(1)
+            
+            -- Style the checkbox to match theme
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            -- Set text color based on checkbox state
+            if useInvis then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
+            end
+            
+            local newUseInvis = ImGui.Checkbox("Use Invis", useInvis)
+            if newUseInvis ~= useInvis then
+                useInvis = newUseInvis
+                helpers.setUseInvis(useInvis)
+            end
+            
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Use Invis while navigating between mobs")
+                ImGui.PopStyleColor(1)
+            end
+            
+            ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
+            ImGui.Separator()
+            ImGui.PopStyleColor(1)
+            
+            -- Z-Axis Settings for PH Handling
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
+            ImGui.Text("Distance Settings:")
+            ImGui.PopStyleColor(1)
+            ImGui.SameLine()
+            
+            -- Distance Settings Toggle Button
+            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4, 1) -- Smaller button
+            if distanceSettingsEnabled then
+                ImGui.PushStyleColor(ImGuiCol.Button, 0, 0.8, 0, 1) -- Green background
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 1, 0, 1) -- Brighter green hover
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0.6, 0, 1) -- Darker green active
+                ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 1, 1) -- White text
+                if ImGui.Button("ON##distance_toggle") then
+                    distanceSettingsEnabled = false
+                    mq.cmd('/squelch /mapfilter pullradius off')
+                end
+            else
+                ImGui.PushStyleColor(ImGuiCol.Button, 0.8, 0, 0, 1) -- Red background
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 1, 0, 0, 1) -- Brighter red hover
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.6, 0, 0, 1) -- Darker red active
+                ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 1, 1) -- White text
+                if ImGui.Button("OFF##distance_toggle") then
+                    distanceSettingsEnabled = true
+                    mq.cmdf('/squelch /mapfilter pullradius %d', pullRadius)
+                end
+            end
+            ImGui.PopStyleColor(4)
+            ImGui.PopStyleVar(1) -- Pop the padding
+            
+            -- Max Range for Pulling
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
+            local oldPullRadius = pullRadius
+            pullRadius = ImGui.InputInt("##maxrange", pullRadius)
+            if pullRadius ~= oldPullRadius then
+                if pullRadius >= 1 and pullRadius <= 9999 then
+                    distanceSettingsEnabled = true -- Turn toggle ON when value changes
+                    mq.cmdf('/squelch /mapfilter pullradius %d', pullRadius)
+                else
+                    -- If out of range, clamp to valid range
+                    if pullRadius < 1 then
+                        pullRadius = 1
+                    elseif pullRadius > 9999 then
+                        pullRadius = 9999
+                    end
+                    distanceSettingsEnabled = true -- Turn toggle ON when value changes
+                    mq.cmdf('/squelch /mapfilter pullradius %d', pullRadius)
+                end
+            end
+            
+            ImGui.SameLine()
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.Text("Range")
+            ImGui.PopStyleColor(1)
+            
+            ImGui.PopStyleColor(5) -- Pop Max Range input field colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            -- Z-High input field
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
+            local oldZHigh = zHighValue
+            zHighValue = ImGui.InputInt("##zhigh", zHighValue)
+            if zHighValue ~= oldZHigh then
+                -- TODO: Add command for Z-High when needed
+                -- For now, just update the value
+            end
+            
+            ImGui.SameLine()
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.Text("Z-High")
+            ImGui.PopStyleColor(1)
+            
+            ImGui.PopStyleColor(5) -- Pop Z-High input field colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            -- Z-Low input field with same styling
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
+            local oldZLow = zLowValue
+            zLowValue = ImGui.InputInt("##zlow", zLowValue)
+            if zLowValue ~= oldZLow then
+                -- TODO: Add command for Z-Low when needed
+                -- For now, just update the value
+            end
+            
+            ImGui.SameLine()
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.Text("Z-Low")
+            ImGui.PopStyleColor(1)
+            
+            ImGui.PopStyleColor(5) -- Pop Z-Low input field colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
+            ImGui.Separator()
+            ImGui.PopStyleColor(1)
+            
+            -- Style the close button
+            ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
+            
+            if ImGui.Button("Close##options_close") then
+                showOptionsWindow = false
+            end
+            
+            ImGui.PopStyleColor(4) -- Pop button colors
+        end
+        
+        ImGui.End()
+    end
+end
+
 local function RenderHunter()
     --printf('Debug: RenderHunter called, myHunterSpawn count: %d', #myHunterSpawn) --debug
     hunterProgress()
@@ -1003,7 +1203,7 @@ local function renderHoodTab()
 
 
     -- Expansion selector combo
-    ImGui.SetNextItemWidth(150)
+    ImGui.SetNextItemWidth(190)
     if ImGui.BeginCombo("##:", combo_items[selected_index]) then
         for i, item in ipairs(combo_items) do
             if ImGui.Selectable(item, i == selected_index) then
@@ -1021,13 +1221,21 @@ local function renderHoodTab()
         ImGui.EndCombo()
     end
     ImGui.SameLine(0, 2)
-    local newUseInvis = ImGui.Checkbox("Invis##InvisCheckbox", useInvis)
-    if newUseInvis ~= useInvis then
-        useInvis = newUseInvis
-        helpers.setUseInvis(useInvis)
+    
+    ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0) -- Transparent background
+    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 0.5) -- Slight hover
+    ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Orange color like tabs
+    
+    if ImGui.Button('\xef\x80\x93##options_gear') then
+        showOptionsWindow = not showOptionsWindow -- Toggle options window
     end
+    
+    ImGui.PopStyleColor(3)
+    
     if ImGui.IsItemHovered() then
-        ImGui.SetTooltip("Use Invis while navigating between mobs")
+        ImGui.BeginTooltip()
+        ImGui.Text("Settings")
+        ImGui.EndTooltip()
     end
 
     ImGui.SameLine(0, 10)
@@ -1677,6 +1885,9 @@ local function HunterHUD()
 
         ImGui.End()
     end
+    
+    -- Render the options window if it's open
+    RenderOptionsWindow()
 end
 
 local function bind_hh(cmd)
