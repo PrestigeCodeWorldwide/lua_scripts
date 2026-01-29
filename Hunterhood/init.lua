@@ -17,16 +17,18 @@ local navCoroutine = nil
 local navActive = false
 local showOptionsWindow = false -- New options window state
 local lastInvisCheck = 0
-local pullRadius = 200 -- State variable for pull radius
-local zHighValue = 100 -- State variable for Z-High
-local zLowValue = -100 -- State variable for Z-Low
-local distanceSettingsEnabled = false -- State variable for distance settings toggle
+local pullRadius = 9999 -- State variable for pull radius (max range)
+local zHighValue = 9999 -- State variable for Z-High (max range)
+local zLowValue = -9999 -- State variable for Z-Low (max range)
+local distanceSettingsEnabled = true -- Always enabled
+local referenceX = 0 -- Static reference X coordinate for drawing circle on map
+local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
+local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.20 loaded')
+BL.info('HunterHood v2.21 loaded')
 
 -- Reset pull radius on script startup
-mq.cmd('/mapfilter pullradius off')
-BL.info('HunterHood: Reset pull radius filter on startup')
+mq.cmd('/maploc remove')
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -108,8 +110,9 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                 local spawn = mq.TLO.Spawn(spawnID)
                                 if spawn() and not spawn.Dead() then
                                     if helpers.hasValidPath(spawn) then
-                                        local distance = spawn.Distance3D() or math.huge
-                                        if distance < closestDistance then
+                                        local distance = helpers.distanceFromReference(spawn.ID(), referenceX, referenceY)
+                                        local zInRange, zDiff = helpers.checkZDistance(spawn.ID(), zHighValue, zLowValue, referenceZ)
+                                        if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
                                             closestDistance = distance
                                             closestSpawn = spawn
                                         end
@@ -126,8 +129,9 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                         local phSpawn = mq.TLO.Spawn(phID)
                                         if phSpawn() and not phSpawn.Dead() then
                                             if helpers.hasValidPath(phSpawn) then
-                                                local distance = phSpawn.Distance3D() or math.huge
-                                                if distance < closestDistance then
+                                                local distance = helpers.distanceFromReference(phSpawn.ID(), referenceX, referenceY)
+                                                local zInRange, zDiff = helpers.checkZDistance(phSpawn.ID(), zHighValue, zLowValue, referenceZ)
+                                                if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
                                                     closestDistance = distance
                                                     closestSpawn = phSpawn
                                                 end
@@ -948,31 +952,6 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Distance Settings:")
             ImGui.PopStyleColor(1)
-            ImGui.SameLine()
-            
-            -- Distance Settings Toggle Button
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4, 1) -- Smaller button
-            if distanceSettingsEnabled then
-                ImGui.PushStyleColor(ImGuiCol.Button, 0, 0.8, 0, 1) -- Green background
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 1, 0, 1) -- Brighter green hover
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0.6, 0, 1) -- Darker green active
-                ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 1, 1) -- White text
-                if ImGui.Button("ON##distance_toggle") then
-                    distanceSettingsEnabled = false
-                    mq.cmd('/squelch /mapfilter pullradius off')
-                end
-            else
-                ImGui.PushStyleColor(ImGuiCol.Button, 0.8, 0, 0, 1) -- Red background
-                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 1, 0, 0, 1) -- Brighter red hover
-                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.6, 0, 0, 1) -- Darker red active
-                ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 1, 1) -- White text
-                if ImGui.Button("OFF##distance_toggle") then
-                    distanceSettingsEnabled = true
-                    mq.cmdf('/squelch /mapfilter pullradius %d', pullRadius)
-                end
-            end
-            ImGui.PopStyleColor(4)
-            ImGui.PopStyleVar(1) -- Pop the padding
             
             -- Max Range for Pulling
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
@@ -985,20 +964,12 @@ local function RenderOptionsWindow()
             ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
             local oldPullRadius = pullRadius
             pullRadius = ImGui.InputInt("##maxrange", pullRadius)
+            -- Update pull radius if changed
             if pullRadius ~= oldPullRadius then
-                if pullRadius >= 1 and pullRadius <= 9999 then
-                    distanceSettingsEnabled = true -- Turn toggle ON when value changes
-                    mq.cmdf('/squelch /mapfilter pullradius %d', pullRadius)
-                else
-                    -- If out of range, clamp to valid range
-                    if pullRadius < 1 then
-                        pullRadius = 1
-                    elseif pullRadius > 9999 then
-                        pullRadius = 9999
-                    end
-                    distanceSettingsEnabled = true -- Turn toggle ON when value changes
-                    mq.cmdf('/squelch /mapfilter pullradius %d', pullRadius)
-                end
+                pullRadius = math.max(1, math.min(pullRadius, 9999))
+                --printf("\ayRange changed to %d, updating circle", pullRadius)
+                -- Update custom circle
+                helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
             end
             
             ImGui.SameLine()
@@ -1060,18 +1031,6 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
-            
-            -- Style the close button
-            ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1) -- Black background
-            ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
-            ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
-            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
-            
-            if ImGui.Button("Close##options_close") then
-                showOptionsWindow = false
-            end
-            
-            ImGui.PopStyleColor(4) -- Pop button colors
         end
         
         ImGui.End()
@@ -1251,20 +1210,50 @@ local function renderHoodTab()
     if navActive then
         if ImGui.Button("STOP##ExecuteAction") then
             navActive = false
+            helpers.hideReferenceCircle() -- Clean up reference circle when stopping
             navCoroutine = nil
             mq.cmd("/nav stop")
             printf("\ayStopped navigation")
         end
     else
+        local shouldStartNavigation = false
         if ImGui.Button("Start##ExecuteAction") then
-            -- Check if group needs invisibility before starting navigation
-            if useInvis and helpers.groupNeedsInvis() then
-                printf("\ayGroup members need invisibility, casting...")
-                mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+            shouldStartNavigation = true
+        end
+        
+        -- Handle navigation start logic outside of ImGui button
+        if shouldStartNavigation then
+            -- Check if any mobs are selected first
+            local hasCheckedMobs = false
+            if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
+                for _, spawn in ipairs(hoodAch.Spawns) do
+                    if mobCheckboxes[spawn.originalName] then
+                        hasCheckedMobs = true
+                        break
+                    end
+                end
             end
-            navActive = true
-            navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
-            printf("\ayStarted navigation to selected mobs")
+            
+            if not hasCheckedMobs then
+                printf("\arNo mobs selected for navigation!")
+            else
+                -- Check if group needs invisibility before starting navigation
+                if useInvis and helpers.groupNeedsInvis() then
+                    printf("\ayGroup members need invisibility, casting...")
+                    mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+                end
+                navActive = true
+                -- Capture current position as static reference point
+                referenceX = mq.TLO.Me.X() or 0
+                referenceY = mq.TLO.Me.Y() or 0
+                referenceZ = mq.TLO.Me.Z() or 0
+                printf("\ayCaptured reference position: X=%.1f, Y=%.1f, Z=%.1f", referenceX, referenceY, referenceZ)
+                -- Show reference circle when navigation starts
+                printf("\ayStarting navigation, creating initial circle")
+                helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
+                navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
+                printf("\ayStarted navigation to selected mobs")
+            end
         end
     end
     

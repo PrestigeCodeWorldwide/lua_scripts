@@ -1,4 +1,4 @@
--- v1.115
+-- v1.116
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -22,22 +22,80 @@ local function new(myAch)
         return ImGui.IsMouseDown(button)
     end
 
-    -- Check if a spawn is within a certain Z-axis distance from the player
+    -- Check if a spawn is within a certain Z-axis distance from the reference point
     -- @param spawnID number - The ID of the spawn to check
     -- @param maxZDistance number - Maximum allowed Z-axis distance
-    -- @return boolean - True if within Z distance, false otherwise
-    -- @return number - The actual Z distance
-    function helpers.checkZDistance(spawnID, maxZDistance)
+    -- @param minZDistance number - Minimum allowed Z-axis distance (optional, defaults to 0)
+    -- @param refZ number - Reference Z coordinate (optional, uses current player Z if not provided)
+    -- @return boolean - True if within Z distance range, false otherwise
+    -- @return number - The actual Z distance (spawnZ - refZ)
+    function helpers.checkZDistance(spawnID, maxZDistance, minZDistance, refZ)
+        minZDistance = minZDistance or 0 -- Default to 0 for backward compatibility
+        refZ = refZ or (mq.TLO.Me.Z() or 0) -- Use provided refZ or current position
+        
         local spawn = mq.TLO.Spawn(spawnID)
         if not spawn or not spawn.ID() or spawn.ID() == 0 then
             return false, 0
         end
 
-        local myZ = mq.TLO.Me.Z() or 0
         local spawnZ = spawn.Z() or 0
-        local zDiff = math.abs(myZ - spawnZ)
+        local zDiff = spawnZ - refZ -- Directional difference (positive = above, negative = below)
+        
+        -- Check if spawn is within Z range
+        local inRange = zDiff >= minZDistance and zDiff <= maxZDistance
+        return inRange, zDiff
+    end
 
-        return zDiff <= maxZDistance, zDiff
+    -- Calculate distance from a reference point to a spawn
+    -- @param spawnID number - The ID of the spawn to check
+    -- @param refX number - Reference X coordinate
+    -- @param refY number - Reference Y coordinate
+    -- @return number - The 3D distance from reference point to spawn
+    function helpers.distanceFromReference(spawnID, refX, refY)
+        local spawn = mq.TLO.Spawn(spawnID)
+        if not spawn or not spawn.ID() or spawn.ID() == 0 then
+            return math.huge
+        end
+
+        local spawnX = spawn.X() or 0
+        local spawnY = spawn.Y() or 0
+        local spawnZ = spawn.Z() or 0
+        
+        -- Calculate 3D distance from reference point
+        local xDiff = spawnX - refX
+        local yDiff = spawnY - refY
+        local zDiff = spawnZ - (mq.TLO.Me.Z() or 0) -- Use current Z for reference if not provided
+        
+        return math.sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
+    end
+
+    -- Reference circle functions for distance visualization
+    function helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
+        if referenceX ~= 0 or referenceY ~= 0 then
+            -- More aggressive cleanup - remove all possible circles first
+            mq.cmd('/squelch /maploc remove hunter_ref')
+            mq.cmd('/squelch /maploc remove') -- Remove all maploc markers as fallback
+            
+            -- Small delay to ensure removal completes
+            if not ImGui then
+                mq.delay(100)
+            end
+            
+            -- Create new circle at reference point with gold color
+            -- Minimize the X by setting smallest size/width and black color to blend with background
+            local goldR, goldG, goldB = 248, 189, 33 -- Gold color matching theme
+            mq.cmdf('/squelch /maploc %d %d %d size 10 width 1 color 0 0 0 radius %d rcolor %d %d %d label "Range: %d" hunter_ref',
+                    referenceY, referenceX, referenceZ, pullRadius, goldR, goldG, goldB, pullRadius)
+            --printf("\ayShowing reference circle at (%.1f, %.1f, %.1f) with radius %d", referenceX, referenceY, referenceZ, pullRadius)
+        end
+    end
+
+    function helpers.hideReferenceCircle()
+        -- Try specific removal first
+        mq.cmd('/squelch /maploc remove hunter_ref')
+        -- Fallback: remove all maploc markers (more aggressive)
+        mq.cmd('/squelch /maploc remove')
+        printf("\arHiding reference circle")
     end
 
     -- Find spawn by name with case-insensitive matching
