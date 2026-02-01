@@ -1,4 +1,4 @@
--- v1.12
+-- v1.13
 -- Zone data for Hunterhood
 local function createZoneData(mq)
     local zoneMap = {
@@ -301,16 +301,69 @@ local function createZoneData(mq)
             {id = 401, name = function() return getZoneDisplayName(401) end, shortname = "valdeholm"},
             {id = 404, name = function() return getZoneDisplayName(404) end, shortname = "vergalid"},
         },
+        ["Prophecy of Ro"] = {
+            {id = 369, name = function() return getZoneDisplayName(369) end, shortname = "arcstone"},
+            {id = 370, name = function() return getZoneDisplayName(370) end, shortname = "relic"},
+            {id = 374, name = function() return getZoneDisplayName(374) end, shortname = "rage"},
+            {id = 380, name = function() return getZoneDisplayName(380) end, shortname = "theater"},
+            {id = 378, name = function() return getZoneDisplayName(378) end, shortname = "elddar"},
+            {id = 376, name = function() return getZoneDisplayName(376) end, shortname = "takishruins"},
+        },
+        ["Depths of Darkhollow"] = {
+            {id = 365, name = function() return getZoneDisplayName(365) end, shortname = "corathus"},
+            {id = 367, name = function() return getZoneDisplayName(367) end, shortname = "corathusb"},
+            {id = 351, name = function() return getZoneDisplayName(351) end, shortname = "dreadspire"},
+            {id = 347, name = function() return getZoneDisplayName(347) end, shortname = "illsalin"},
+            {id = 358, name = function() return getZoneDisplayName(358) end, shortname = "westkorlach"},
+            {id = 354, name = function() return getZoneDisplayName(354) end, shortname = "drachnidhive"},
+            {id = 362, name = function() return getZoneDisplayName(362) end, shortname = "eastkorlach"},
+        },
+        ["Dragons of Norrath"] = {
+            {id = 341, name = function() return getZoneDisplayName(341) end, shortname = "delvea"},
+            {id = 338, name = function() return getZoneDisplayName(338) end, shortname = "stillmoona"},
+            {id = 343, name = function() return getZoneDisplayName(343) end, shortname = "thenest"},
+            {id = 339, name = function() return getZoneDisplayName(339) end, shortname = "stillmoonb"},
+            {id = 337, name = function() return getZoneDisplayName(337) end, shortname = "broodlands"},
+            {id = 340, name = function() return getZoneDisplayName(340) end, shortname = "thundercrest"},
+            {id = 342, name = function() return getZoneDisplayName(342) end, shortname = "delveb"},
+        },
+        ["Omens of War"] = {
+            {id = 328, name = function() return getZoneDisplayName(328) end, shortname = "dranikcatacombsa"},
+            {id = 318, name = function() return getZoneDisplayName(318) end, shortname = "dranikhollowsa"},
+            {id = 302, name = function() return getZoneDisplayName(302) end, shortname = "draniksscar"},
+            {id = 335, name = function() return getZoneDisplayName(335) end, shortname = "harbingers"},
+            {id = 316, name = function() return getZoneDisplayName(316) end, shortname = "provinggrounds"},
+            {id = 303, name = function() return getZoneDisplayName(303) end, shortname = "causeway"},
+            {id = 334, name = function() return getZoneDisplayName(334) end, shortname = "riftseekers"},
+            {id = 331, name = function() return getZoneDisplayName(331) end, shortname = "draniksewersa"},
+            {id = 301, name = function() return getZoneDisplayName(301) end, shortname = "bloodfields"},
+            {id = 336, name = function() return getZoneDisplayName(336) end, shortname = "dranik"},
+            {id = 300, name = function() return getZoneDisplayName(300) end, shortname = "wallofslaughter"},
+        },
+        ["Gates of Discord"] = {
+            {id = 283, name = function() return getZoneDisplayName(283) end, shortname = "barindu"},
+            {id = 284, name = function() return getZoneDisplayName(284) end, shortname = "ferubi"},
+            {id = 293, name = function() return getZoneDisplayName(293) end, shortname = "kodtaz"},
+            {id = 280, name = function() return getZoneDisplayName(280) end, shortname = "natimbi"},
+            {id = 281, name = function() return getZoneDisplayName(281) end, shortname = "qinimi"},
+            {id = 295, name = function() return getZoneDisplayName(295) end, shortname = "qvic"},
+            {id = 282, name = function() return getZoneDisplayName(282) end, shortname = "riwwi"},
+            {id = 286, name = function() return getZoneDisplayName(286) end, shortname = "snlair"}, -- TODO: Find achievement ID. These are 4 instances
+            {id = 290, name = function() return getZoneDisplayName(290) end, shortname = "vxed"},
+            {id = 291, name = function() return getZoneDisplayName(291) end, shortname = "yxtta"}, -- TODO: Find achievement ID. Not picking up in game
+        },
         ["Debug"] = {
             {id = 751, name = function() return getZoneDisplayName(751) end, shortname = "guildhall3_int"},
             {id = 202, name = function() return getZoneDisplayName(202) end, shortname = "poknowledge"},
-            {id = 752, name = function() return getZoneDisplayName(752) end, shortname = "chambersb"},
+            {id = 752, name = function() return getZoneDisplayName(752) end, shortname = "shardslanding"},
         }
     }
 
     -- Expansion display order
-    local combo_items = { "Shattering of Ro","The Outer Brood", "Laurion's Song", "Night of Shadows", "Terror of Luclin", "Claws of Veeshan", "Torment of Velious", "The Burning Lands", "Ring of Scale", "Empires of Kunark", "The Broken Mirror", "The Darkened Sea", "Call of the Forsaken", "Rain of Fear", "Veil of Alaris",
-        "House of Thule", "Underfoot", "Seeds of Destruction", "Secrets of Faydwer", "The Buried Sea", "The Serpent's Spine", "Debug" }
+    local combo_items = { "Shattering of Ro","The Outer Brood", "Laurion's Song", "Night of Shadows", "Terror of Luclin", "Claws of Veeshan", 
+    "Torment of Velious", "The Burning Lands", "Ring of Scale", "Empires of Kunark", "The Broken Mirror", "The Darkened Sea", "Call of the Forsaken", "Rain of Fear", "Veil of Alaris",
+    "House of Thule", "Underfoot", "Seeds of Destruction", "Secrets of Faydwer", "The Buried Sea", "The Serpent's Spine", "Prophecy of Ro", "Depths of Darkhollow",
+    "Dragons of Norrath", "Omens of War", "Gates of Discord","Debug" }
 
     return {
         zoneMap = zoneMap,

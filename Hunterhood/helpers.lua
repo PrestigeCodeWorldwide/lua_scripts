@@ -1,4 +1,4 @@
--- v1.116
+-- v1.117
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -81,11 +81,11 @@ local function new(myAch)
                 mq.delay(100)
             end
             
-            -- Create new circle at reference point with gold color
+            -- Create new circle at reference point with red color
             -- Minimize the X by setting smallest size/width and black color to blend with background
-            local goldR, goldG, goldB = 248, 189, 33 -- Gold color matching theme
+            local redR, redG, redB = 220, 20, 60 -- Crimson red
             mq.cmdf('/squelch /maploc %d %d %d size 10 width 1 color 0 0 0 radius %d rcolor %d %d %d label "Range: %d" hunter_ref',
-                    referenceY, referenceX, referenceZ, pullRadius, goldR, goldG, goldB, pullRadius)
+                    referenceY, referenceX, referenceZ, pullRadius, redR, redG, redB, pullRadius)
             --printf("\ayShowing reference circle at (%.1f, %.1f, %.1f) with radius %d", referenceX, referenceY, referenceZ, pullRadius)
         end
     end
@@ -95,7 +95,35 @@ local function new(myAch)
         mq.cmd('/squelch /maploc remove hunter_ref')
         -- Fallback: remove all maploc markers (more aggressive)
         mq.cmd('/squelch /maploc remove')
-        printf("\arHiding reference circle")
+    end
+
+    ------- Sound System
+    local ffi = require("ffi")
+
+    -- C code definitions for Windows sound API
+    ffi.cdef [[
+    int sndPlaySoundA(const char *pszSound, unsigned int fdwSound);
+    uint32_t waveOutSetVolume(void* hwo, uint32_t dwVolume);
+    uint32_t waveOutGetVolume(void* hwo, uint32_t* pdwVolume);
+    ]]
+
+    local winmm = ffi.load("winmm")
+
+    local SND_ASYNC = 0x0001
+    local SND_LOOP = 0x0008
+    local SND_FILENAME = 0x00020000
+    local flags = SND_FILENAME + SND_ASYNC
+
+    -- Function to play sound using Windows API
+    function helpers.playSound(name)
+        -- Try full path from MacroQuest directory
+        local filename = mq.TLO.MacroQuest.Path() .. "\\lua\\hunterhood\\" .. name
+        local result = winmm.sndPlaySoundA(filename, flags)
+        if result == 0 then
+            -- Try fallback path
+            local fallback = "lua\\hunterhood\\" .. name
+            result = winmm.sndPlaySoundA(fallback, flags)
+        end
     end
 
     -- Find spawn by name with case-insensitive matching
@@ -225,16 +253,16 @@ end
     function helpers.getCurrentZoneAchID(zoneMap)
         local zoneID = mq.TLO.Zone.ID()
         local zoneName = mq.TLO.Zone.Name() or ""
-        printf('Debug: Current zone ID: %d, Zone name: %s', zoneID, zoneName)
+        --printf('Debug: Current zone ID: %d, Zone name: %s', zoneID, zoneName)
 
         -- First try direct zone ID mapping
         if zoneMap[zoneID] then
-            printf('Debug: Found achievement ID %d for zone %d', zoneMap[zoneID], zoneID)
+            --printf('Debug: Found achievement ID %d for zone %d', zoneMap[zoneID], zoneID)
             return zoneMap[zoneID]
         end
 
         -- If no direct mapping, try to find achievement by zone name
-        printf('Debug: No direct mapping for zone %d, trying name-based lookup', zoneID)
+        --printf('Debug: No direct mapping for zone %d, trying name-based lookup', zoneID)
 
         -- Try different achievement name patterns
         local patterns = {

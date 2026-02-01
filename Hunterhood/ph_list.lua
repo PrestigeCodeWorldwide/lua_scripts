@@ -1,4 +1,4 @@
--- v1.138
+-- v1.139
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -1845,7 +1845,7 @@ local ph_list = {
         ["Mad MX"] = { "a clockwork overseer" },
         ["Strawshanks"] = { "a blighted scarecrow" },
         ["Tangler Timbleton"] = { "dragonscale_hills_17" },
-        ["Ton o`Tin"] = { "dragonscale_hills_18" },
+        ["Ton o` Tin"] = { "dragonscale_hills_18" },
         ["Witchkin"] = { "a dragonscale viper" },
     },
 

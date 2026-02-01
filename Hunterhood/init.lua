@@ -16,7 +16,6 @@ local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helper
 local navCoroutine = nil
 local navActive = false
 local showOptionsWindow = false -- New options window state
-local lastInvisCheck = 0
 local pullRadius = 9999 -- State variable for pull radius (max range)
 local zHighValue = 9999 -- State variable for Z-High (max range)
 local zLowValue = -9999 -- State variable for Z-Low (max range)
@@ -25,8 +24,9 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.21 loaded')
-
+BL.info('HunterHood v2.211 loaded')
+-- Play startup sound
+helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
 mq.cmd('/maploc remove')
 
@@ -1247,9 +1247,7 @@ local function renderHoodTab()
                 referenceX = mq.TLO.Me.X() or 0
                 referenceY = mq.TLO.Me.Y() or 0
                 referenceZ = mq.TLO.Me.Z() or 0
-                printf("\ayCaptured reference position: X=%.1f, Y=%.1f, Z=%.1f", referenceX, referenceY, referenceZ)
                 -- Show reference circle when navigation starts
-                printf("\ayStarting navigation, creating initial circle")
                 helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
                 navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 printf("\ayStarted navigation to selected mobs")
