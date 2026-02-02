@@ -3,9 +3,9 @@ local mq = require("mq")
 --- @type ImGui
 require("ImGui")
 ---@type BL
-local BL = require('biggerlib')
+local BL = require("biggerlib")
 
-BL.info("Heros Forged Raid Script v1.41 Started")
+BL.info("Heros Forged Group Script v1.41 Started")
 mq.cmd("/plugin boxr load")
 
 local Paused = false
@@ -13,7 +13,7 @@ local Paused = false
 mq.bind("/zm pause on", function()
 	Paused = true
 	mq.cmd("/squelch /nav stop")
-	print("Mission  paused")
+	print("Mission paused")
 end)
 
 mq.bind("/zm pause off", function()
@@ -28,17 +28,10 @@ mq.bind("/zm pause", function()
 end)
 
 local IAmPetClass = false
+
 local function init()
-	--get my classs and cache it to see if i'm pet class
 	local myClass = mq.TLO.Me.Class.ShortName()
-	if
-		myClass == "NEC"
-		or myClass == "MAG"
-		or myClass == "BST"
-		or myClass == "SHD"
-		or myClass == "ENC"
-		or myClass == "SHM"
-	then
+	if myClass == "NEC" or myClass == "MAG" or myClass == "BST" or myClass == "SHD" or myClass == "ENC" or myClass == "SHM" then
 		IAmPetClass = true
 		mq.cmd("/clap")
 	else
@@ -54,23 +47,17 @@ local function init()
 	mq.delay(3500)
 end
 
--- grow clicky
---
-
 local function handleEggs()
 	if IAmPetClass then
-		-- see if egg is up
 		local egg = mq.TLO.Spawn("npc egg").ID()
-		if egg ~= nil and egg > 0 then
-			-- send pets on eggs
+		if egg and egg > 0 then
 			mq.cmd("/farts")
 			mq.delay(1000)
 			mq.cmd("/target npc egg")
 			mq.delay(1000)
 			mq.cmd("/pet attack")
 
-			-- wait for egg to die
-			while mq.TLO.Spawn("npc egg").ID() ~= nil and mq.TLO.Spawn("npc egg").ID() > 0 do
+			while mq.TLO.Spawn("npc egg").ID() and mq.TLO.Spawn("npc egg").ID() > 0 do
 				mq.cmd("/target npc egg")
 				mq.delay(1000)
 				mq.cmd("/pet attack")
@@ -81,26 +68,24 @@ local function handleEggs()
 	end
 end
 
--- This goes up by the NPC
 local safeSpotYXZ = "568 -1317 327"
 
 local function handleAoEEvent()
-	local debuffName = "Song of Calling"
-	--local debuffName = "Grim Aura" -- for testing with SK
-
+	local debuffName = "Song of Echoes"
 	if BL.IHaveBuff(debuffName) then
-		-- we have the debuff, run to safe spot
-		mq.cmd("/emote runs")
+		mq.cmd("/g I'm running for the debuff")
 		--BL.cmd.pauseAutomation()
 		BL.cmd.ChangeAutomationModeToManual()
 		mq.delay(500)
 		BL.cmd.StandIfFeigned()
+		BL.cmd.removeZerkerRootDisc()
 		mq.cmdf("/nav locyxz %s", safeSpotYXZ)
 
 		while BL.IHaveBuff(debuffName) do
 			mq.delay(1000)
 		end
-		mq.cmd("/emote returns")
+
+		mq.cmd("/g Debuff faded, running back to group")
 		--BL.cmd.resumeAutomation()
 		BL.cmd.ChangeAutomationModeToChase()
 		BL.cmd.StandIfFeigned()
@@ -112,17 +97,15 @@ local function mainLoop()
 		mq.delay(1000)
 		return
 	end
-	-- Check if a fading chest has spawned and end script
-    BL.checkChestSpawn("a_fading_chest")
-	-- We need to do 2 things - make pet classes send their pets on eggs during spider and run from aoe when called
+
 	handleEggs()
 	handleAoEEvent()
+
+	BL.checkChestSpawn("a_fading_chest")
 	mq.delay(50)
-	--doAoeEvent() -- this is the event bind
 end
 
 ------------------------------- Execution -------------------------------
-
 init()
 while true do
 	mainLoop()

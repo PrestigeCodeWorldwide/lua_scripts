@@ -3,7 +3,8 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("FreeTheGoranga Script v1.11 Started")
+BL.info("FreeTheGoranga Script v1.12 Started")
+mq.cmd("/plugin boxr load")
 
 local my_name = mq.TLO.Me.CleanName()
 local safe_location = "locxyz 133 835 -120"
@@ -13,8 +14,9 @@ local function SingleChains(line, target)
 
     BL.info("SingleChains triggered for: " .. target)
     mq.cmd("/rs I am running from chains1")
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+    --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
     --BL.cmd.pauseAutomation()
+    BL.cmd.ChangeAutomationModeToManual()
     mq.cmd("/afollow off")
     mq.cmd("/stick off")
     mq.delay(100)
@@ -26,7 +28,8 @@ local function SingleChains(line, target)
     mq.delay(36000)
 
     --BL.cmd.resumeAutomation()
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+    --mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+    BL.cmd.ChangeAutomationModeToChase()
     BL.cmd.StandIfFeigned()
     BL.info("Resumed automation after chains1")
 end
@@ -36,8 +39,9 @@ local function DoubleChains(line, target1, target2)
 
     BL.info("DoubleChains triggered for: " .. target1 .. " and " .. target2)
     mq.cmd("/rs I am running from chains2")
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+    --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
     --BL.cmd.pauseAutomation()
+    BL.cmd.ChangeAutomationModeToManual()
     mq.cmd("/afollow off")
     mq.cmd("/stick off")
     mq.delay(100)
@@ -49,7 +53,8 @@ local function DoubleChains(line, target1, target2)
     mq.delay(36000)
 
     --BL.cmd.resumeAutomation()
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+    --mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+    BL.cmd.ChangeAutomationModeToChase()
     BL.cmd.StandIfFeigned()
     BL.info("Resumed automation after chains2")
 end

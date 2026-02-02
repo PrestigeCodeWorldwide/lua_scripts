@@ -3,7 +3,8 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("HHbearer v1.06 Started")
+BL.info("HHbearer v1.07 Started")
+mq.cmd("/plugin boxr load")
 
 local myname = mq.TLO.Me.CleanName()
 local myclassname = mq.TLO.Me.Class.ShortName()
