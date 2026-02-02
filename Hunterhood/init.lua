@@ -24,9 +24,9 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.211 loaded')
+BL.info('HunterHood v2.212 loaded')
 -- Play startup sound
-helpers.playSound("hood.wav")
+--helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
 mq.cmd('/maploc remove')
 
@@ -992,8 +992,10 @@ local function RenderOptionsWindow()
             local oldZHigh = zHighValue
             zHighValue = ImGui.InputInt("##zhigh", zHighValue)
             if zHighValue ~= oldZHigh then
-                -- TODO: Add command for Z-High when needed
-                -- For now, just update the value
+                -- Ensure zHighValue never goes lower than 1 and always stays positive
+                if zHighValue < 1 then
+                    zHighValue = 1
+                end
             end
             
             ImGui.SameLine()
@@ -1016,8 +1018,10 @@ local function RenderOptionsWindow()
             local oldZLow = zLowValue
             zLowValue = ImGui.InputInt("##zlow", zLowValue)
             if zLowValue ~= oldZLow then
-                -- TODO: Add command for Z-Low when needed
-                -- For now, just update the value
+                -- Ensure zLowValue never goes higher than -1 and always stays negative
+                if zLowValue > -1 then
+                    zLowValue = -1
+                end
             end
             
             ImGui.SameLine()
