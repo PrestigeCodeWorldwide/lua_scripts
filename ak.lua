@@ -1,7 +1,7 @@
 local mq = require('mq')
 local BL = require("biggerlib")
 
-BL.info("AK Script v1.31 Started")
+BL.info("AK Script v1.32 Started")
 --[[
 Navulta first
 Everyone move themselves back and out of knife aoe 
@@ -46,7 +46,7 @@ mq.event("ElementalRunAway", "#*#Brigadier Swarn pulls elemental forces to gathe
     end)
 
 local function runToSafety()
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+    BL.cmd.ChangeAutomationModeToManual()
     --mq.cmd("/gu Running in THREE SECONDS, taunt off me!")
     mq.cmdf("/target %s", mq.TLO.Me.CleanName())
     BL.cmd.removeZerkerRootDisc()
@@ -59,7 +59,7 @@ end
 local function checkSafeToReturn()
     if not BL.IHaveBuff(ElemDebuff) then
         --mq.cmd("/gu Elem AOE fired on me, returning")
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+        BL.cmd.ChangeAutomationModeToChase()
         BL.cmd.StandIfFeigned()
         currentState = State.IDLE
     end
