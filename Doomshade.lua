@@ -2,7 +2,8 @@ local mq = require('mq')
 local os = require('os')
 local BL = require('biggerlib')
 
-BL.info("Doomshade script v1.06 loaded.")
+BL.info("Doomshade script v1.07 loaded.")
+mq.cmd("/plugin boxr load")
 
 local viralLocs = {
     { -99, -310, -49 },  -- Viral 4 on map

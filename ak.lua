@@ -1,7 +1,7 @@
 local mq = require('mq')
 local BL = require("biggerlib")
 
-BL.info("AK Script v1.32 Started")
+BL.info("AK Script v1.33 Started")
 --[[
 Navulta first
 Everyone move themselves back and out of knife aoe 
@@ -17,7 +17,7 @@ zerkers turn off their aoe discs
 -- Commander
 
 --]]
-
+mq.cmd("/plugin boxr load")
 BL.cmd.TurnOffAllAoE()
 
 --Debuff: Elemental Convergence

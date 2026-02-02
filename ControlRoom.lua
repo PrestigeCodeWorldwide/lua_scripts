@@ -8,6 +8,7 @@ BL.info("Type /crstop to stop the script and connect Dannet/BCS")
 
 mq.cmd("/bccmd quit")
 mq.cmd("/plugin dannet unload")
+mq.cmd("/plugin boxr load")
 
 --Strategy Info
 mq.cmd("/rs Callouts at: 70%, 63%, 56%, 49%, 35%, 28%, 21%, 7%")

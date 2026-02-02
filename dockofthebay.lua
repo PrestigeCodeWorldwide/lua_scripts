@@ -3,7 +3,8 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("DockOfTheBay Script v1.1 Started")
+BL.info("DockOfTheBay Script v1.11 Started")
+mq.cmd("/plugin boxr load")
 
 local MitesDebuff = "Clinging Mites"
 local MiteNPCName = "crushing ball"
@@ -32,7 +33,8 @@ local function EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, name
     
     if waypointCommand ~= nil then 
         --BL.cmd.pauseAutomation()
-	mq.cmd("/docommand /${Me.Class.ShortName} mode 0") 
+	    --mq.cmd("/docommand /${Me.Class.ShortName} mode 0") 
+        BL.cmd.ChangeAutomationModeToManual()
         mq.delay(750)
         BL.cmd.StandIfFeigned()
         BL.cmd.removeZerkerRootDisc()
@@ -45,7 +47,8 @@ local function EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, name
         -- finished, resume
         --BL.cmd.resumeAutomation()
         BL.cmd.StandIfFeigned()
-	mq.cmd("/docommand /${Me.Class.ShortName} mode 2") 
+	    --mq.cmd("/docommand /${Me.Class.ShortName} mode 2") 
+        BL.cmd.ChangeAutomationModeToChase()
         mq.cmd("/rs Done running from mechanic emote")
     end
 end

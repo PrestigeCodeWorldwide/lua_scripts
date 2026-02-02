@@ -6,11 +6,12 @@ local BL = require("biggerlib")
 local args = {...}
 local ANNOUNCE_CHAR = args[1] and args[1]:lower()  -- Convert to lowercase for case-insensitive comparison
 
-BL.info("BroodRaid Script v1.24 Started" .. (ANNOUNCE_CHAR and (" - Announcements from: " .. ANNOUNCE_CHAR) or " - No announcement character specified"))
+BL.info("BroodRaid Script v1.25 Started" .. (ANNOUNCE_CHAR and (" - Announcements from: " .. ANNOUNCE_CHAR) or " - No announcement character specified"))
 BL.info("Current character: " .. mq.TLO.Me.Name())
 if ANNOUNCE_CHAR then
     BL.info("Will announce from: " .. ANNOUNCE_CHAR)
 end
+mq.cmd("/plugin boxr load")
 BL.cmd.TurnOffAllAoE()
 
 --Debuff name= Power of the Skyguardian

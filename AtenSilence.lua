@@ -3,9 +3,10 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("AtenSilence v1.1 Started")
+BL.info("AtenSilence v1.11 Started")
 BL.info("Should work for group or raid version")
 
+mq.cmd("/plugin boxr load")
 local myname = mq.TLO.Me.CleanName()
 local myclass = mq.TLO.Me.Class.ShortName()
 local runawayemote = "#*#Aten Ha Ra points at " .. myname .. " with one arm#*#"
