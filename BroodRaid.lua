@@ -6,7 +6,7 @@ local BL = require("biggerlib")
 local args = {...}
 local ANNOUNCE_CHAR = args[1] and args[1]:lower()  -- Convert to lowercase for case-insensitive comparison
 
-BL.info("BroodRaid Script v1.23 Started" .. (ANNOUNCE_CHAR and (" - Announcements from: " .. ANNOUNCE_CHAR) or " - No announcement character specified"))
+BL.info("BroodRaid Script v1.24 Started" .. (ANNOUNCE_CHAR and (" - Announcements from: " .. ANNOUNCE_CHAR) or " - No announcement character specified"))
 BL.info("Current character: " .. mq.TLO.Me.Name())
 if ANNOUNCE_CHAR then
     BL.info("Will announce from: " .. ANNOUNCE_CHAR)
@@ -55,7 +55,8 @@ while true do
         BL.info('I have the AOE debuff, running to safe spot')
 
         --BL.cmd PauseAutomation()
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+        --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+        BL.cmd.ChangeAutomationModeToManual()
         mq.delay(100)
         BL.cmd.StandIfFeigned()
         BL.cmd.removeZerkerRootDisc()
@@ -68,8 +69,9 @@ while true do
     if not BL.IHaveBuff(debuffName) and iAmWaiting then
         iAmWaiting = false
         BL.info("Returning to the fight")
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+        --mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
         --BL.cmd.resumeAutomation()
+        BL.cmd.ChangeAutomationModeToChase()
         BL.cmd.StandIfFeigned()
     end
     BL.checkChestSpawn("a_grimy_chest")
