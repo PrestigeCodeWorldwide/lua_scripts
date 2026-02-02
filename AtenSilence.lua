@@ -3,12 +3,13 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("AtenSilence v1.0 Started")
+BL.info("AtenSilence v1.1 Started")
 BL.info("Should work for group or raid version")
 
 local myname = mq.TLO.Me.CleanName()
 local myclass = mq.TLO.Me.Class.ShortName()
 local runawayemote = "#*#Aten Ha Ra points at " .. myname .. " with one arm#*#"
+local generalatenemote = "#*#Aten Ha Ra points at #1# with one arm#*#"
 local SAFE_LOC = {x = 1222.67, y = -48.97, z = 236.41}
 local isRunningAway = false
 
@@ -30,8 +31,7 @@ local function handleRunAway()
     end
     
     -- Set to manual mode
-    mq.cmdf('/%s mode 0', myclass)
-    mq.cmd('/mqp on')
+    BL.cmd.ChangeAutomationModeToManual()
     if wasTwisting then mq.cmd('/twist off') end
     mq.cmd('/timed 5 /afollow off')
     mq.cmd('/nav stop')
@@ -53,7 +53,7 @@ local function handleRunAway()
     
     -- Return to normal operations
     BL.info("Returning to normal operations...")
-    mq.cmdf('/%s mode 2', myclass)
+    BL.cmd.ChangeAutomationModeToChase()
     if not wasMQP then mq.cmd('/mqp off') end
     if wasTwisting then mq.cmd('/twist on') end
     
@@ -73,14 +73,19 @@ local function event_handler(line)
     local target = line:match("Aten Ha Ra points at (.-) with one arm")
     if not target then return end
     
-    -- Check if we or the MA were targeted
-    if target == my_name or (not i_am_ma and (target == raid_ma or target == group_ma)) then
+    -- Check if we should run away
+    -- Run away if: we are targeted (but we're not MA) OR MA is targeted (but we're not MA)
+    if target == my_name and not i_am_ma then
+        -- We are targeted but we're not MA
+        handleRunAway()
+    elseif (target == raid_ma or target == group_ma) and not i_am_ma then
+        -- MA is targeted but we're not the MA
         handleRunAway()
     end
 end
 
 -- Register the event
-mq.event("AtenSilenceRun", runawayemote, event_handler)
+mq.event("AtenSilenceRun", generalatenemote, event_handler)
 
 -- Main loop
 while true do
