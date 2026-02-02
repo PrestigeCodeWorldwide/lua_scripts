@@ -4,6 +4,7 @@ local mq = require('mq')
 local BL = require("biggerlib")
 
 BL.info("TFRaid Script v1.1 Started")
+mq.cmd("/plugin boxr load")
 
 --Debuff name= Seed of Hate
 local debuffName = "Seed of Hate"
@@ -18,7 +19,8 @@ while true do
         BL.info('I have the AOE debuff, running to safe spot')
 
         --BL.cmd.pauseAutomation()
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+        --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+        BL.cmd.ChangeAutomationModeToManual()
         mq.delay(100)
         BL.cmd.StandIfFeigned()
         BL.cmd.removeZerkerRootDisc()
@@ -33,7 +35,8 @@ while true do
         iAmWaiting = false
         BL.info("Returning to the fight")
         --BL.cmd.resumeAutomation()
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+        --mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+        BL.cmd.ChangeAutomationModeToChase()
         BL.cmd.StandIfFeigned()
     end
 

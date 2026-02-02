@@ -3,8 +3,9 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToECannons Script v1.1 Started")
+BL.info("ToECannons Script v1.11 Started")
 BL.info("Type /tcstop to stop the script and connect Dannet/BCS")
+mq.cmd("/plugin boxr load")
 
 local shouldExit = false
 local function StopCannons()
@@ -27,7 +28,8 @@ end
 
 mq.cmd("/bccmd quit")
 mq.cmd("/plugin dannet unload")
-mq.cmdf("/docommand /%s mode 0", mq.TLO.Me.Class.ShortName())
+--mq.cmdf("/docommand /%s mode 0", mq.TLO.Me.Class.ShortName())
+BL.cmd.ChangeAutomationModeToManual()
 mq.cmdf("/grouproles set %s 1", mq.TLO.Me.CleanName())
 mq.cmdf("/grouproles set %s 2", mq.TLO.Me.CleanName())
 --mq.cmd("/rs Three pattern - 90, 80, 70 percent")

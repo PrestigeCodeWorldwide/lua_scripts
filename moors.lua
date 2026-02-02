@@ -3,7 +3,8 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Moors Script v1.1 Started")
+BL.info("Moors Script v1.11 Started")
+mq.cmd("/plugin boxr load")
 
 local debuffName = "Freezing Grasp"
 local locX = 480
@@ -17,7 +18,8 @@ while true do
         BL.info('I have the AOE debuff, running to safe spot')
 
         --BL.cmd.pauseAutomation()
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+        --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+        BL.cmd.ChangeAutomationModeToManual()
         BL.cmd.StandIfFeigned()
         BL.cmd.removeZerkerRootDisc()
         mq.delay(100)
@@ -32,7 +34,8 @@ while true do
         iAmWaiting = false
         BL.info("Returning to the fight")
         --BL.cmd.resumeAutomation()
-        mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+        --mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+        BL.cmd.ChangeAutomationModeToChase()
         BL.cmd.StandIfFeigned()
     end
 

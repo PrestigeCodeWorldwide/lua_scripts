@@ -3,7 +3,8 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToERitual Script v1.23Started")
+BL.info("ToERitual Script v1.25 Started")
+mq.cmd("/plugin boxr load")
 
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} mode 2")
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} chasedistance 10 nosave")
@@ -74,7 +75,8 @@ local function BeginRitual(line)
     circleQueue = {}
     lastCircleSequence = {}
     BL.info("Ritual Started, moving to center.")
-    mq.cmdf("/docommand /%s mode 0", mq.TLO.Me.Class.ShortName())
+    --mq.cmdf("/docommand /%s mode 0", mq.TLO.Me.Class.ShortName())
+    BL.cmd.ChangeAutomationModeToManual()
     mq.cmd("/target")
     BL.cmd.removeZerkerRootDisc()
     BL.cmd.StandIfFeigned()
@@ -97,7 +99,8 @@ local function RitualSuccess(line)
     movingToCircle = false
     circleQueue = {}
     lastCircleSequence = {}
-    mq.cmdf("/docommand /%s mode 2", mq.TLO.Me.Class.ShortName())
+    --mq.cmdf("/docommand /%s mode 2", mq.TLO.Me.Class.ShortName())
+    BL.cmd.ChangeAutomationModeToChase()
 end
 
 -- Ritual Failure → retry same sequence

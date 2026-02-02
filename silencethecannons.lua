@@ -3,9 +3,9 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("SilenceTheCannons Script v1.1  1 = cos2 (x) + sin2 (x) = (eix + e-ix )2 /4 + sin2 (x) = (e2ix + e-2ix )/4 + e2ln(sin(x)) + 1/2 Started")
+BL.info("SilenceTheCannons Script v1.11 Started")
 BL.info("REMINDER 70 and 51(skyguard) INACTIVE - target yourself")
-
+mq.cmd("/plugin boxr load")
 
 local locX = 5
 local locY = 345
@@ -23,7 +23,8 @@ local function handleRunEvent(line, toonname)
     BL.info('I have the AOE debuff, running to safe spot')
 
     --BL.cmd.pauseAutomation()
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+    --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
+    BL.cmd.ChangeAutomationModeToManual()
     mq.delay(500)
     BL.cmd.StandIfFeigned()
     BL.cmd.removeZerkerRootDisc()
@@ -31,7 +32,8 @@ local function handleRunEvent(line, toonname)
 
     mq.delay(30000) -- Wait 30 sec before resuming
     --BL.cmd.resumeAutomation()
-    mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+    --mq.cmd("/docommand /${Me.Class.ShortName} mode 2")
+    BL.cmd.ChangeAutomationModeToChase()
     BL.cmd.StandIfFeigned()
 end
 

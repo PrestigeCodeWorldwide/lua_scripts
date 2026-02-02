@@ -3,7 +3,8 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("VelksRaid Script v1.0 Started")
+BL.info("VelksRaid Script v1.1 Started")
+mq.cmd("/plugin boxr load")
 
 --Debuff name= Acidic Ice Pool
 local debuffName = "Acidic Ice Pool"
@@ -17,7 +18,8 @@ while true do
         iAmWaiting = true
         BL.info('I have the AOE debuff, running to safe spot')
 
-        BL.cmd.pauseAutomation()
+        --BL.cmd.pauseAutomation()
+        BL.cmd.ChangeAutomationModeToManual()
         BL.cmd.StandIfFeigned()
         BL.cmd.removeZerkerRootDisc()
         mq.delay(100)
@@ -31,7 +33,8 @@ while true do
     if not BL.IHaveBuff(debuffName) and iAmWaiting then
         iAmWaiting = false
         BL.info("Returning to the fight")
-        BL.cmd.resumeAutomation()
+        --BL.cmd.resumeAutomation()
+        BL.cmd.ChangeAutomationModeToChase()
         BL.cmd.StandIfFeigned()
     end
 
