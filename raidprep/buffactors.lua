@@ -1,4 +1,4 @@
---v1.06
+--v1.07
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -22,7 +22,7 @@ local myBuffs = {
         { name = "Courage",                       type = "single" }
     },
     SHM = {
-        { name = "Talisman of Unity X",    type = "group" },
+        { name = "Talisman of Unity X",    type = "group", checkName = "Spirit's Focusing XIV" },
         { name = "Talisman of the Heroic", type = "group" },
         { name = "Talisman of the Raptor", type = "single" },
         { name = "Talisman of the Brute",  type = "single" },
