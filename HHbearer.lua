@@ -3,12 +3,13 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("HHbearer v1.04 Started")
+BL.info("HHbearer v1.06 Started")
 
 local myname = mq.TLO.Me.CleanName()
 local myclassname = mq.TLO.Me.Class.ShortName()
 local bearerEmote = "#*#A bearer focuses on " .. myname .. "#*#"
 local bearerSpawned = false
+local manualModeActive = false
 local SAFE_DISTANCE = 100  -- Distance at which to trigger movement
 local MOVE_DISTANCE = 100  -- How far to move when too close
 
@@ -75,8 +76,11 @@ while true do
         local isSpawned, distance, bearer = getBearerInfo()
         
         if isSpawned then
+            if not manualModeActive then
                 BL.info("Bearer detected - going to manual mode...")
-                mq.cmdf("/%s mode 0", myclassname)
+                BL.cmd.ChangeAutomationModeToManual()
+                manualModeActive = true
+            end
             
             -- Check distance and move if too close
             if distance < SAFE_DISTANCE then
@@ -87,8 +91,12 @@ while true do
             mq.delay(1000)
         else
             -- Bearer is gone, return to chase mode
+            if manualModeActive then
                 BL.info("Bearer no longer present - returning to chase mode...")
-                mq.cmdf("/%s mode 2", myclassname)
+                BL.cmd.ChangeAutomationModeToChase()
+                mq.cmd("/rgl chaseoon")
+                manualModeActive = false
+            end
             bearerSpawned = false
         end
     end
