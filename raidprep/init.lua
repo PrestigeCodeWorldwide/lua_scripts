@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.81 Started")
+BL.info("RaidPrep v1.82 Started")
 
 local openGUI = true
 --local selectedScripts = {}
@@ -1039,7 +1039,14 @@ local function drawGUI()
         openGUI = false
         imgui.End()
         imgui.PopStyleVar() -- Pop the frame rounding style var
-        imgui.PopStyleColor(stylePushCount)
+        -- Safe pop - try to pop up to the tracked count, but don't error if we run out
+        for i = 1, stylePushCount do
+            local success, err = pcall(imgui.PopStyleColor)
+            if not success then
+                -- We've run out of styles to pop, break out of loop
+                break
+            end
+        end
         return
     end
 
@@ -1114,7 +1121,14 @@ local function drawGUI()
 
     -- Clean up styles
     imgui.PopStyleVar() -- Pop the frame rounding style var
-    imgui.PopStyleColor(stylePushCount)
+    -- Safe pop - try to pop up to the tracked count, but don't error if we run out
+    for i = 1, stylePushCount do
+        local success, err = pcall(imgui.PopStyleColor)
+        if not success then
+            -- We've run out of styles to pop, break out of loop
+            break
+        end
+    end
 
     -- Check if window was closed
     if not windowOpen then
@@ -1138,6 +1152,11 @@ while true do
     -- Monitor buffs and auto-request when they drop every 100ms
     if buffUI.monitorBuffs then
         buffUI.monitorBuffs()
+    end
+
+    -- Check spell loading completion every 100ms
+    if buffUI.checkSpellLoading then
+        buffUI.checkSpellLoading()
     end
 
     -- Process buff UI cleanups every 100ms

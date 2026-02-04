@@ -1,4 +1,4 @@
---v1.07
+--v1.09
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -8,31 +8,32 @@ local imgui = require("ImGui")
 --- @type Actors
 local ActorsLib = require("actors")
 
+-- Fixed order of classes
+local classOrder = {"CLR", "DRU", "ENC", "SHM"}
+
 local myBuffs = {
     CLR = {
         {name = "Unified Hand of Aegolism XV",    type = "group", checkName = "Aegolism XV"},
         {name = "Unified Hand of Sharosh",        type = "group", checkName = "Symbol of Sharosh"},
         {name = "Shining Rampart IX",             type = "single"},
-        { name = "Unified Hand of Helmsbane",     type = "group" },
-        { name = "Unified Hand of Infallibility", type = "group" },
+        { name = "Divine Interstition",           type = "single" },
+        { name = "Unified Hand of Helmsbane",     type = "group", checkName = "Symbol of Helmsbane" },
+        { name = "Unified Hand of Infallibility", type = "group", checkName = "Commitment" },
         { name = "Shining Steel",                 type = "single" },
-        { name = "Divine Interference",           type = "single" },
-        { name = "Aegolism",                      type = "group" },
-        { name = "Symbol of Naltron",             type = "single" },
         { name = "Courage",                       type = "single" }
     },
     SHM = {
         { name = "Talisman of Unity X",    type = "group", checkName = "Spirit's Focusing XIV" },
-        { name = "Talisman of the Heroic", type = "group" },
-        { name = "Talisman of the Raptor", type = "single" },
-        { name = "Talisman of the Brute",  type = "single" },
-        { name = "Talisman of the Cat",    type = "single" }
+        { name = "Talisman of the Heroic", type = "group", checkName = "Heroic Focusing" },
     },
     ENC = {
         { name = "Hastening of Elluria", type = "group" },
         { name = "Voice of Clairvoyance XVIII", type = "group" },
-        { name = "Speed of the Shissar", type = "group" },
-        { name = "Tashanian",            type = "single" }
+
+    },
+    DRU = {
+        { name = "Grovewood Blessing", type = "group" },
+
     }
     -- Add other classes as needed
 }
@@ -42,7 +43,7 @@ local lastBuffRequest = {} -- Track last request time per buff
 local REQUEST_COOLDOWN = 2 -- 2 seconds cooldown between same buff requests
 local pendingCleanups = {} -- Track pending request cleanups
 local pendingCasts = {}    -- Queue for pending casts
-local selectedClass = nil
+local selectedClass = "CLR" -- Default to Cleric
 local selectedBuffChar = nil
 local matchingChars = {}  -- class → list of characters
 local availableBuffs = {} -- charName → list of buff names
@@ -50,11 +51,135 @@ local activeRequests = {}
 local requestId = 0
 local ACTOR_NAME = "buffactors"
 
+-- Spell loading variables
+local spellLoadAttempts = {} -- Track spell loading attempts per spell
+local spellLoadTimestamps = {} -- Track when attempts were made for timeout
+local MAX_LOAD_ATTEMPTS = 5 -- Maximum attempts to load a spell
+local LOAD_TIMEOUT = 30 -- timeout before resetting attempts (in seconds)
+
 -- Auto-request checkbox states for each buff
 local autoRequestBuffs = {}
 local lastBuffCheck = 0
 local BUFF_CHECK_INTERVAL = 5 -- Check buffs every 5 seconds
 local knownBuffs = {} -- Track which buffs we currently have
+
+-- Function to find an available gem slot
+local function findAvailableGem()
+    local maxGems = mq.TLO.Me.NumGems() or 13 -- Default to 13 if not available
+    for i = 1, maxGems do
+        local gemSpell = mq.TLO.Me.Gem(i).Name()
+        if not gemSpell or gemSpell == "" then
+            return i
+        end
+    end
+    -- If no empty slots found, return gem 14 (or max gems if less than 14)
+    return math.min(14, maxGems)
+end
+
+-- Function to check if a spell is loaded in the spell bar
+local function isSpellLoaded(spellName)
+    local maxGems = mq.TLO.Me.NumGems() or 13
+    for i = 1, maxGems do
+        local gemSpell = mq.TLO.Me.Gem(i).Name()
+        if gemSpell and gemSpell == spellName then
+            return true, i
+        end
+    end
+    return false, nil
+end
+
+-- Function to load a spell into an available gem (non-blocking version)
+local function loadSpellToAvailableGem(spellName)
+    -- Check if we already tried to load this spell too many times
+    local currentTime = os.time()
+    
+    -- Reset attempts if timeout has passed
+    if spellLoadTimestamps[spellName] and (currentTime - spellLoadTimestamps[spellName]) > LOAD_TIMEOUT then
+        BL.info(string.format("Resetting load attempts for %s after timeout", spellName))
+        spellLoadAttempts[spellName] = 0
+        spellLoadTimestamps[spellName] = nil
+    end
+    
+    spellLoadAttempts[spellName] = (spellLoadAttempts[spellName] or 0) + 1
+    spellLoadTimestamps[spellName] = currentTime
+    
+    if spellLoadAttempts[spellName] > MAX_LOAD_ATTEMPTS then
+        BL.warn(string.format("Already attempted to load %s %d times, giving up. Will retry in %d seconds", 
+            spellName, MAX_LOAD_ATTEMPTS, LOAD_TIMEOUT))
+        return false
+    end
+    
+    -- Find an available gem slot
+    local availableGem = findAvailableGem()
+    local maxGems = mq.TLO.Me.NumGems() or 13
+    
+    -- Check if we're overwriting gem 14 (or the last available gem)
+    local isOverwriting = (availableGem == math.min(14, maxGems))
+    local currentSpell = mq.TLO.Me.Gem(availableGem).Name()
+    
+    if isOverwriting and currentSpell and currentSpell ~= "" then
+        BL.warn(string.format("Overwriting gem %d: replacing '%s' with '%s'", availableGem, currentSpell, spellName))
+    else
+        BL.info(string.format("Loading %s into gem %d", spellName, availableGem))
+    end
+    
+    -- Check if spell exists in spellbook
+    local spellRank = mq.TLO.Spell(spellName).Rank()
+    if not spellRank or spellRank == "" then
+        BL.error(string.format("Spell %s not found in spellbook", spellName))
+        return false
+    end
+    
+    -- Load spell into the available gem
+    mq.cmdf('/memorize "%s" %d', spellName, availableGem)
+    
+    -- Return immediately - the actual verification will happen asynchronously
+    return true
+end
+
+-- Function to check if spell loading completed (called from main loop)
+local function checkSpellLoading()
+    for spellName, _ in pairs(spellLoadAttempts) do
+        if spellLoadAttempts[spellName] > 0 then
+            local isLoaded, gemNum = isSpellLoaded(spellName)
+            if isLoaded then
+                BL.info(string.format("Successfully loaded %s into gem %d", spellName, gemNum or 14))
+                spellLoadAttempts[spellName] = 0 -- Reset attempts on success
+                spellLoadTimestamps[spellName] = nil -- Reset timestamp on success
+            else
+                -- Check if we should retry (simple timeout check)
+                -- Note: In a more complex implementation, we'd track timestamps
+                local currentTime = os.time()
+                if spellLoadTimestamps[spellName] and (currentTime - spellLoadTimestamps[spellName]) > LOAD_TIMEOUT then
+                    BL.info(string.format("Timeout reached for %s, resetting attempts", spellName))
+                    spellLoadAttempts[spellName] = 0
+                    spellLoadTimestamps[spellName] = nil
+                end
+            end
+        end
+    end
+end
+
+-- Function to ensure spell is available for casting
+local function ensureSpellAvailable(spellName)
+    local isLoaded, gemNum = isSpellLoaded(spellName)
+    if isLoaded then
+        return true
+    end
+    
+    -- Check if this spell is currently being loaded
+    if spellLoadAttempts[spellName] and spellLoadAttempts[spellName] > 0 then
+        BL.info(string.format("Spell %s is currently being loaded, please wait", spellName))
+        return false -- Don't try to load again, just wait
+    end
+    
+    BL.warn(string.format("Spell %s not loaded in spell bar, attempting to load", spellName))
+    local loadResult = loadSpellToAvailableGem(spellName)
+    
+    -- For immediate requests, we can't wait for the async load to complete
+    -- So we return false and let the caller handle the retry
+    return loadResult
+end
 
 -- Function to queue a cast (called from actor callback)
 local function queueCast(targetName, spellName, requestId, requester)
@@ -92,6 +217,31 @@ local function processCasts()
     end
 
     BL.info(string.format("Processing cast of %s on %s", cast.spellName, cast.targetName))
+
+    -- Final check to ensure spell is available before casting
+    if not ensureSpellAvailable(cast.spellName) then
+        -- Check if spell is currently being loaded
+        if spellLoadAttempts[cast.spellName] and spellLoadAttempts[cast.spellName] > 0 then
+            BL.info(string.format("Spell %s is still loading, keeping request in queue", cast.spellName))
+            return -- Keep the cast in queue for retry
+        else
+            BL.error(string.format("Cannot cast %s - spell not available", cast.spellName))
+            
+            -- Send failure response
+            if actor and actor.send then
+                actor:send({
+                    id = "buffResponse",
+                    requestId = cast.requestId,
+                    buffName = cast.spellName,
+                    from = mq.TLO.Me.CleanName(),
+                    success = false
+                })
+            end
+            
+            table.remove(pendingCasts, 1)
+            return
+        end
+    end
 
     -- Pause CWTN
     mq.cmdf('/docommand /${Me.Class.ShortName} pause on')
@@ -205,6 +355,7 @@ local function handleMessage(message)
 
                     if not activeRequests[requestKey] then
                         print("Not already processing this request, proceeding...")
+                        
                         activeRequests[requestKey] = true
                         BL.info(string.format("Buff %s matches for %s (requestId: %s, key: %s)",
                             content.buffName, content.requester, content.requestId, requestKey))
@@ -297,14 +448,16 @@ end
 
 -- Buff UI Functions
 local function drawBuffsTab()
-    -- Draw class selection buttons with character counts
-    for class, _ in pairs(myBuffs) do
-        local charCount = #getCharsOfClass(class)
-        local buttonText = string.format("%s (%d)", class, charCount)
-        if imgui.Button(buttonText) then
-            selectedClass = class
+    -- Draw class selection buttons with character counts (in fixed order)
+    for _, class in ipairs(classOrder) do
+        if myBuffs[class] then -- Only show classes that have buffs defined
+            local charCount = #getCharsOfClass(class)
+            local buttonText = string.format("%s (%d)", class, charCount)
+            if imgui.Button(buttonText) then
+                selectedClass = class
+            end
+            imgui.SameLine()
         end
-        imgui.SameLine()
     end
     imgui.NewLine()
     imgui.Separator()
@@ -318,8 +471,32 @@ local function drawBuffsTab()
             imgui.TextColored(1, 0.5, 0, 1, "No " .. selectedClass .. " characters available")
         end
         imgui.Separator()
+        
         for _, buff in ipairs(myBuffs[selectedClass] or {}) do
             imgui.PushID(buff.name) -- Unique ID for each checkbox/button pair
+            
+            -- Check if spell is loaded and show status
+            local isLoaded, gemNum = isSpellLoaded(buff.name)
+            
+            -- Make the icon clickable with black background and no border (HunterHUD style)
+            imgui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)           -- Black background
+            imgui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 0, 0, 1)      -- Black background on hover
+            imgui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
+            imgui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
+            
+            if isLoaded then
+                imgui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)           -- Green for loaded
+                imgui.Button('\xef\x84\x91##ready_' .. buff.name, 20, 20)  -- FontAwesome f111 (circle)
+                imgui.PopStyleColor()
+            else
+                imgui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1)           -- Red for not loaded
+                imgui.Button('\xef\x84\x91##empty_' .. buff.name, 20, 20)  -- FontAwesome f111 (circle)
+                imgui.PopStyleColor()
+            end
+            
+            imgui.PopStyleVar(1)  -- Pop the border style
+            imgui.PopStyleColor(4) -- Pop the colors
+            imgui.SameLine()
             
             -- Auto-request checkbox on the left
             local varName = "auto_" .. buff.name:gsub("[^%w_]", "_")
@@ -334,6 +511,33 @@ local function drawBuffsTab()
             end
             
             imgui.SameLine()
+            
+            -- Manual load button if spell is not loaded (only show for buff classes)
+            if not isLoaded then
+                -- Check if current character is a buff class
+                local myClass = mq.TLO.Me.Class.Name()
+                -- Map full class names to 3-letter codes used in myBuffs
+                local classMapping = {
+                    ['Cleric'] = 'CLR',
+                    ['Shaman'] = 'SHM', 
+                    ['Enchanter'] = 'ENC',
+                    ['Druid'] = 'DRU'
+                }
+                local classCode = classMapping[myClass] or myClass
+                local isBuffClass = myBuffs[classCode] ~= nil
+                
+                if isBuffClass then
+                    if imgui.Button("MEM##" .. buff.name, 40, 0) then
+                        loadSpellToAvailableGem(buff.name)
+                    end
+                    if imgui.IsItemHovered() then
+                        imgui.BeginTooltip()
+                        imgui.Text(string.format("Mem %s into an available gem(Gem 14 if none free)", buff.name))
+                        imgui.EndTooltip()
+                    end
+                    imgui.SameLine()
+                end
+            end
             
             -- Buff request button
             if imgui.Button(buff.name) then
@@ -609,5 +813,6 @@ return {
     announceBuffs = announceBuffs,
     processCleanups = processCleanups,
     processCasts = processCasts,
-    monitorBuffs = monitorBuffs
+    monitorBuffs = monitorBuffs,
+    checkSpellLoading = checkSpellLoading
 }
