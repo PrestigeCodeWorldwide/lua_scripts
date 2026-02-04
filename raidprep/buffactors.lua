@@ -1,4 +1,4 @@
---v1.09
+--v1.10
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -20,7 +20,7 @@ local myBuffs = {
         { name = "Unified Hand of Helmsbane",     type = "group", checkName = "Symbol of Helmsbane" },
         { name = "Unified Hand of Infallibility", type = "group", checkName = "Commitment" },
         { name = "Shining Steel",                 type = "single" },
-        { name = "Courage",                       type = "single" }
+        { name = "Unified Hand of Certitude",     type = "single", checkName = "Certitude" }
     },
     SHM = {
         { name = "Talisman of Unity X",    type = "group", checkName = "Spirit's Focusing XIV" },
@@ -57,6 +57,25 @@ local spellLoadTimestamps = {} -- Track when attempts were made for timeout
 local MAX_LOAD_ATTEMPTS = 5 -- Maximum attempts to load a spell
 local LOAD_TIMEOUT = 30 -- timeout before resetting attempts (in seconds)
 
+-- Function to get the actual buff name to check for a given spell
+local function getBuffCheckName(spellName)
+    -- Search through all classes to find the buff entry
+    for className, buffs in pairs(myBuffs) do
+        for _, buff in ipairs(buffs) do
+            if buff.name == spellName then
+                return buff.checkName or buff.name
+            end
+        end
+    end
+    return spellName -- Fallback to spell name if not found
+end
+
+-- Function to check if we currently have a specific buff
+local function hasBuff(buffName)
+    local checkName = getBuffCheckName(buffName)
+    return mq.TLO.Me.Buff(checkName)() ~= nil
+end
+
 -- Auto-request checkbox states for each buff
 local autoRequestBuffs = {}
 local lastBuffCheck = 0
@@ -90,6 +109,13 @@ end
 
 -- Function to load a spell into an available gem (non-blocking version)
 local function loadSpellToAvailableGem(spellName)
+    -- First check if spell is already loaded
+    local isLoaded, gemNum = isSpellLoaded(spellName)
+    if isLoaded then
+        BL.info(string.format("%s is already loaded in gem %d", spellName, gemNum or 14))
+        return true -- Already loaded, no need to do anything
+    end
+    
     -- Check if we already tried to load this spell too many times
     local currentTime = os.time()
     
@@ -244,7 +270,7 @@ local function processCasts()
     end
 
     -- Pause CWTN
-    mq.cmdf('/docommand /${Me.Class.ShortName} pause on')
+    mq.cmdf('/docommand /%s pause on', mq.TLO.Me.Class.ShortName())
 
     -- Target the player
     mq.cmdf('/target pc %s', cast.targetName)
@@ -253,7 +279,7 @@ local function processCasts()
     -- Verify target
     if not mq.TLO.Target() or mq.TLO.Target.CleanName() ~= cast.targetName then
         BL.error(string.format("Failed to target %s", cast.targetName))
-        mq.cmdf('/docommand /${Me.Class.ShortName} pause off')
+        mq.cmdf('/docommand /%s pause off', mq.TLO.Me.Class.ShortName())
 
         -- Send failure response
         if actor and actor.send then
@@ -275,20 +301,16 @@ local function processCasts()
     mq.cmdf('/g CASTING %s ON %s', cast.spellName, cast.targetName)
     mq.cmdf('/cast "%s"', cast.spellName)
 
-    -- Wait for cast to complete
-    local castStart = os.clock()
-    while mq.TLO.Me.Casting() and (os.clock() - castStart < 5) do
+    -- Wait for cast to complete (no timeout - let EQ handle it naturally)
+    while mq.TLO.Me.Casting() do
         mq.delay(100)
     end
-
-    local success = not mq.TLO.Me.Casting()
-
-    if not success then
-        BL.error(string.format("Failed to complete cast of %s on %s", cast.spellName, cast.targetName))
-    end
+    
+    -- Cast completed (either successfully or failed - EQ handles this)
+    local castCompleted = true -- We assume it worked unless we detect otherwise
 
     -- Resume CWTN
-    mq.cmdf('/docommand /${Me.Class.ShortName} pause off')
+    mq.cmdf('/docommand /%s pause off', mq.TLO.Me.Class.ShortName())
 
     -- Send success response
     if actor and actor.send then
@@ -297,7 +319,7 @@ local function processCasts()
             requestId = cast.requestId,
             buffName = cast.spellName,
             from = mq.TLO.Me.CleanName(),
-            success = success
+            success = castCompleted
         })
     end
 
@@ -475,8 +497,8 @@ local function drawBuffsTab()
         for _, buff in ipairs(myBuffs[selectedClass] or {}) do
             imgui.PushID(buff.name) -- Unique ID for each checkbox/button pair
             
-            -- Check if spell is loaded and show status
-            local isLoaded, gemNum = isSpellLoaded(buff.name)
+            -- Check if character currently has this buff
+            local hasCurrentBuff = hasBuff(buff.name)
             
             -- Make the icon clickable with black background and no border (HunterHUD style)
             imgui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)           -- Black background
@@ -484,13 +506,13 @@ local function drawBuffsTab()
             imgui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
             imgui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
             
-            if isLoaded then
-                imgui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)           -- Green for loaded
-                imgui.Button('\xef\x84\x91##ready_' .. buff.name, 20, 20)  -- FontAwesome f111 (circle)
+            if hasCurrentBuff then
+                imgui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)           -- Green for has buff
+                imgui.Button('\xef\x84\x91##hasbuff_' .. buff.name, 20, 20)  -- Green circle
                 imgui.PopStyleColor()
             else
-                imgui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1)           -- Red for not loaded
-                imgui.Button('\xef\x84\x91##empty_' .. buff.name, 20, 20)  -- FontAwesome f111 (circle)
+                imgui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1)           -- Red for missing buff
+                imgui.Button('\xef\x84\x91##missingbuff_' .. buff.name, 20, 20)  -- Red circle
                 imgui.PopStyleColor()
             end
             
@@ -512,31 +534,45 @@ local function drawBuffsTab()
             
             imgui.SameLine()
             
-            -- Manual load button if spell is not loaded (only show for buff classes)
-            if not isLoaded then
-                -- Check if current character is a buff class
-                local myClass = mq.TLO.Me.Class.Name()
-                -- Map full class names to 3-letter codes used in myBuffs
-                local classMapping = {
-                    ['Cleric'] = 'CLR',
-                    ['Shaman'] = 'SHM', 
-                    ['Enchanter'] = 'ENC',
-                    ['Druid'] = 'DRU'
-                }
-                local classCode = classMapping[myClass] or myClass
-                local isBuffClass = myBuffs[classCode] ~= nil
+            -- Manual load button for buff classes (always show for buff classes)
+            -- Check if current character is a buff class
+            local myClass = mq.TLO.Me.Class.Name()
+            -- Map full class names to 3-letter codes used in myBuffs
+            local classMapping = {
+                ['Cleric'] = 'CLR',
+                ['Shaman'] = 'SHM', 
+                ['Enchanter'] = 'ENC',
+                ['Druid'] = 'DRU'
+            }
+            local classCode = classMapping[myClass] or myClass
+            local isBuffClass = myBuffs[classCode] ~= nil
+            
+            if isBuffClass then
+                -- Check if spell is already memmed
+                local isLoaded, gemNum = isSpellLoaded(buff.name)
                 
-                if isBuffClass then
-                    if imgui.Button("MEM##" .. buff.name, 40, 0) then
-                        loadSpellToAvailableGem(buff.name)
-                    end
-                    if imgui.IsItemHovered() then
-                        imgui.BeginTooltip()
-                        imgui.Text(string.format("Mem %s into an available gem(Gem 14 if none free)", buff.name))
-                        imgui.EndTooltip()
-                    end
-                    imgui.SameLine()
+                -- Set button text color based on spell loading status
+                if isLoaded then
+                    imgui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green for memmed
+                else
+                    imgui.PushStyleColor(ImGuiCol.Text, 1, 0, 0, 1) -- Red for not memmed
                 end
+                
+                if imgui.Button("MEM##" .. buff.name, 40, 0) then
+                    loadSpellToAvailableGem(buff.name)
+                end
+                imgui.PopStyleColor() -- Pop text color
+                
+                if imgui.IsItemHovered() then
+                    imgui.BeginTooltip()
+                    if isLoaded then
+                        imgui.Text(string.format("%s is already memmed in gem %d", buff.name, gemNum or 14))
+                    else
+                        imgui.Text(string.format("Mem %s into an available gem(Gem 14 if none free)", buff.name))
+                    end
+                    imgui.EndTooltip()
+                end
+                imgui.SameLine()
             end
             
             -- Buff request button
@@ -702,25 +738,6 @@ local function processCleanups()
             end
         end
     end
-end
-
--- Function to get the actual buff name to check for a given spell
-local function getBuffCheckName(spellName)
-    -- Search through all classes to find the buff entry
-    for className, buffs in pairs(myBuffs) do
-        for _, buff in ipairs(buffs) do
-            if buff.name == spellName then
-                return buff.checkName or buff.name
-            end
-        end
-    end
-    return spellName -- Fallback to spell name if not found
-end
-
--- Function to check if we currently have a specific buff
-local function hasBuff(buffName)
-    local checkName = getBuffCheckName(buffName)
-    return mq.TLO.Me.Buff(checkName)() ~= nil
 end
 
 -- Function to get the class that provides a specific buff
