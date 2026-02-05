@@ -1,4 +1,4 @@
---v1.10
+--v1.11
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -79,7 +79,7 @@ end
 -- Auto-request checkbox states for each buff
 local autoRequestBuffs = {}
 local lastBuffCheck = 0
-local BUFF_CHECK_INTERVAL = 5 -- Check buffs every 5 seconds
+local BUFF_CHECK_INTERVAL = 10 -- Check buffs every 10seconds
 local knownBuffs = {} -- Track which buffs we currently have
 
 -- Function to find an available gem slot
@@ -370,6 +370,22 @@ local function handleMessage(message)
 
                 if buff.name == content.buffName then
                     print(string.format("Found matching buff: %s", buff.name))
+                    
+                    -- Check if requester is within range (100 units)
+                    local requesterSpawn = mq.TLO.Spawn(content.requester)
+                    if not requesterSpawn then
+                        BL.info(string.format("Cannot find requester %s, skipping", content.requester))
+                        return
+                    end
+                    
+                    local distance = requesterSpawn.Distance() or 999
+                    if distance > 100 then
+                        BL.info(string.format("Requester %s is %d units away (max 100), skipping", content.requester, distance))
+                        return
+                    end
+                    
+                    BL.info(string.format("Requester %s is %d units away, accepting request", content.requester, distance))
+                    
                     local myName = mq.TLO.Me.CleanName()
                     local requestType = content.requestType or "manual"
                     local requestKey = string.format("%s:%s:%s", content.requestId, content.requester, requestType)

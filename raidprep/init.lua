@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.83 Started")
+BL.info("RaidPrep v1.831 Started")
 
 local openGUI = true
 --local selectedScripts = {}
