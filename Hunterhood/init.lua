@@ -24,7 +24,7 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.212 loaded')
+BL.info('HunterHood v2.213 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -1773,13 +1773,7 @@ local function renderHoodTab()
             ImGui.BeginGroup()
             ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1)
-            if ImGui.Button("PH1##" .. spawn.name, 40, 0) then
-                printf("Location button clicked for: %s", spawn.name)
-            end
-            ImGui.SameLine(0, 4)
-            if ImGui.Button("PH2##" .. spawn.name, 40, 0) then
-                printf("Info button clicked for: %s", spawn.name)
-            end
+            -- PH1/PH2 buttons removed - placeholder functionality
             ImGui.PopStyleColor(2)
             ImGui.EndGroup()
             ImGui.NextColumn()
