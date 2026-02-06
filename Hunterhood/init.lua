@@ -20,11 +20,12 @@ local pullRadius = 9999 -- State variable for pull radius (max range)
 local zHighValue = 9999 -- State variable for Z-High (max range)
 local zLowValue = -9999 -- State variable for Z-Low (max range)
 local distanceSettingsEnabled = true -- Always enabled
+local prioritizeNamedMobs = false -- Prioritize named mobs over placeholders when enabled
 local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.214 loaded')
+BL.info('HunterHood v2.215 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -103,6 +104,53 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     end
 
                     if #checkedMobs > 0 then
+                    if prioritizeNamedMobs then
+                        -- First pass: look for named mobs only
+                        local namedFound = false
+                        for _, mob in ipairs(checkedMobs) do
+                            local spawnID = helpers.findSpawn(mob.name, nameMap)
+                            if spawnID ~= nil and spawnID > 0 then
+                                local spawn = mq.TLO.Spawn(spawnID)
+                                if spawn() and not spawn.Dead() then
+                                    if helpers.hasValidPath(spawn) then
+                                        local distance = helpers.distanceFromReference(spawn.ID(), referenceX, referenceY)
+                                        local zInRange, zDiff = helpers.checkZDistance(spawn.ID(), zHighValue, zLowValue, referenceZ)
+                                        if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
+                                            closestDistance = distance
+                                            closestSpawn = spawn
+                                            namedFound = true
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        
+                        -- Only check placeholders if no named mobs were found
+                        if not namedFound then
+                            for _, mob in ipairs(checkedMobs) do
+                                local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
+                                if placeholders and type(placeholders) == "table" then
+                                    for _, phName in ipairs(placeholders) do
+                                        local phID = helpers.findSpawn(phName, nameMap)
+                                        if phID ~= nil and phID > 0 then
+                                            local phSpawn = mq.TLO.Spawn(phID)
+                                            if phSpawn() and not phSpawn.Dead() then
+                                                if helpers.hasValidPath(phSpawn) then
+                                                    local distance = helpers.distanceFromReference(phSpawn.ID(), referenceX, referenceY)
+                                                    local zInRange, zDiff = helpers.checkZDistance(phSpawn.ID(), zHighValue, zLowValue, referenceZ)
+                                                    if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
+                                                        closestDistance = distance
+                                                        closestSpawn = phSpawn
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        -- Original behavior: check both named and placeholders together
                         for _, mob in ipairs(checkedMobs) do
                             -- Check named mob first
                             local spawnID = helpers.findSpawn(mob.name, nameMap)
@@ -141,6 +189,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                 end
                             end
                         end
+                    end
 
                         if closestSpawn and (not engagedTarget or not mq.TLO.Me.Combat()) then
                             -- Add a small delay to ensure the mob is fully dead and removed from xtarget
@@ -943,6 +992,38 @@ local function RenderOptionsWindow()
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Use Invis while navigating between mobs")
+                ImGui.PopStyleColor(1)
+            end
+            
+            -- Add spacing before next checkbox
+            ImGui.Spacing()
+            
+            -- Style the checkbox for prioritize named mobs
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            -- Set text color based on checkbox state
+            if prioritizeNamedMobs then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
+            end
+            
+            local newPrioritizeNamed = ImGui.Checkbox("Prioritize Named", prioritizeNamedMobs)
+            if newPrioritizeNamed ~= prioritizeNamedMobs then
+                prioritizeNamedMobs = newPrioritizeNamed
+            end
+            
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Always target named mobs over placeholders, even if placeholders are closer")
                 ImGui.PopStyleColor(1)
             end
             
