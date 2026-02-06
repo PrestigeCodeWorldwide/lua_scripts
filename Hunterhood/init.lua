@@ -24,7 +24,7 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.213 loaded')
+BL.info('HunterHood v2.214 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -371,11 +371,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             end
 
                             if mq.TLO.Me.Combat() then
-                                -- Only execute stick/face once every 2 seconds
+                                -- Only execute stick once every 2 seconds
                                 local currentTime = os.clock()
                                 if not lastStickTime or (currentTime - lastStickTime) >= 2 then
-                                    mq.cmd("/stick 10 front moveback")
-                                    mq.cmd("/face fast")
+                                    mq.cmd("/stick 10 moveback")
+                                    if not helpers.FacingTarget() then
+                                        mq.cmd("/face fast")
+                                    end
                                     lastStickTime = currentTime
                                 end
                             end

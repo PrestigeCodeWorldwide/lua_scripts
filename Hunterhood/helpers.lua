@@ -1,4 +1,4 @@
--- v1.117
+-- v1.118
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -405,6 +405,13 @@ end
         --     hasPath and "YES" or "NO")
         
         return hasPath
+    end
+
+    -- Check if player is facing the target within 20 degrees
+    ---@return boolean - True if facing target, false otherwise
+    function helpers.FacingTarget()
+        if mq.TLO.Target.ID() == 0 then return true end
+        return math.abs(mq.TLO.Target.HeadingTo.DegreesCCW() - mq.TLO.Me.Heading.DegreesCCW()) <= 20
     end
 
     function helpers.findNearestSpawnWithPathing(spawns, maxCandidates)
