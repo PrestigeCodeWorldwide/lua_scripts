@@ -1,4 +1,4 @@
---v1.11
+--v1.12
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -20,7 +20,8 @@ local myBuffs = {
         { name = "Unified Hand of Helmsbane",     type = "group", checkName = "Symbol of Helmsbane" },
         { name = "Unified Hand of Infallibility", type = "group", checkName = "Commitment" },
         { name = "Shining Steel",                 type = "single" },
-        { name = "Unified Hand of Certitude",     type = "single", checkName = "Certitude" }
+        --{ name = "Unified Hand of Certitude",     type = "group", checkName = "Certitude" },
+        --{ name = "Unified Hand of Gezat",         type = "group", checkName = "Symbol of Gezat" }
     },
     SHM = {
         { name = "Talisman of Unity X",    type = "group", checkName = "Spirit's Focusing XIV" },
@@ -70,16 +71,44 @@ local function getBuffCheckName(spellName)
     return spellName -- Fallback to spell name if not found
 end
 
+-- Spell stacking rules - prevent conflicting buffs
+local stackingRules = {
+    -- Higher priority buffs override lower priority ones
+    ["Aegolism XV"] = { priority = 100, conflicts = {"Grovewood Blessing"} },
+    ["Symbol of Sharosh"] = { priority = 99, conflicts = {"Aegolism XV"} },
+    ["Grovewood Blessing"] = { priority = 99, conflicts = {"Aegolism XV"} },
+    ["Heroic Focusing"] = { priority = 98, conflicts = {"Spirit's Focusing XIV"} },
+    ["Symbol of Gezat"] = { priority = 96, conflicts = {"Certitude"} },
+    ["Certitude"] = { priority = 97, conflicts = {"Symbol of Gezat"} },
+    -- Add more stacking rules as needed
+}
+
 -- Function to check if we currently have a specific buff
 local function hasBuff(buffName)
     local checkName = getBuffCheckName(buffName)
     return mq.TLO.Me.Buff(checkName)() ~= nil
 end
 
+-- Function to check if requesting a buff would conflict with existing buffs
+local function wouldConflictWithExisting(buffName)
+    local checkName = getBuffCheckName(buffName)
+    local rule = stackingRules[checkName]
+    if not rule then return false end
+    
+    -- Check if we have any conflicting buffs
+    for _, conflictName in ipairs(rule.conflicts) do
+        if hasBuff(conflictName) then
+            return true -- Conflict found
+        end
+    end
+    
+    return false -- No conflicts
+end
+
 -- Auto-request checkbox states for each buff
 local autoRequestBuffs = {}
 local lastBuffCheck = 0
-local BUFF_CHECK_INTERVAL = 10 -- Check buffs every 10seconds
+local BUFF_CHECK_INTERVAL = 10 -- Check buffs every 10 seconds
 local knownBuffs = {} -- Track which buffs we currently have
 
 -- Function to find an available gem slot
@@ -195,16 +224,15 @@ local function ensureSpellAvailable(spellName)
     
     -- Check if this spell is currently being loaded
     if spellLoadAttempts[spellName] and spellLoadAttempts[spellName] > 0 then
-        BL.info(string.format("Spell %s is currently being loaded, please wait", spellName))
+        --BL.info(string.format("Spell %s is currently being loaded, please wait", spellName))
         return false -- Don't try to load again, just wait
     end
     
     BL.warn(string.format("Spell %s not loaded in spell bar, attempting to load", spellName))
-    local loadResult = loadSpellToAvailableGem(spellName)
+    loadSpellToAvailableGem(spellName)
     
-    -- For immediate requests, we can't wait for the async load to complete
-    -- So we return false and let the caller handle the retry
-    return loadResult
+    -- Always return false since we need to wait for the spell to actually load
+    return false
 end
 
 -- Function to queue a cast (called from actor callback)
@@ -242,13 +270,13 @@ local function processCasts()
         return -- Wait for current cast to finish
     end
 
-    BL.info(string.format("Processing cast of %s on %s", cast.spellName, cast.targetName))
+    --BL.info(string.format("Processing cast of %s on %s", cast.spellName, cast.targetName))
 
     -- Final check to ensure spell is available before casting
     if not ensureSpellAvailable(cast.spellName) then
         -- Check if spell is currently being loaded
         if spellLoadAttempts[cast.spellName] and spellLoadAttempts[cast.spellName] > 0 then
-            BL.info(string.format("Spell %s is still loading, keeping request in queue", cast.spellName))
+            --BL.info(string.format("Spell %s is still loading, keeping request in queue", cast.spellName))
             return -- Keep the cast in queue for retry
         else
             BL.error(string.format("Cannot cast %s - spell not available", cast.spellName))
@@ -269,8 +297,9 @@ local function processCasts()
         end
     end
 
-    -- Pause CWTN
-    mq.cmdf('/docommand /%s pause on', mq.TLO.Me.Class.ShortName())
+    
+    BL.cmd.pauseAutomation()
+    --mq.cmdf('/docommand /%s pause on', mq.TLO.Me.Class.ShortName())
 
     -- Target the player
     mq.cmdf('/target pc %s', cast.targetName)
@@ -279,7 +308,8 @@ local function processCasts()
     -- Verify target
     if not mq.TLO.Target() or mq.TLO.Target.CleanName() ~= cast.targetName then
         BL.error(string.format("Failed to target %s", cast.targetName))
-        mq.cmdf('/docommand /%s pause off', mq.TLO.Me.Class.ShortName())
+        --mq.cmdf('/docommand /%s pause off', mq.TLO.Me.Class.ShortName())
+        BL.cmd.resumeAutomation()
 
         -- Send failure response
         if actor and actor.send then
@@ -310,7 +340,8 @@ local function processCasts()
     local castCompleted = true -- We assume it worked unless we detect otherwise
 
     -- Resume CWTN
-    mq.cmdf('/docommand /%s pause off', mq.TLO.Me.Class.ShortName())
+    --mq.cmdf('/docommand /%s pause off', mq.TLO.Me.Class.ShortName())
+    BL.cmd.resumeAutomation()
 
     -- Send success response
     if actor and actor.send then
@@ -817,23 +848,40 @@ local function monitorBuffs()
     end
     lastBuffCheck = now
 
-    -- Check all buffs that have auto-request enabled
+    -- Collect all enabled buffs and sort by priority
+    local enabledBuffs = {}
     for varName, enabled in pairs(autoRequestBuffs) do
         if enabled then
-            -- Extract buff name from variable name
             local buffName = varName:gsub("^auto_", ""):gsub("_", " ")
-            
-            -- Check if we currently have this buff
-            local currentlyHasBuff = hasBuff(buffName)
-            
-            -- If we don't have the buff, auto-request it (respecting cooldown)
-            if not currentlyHasBuff then
-                autoRequestBuff(buffName)
-            end
-            
-            -- Update our knowledge of this buff
-            knownBuffs[varName] = currentlyHasBuff
+            local checkName = getBuffCheckName(buffName)
+            local priority = stackingRules[checkName] and stackingRules[checkName].priority or 0
+            table.insert(enabledBuffs, {
+                varName = varName,
+                buffName = buffName,
+                priority = priority
+            })
         end
+    end
+    
+    -- Sort by priority (highest first)
+    table.sort(enabledBuffs, function(a, b) return a.priority > b.priority end)
+    
+    -- Process buffs in priority order
+    for _, buff in ipairs(enabledBuffs) do
+        -- Check if we currently have this buff
+        local currentlyHasBuff = hasBuff(buff.buffName)
+        
+        -- Check if requesting this buff would conflict with existing buffs
+        local wouldConflict = wouldConflictWithExisting(buff.buffName)
+        
+        -- If we don't have buff AND no conflicts, auto-request it (respecting cooldown)
+        if not currentlyHasBuff and not wouldConflict then
+            autoRequestBuff(buff.buffName)
+            return -- Only process one buff per cycle to avoid conflicts
+        end
+        
+        -- Update our knowledge of this buff
+        knownBuffs[buff.varName] = currentlyHasBuff
     end
 end
 
