@@ -1,4 +1,4 @@
--- v1.119
+-- v1.120
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -46,12 +46,34 @@ local function new(myAch)
         return inRange, zDiff
     end
 
+    -- Calculate 2D distance from a reference point to a spawn (for map comparison)
+    -- @param spawnID number - The ID of the spawn to check
+    -- @param refX number - Reference X coordinate
+    -- @param refY number - Reference Y coordinate
+    -- @return number - The 2D distance from reference point to spawn
+    function helpers.distanceFromReference2D(spawnID, refX, refY)
+        local spawn = mq.TLO.Spawn(spawnID)
+        if not spawn or not spawn.ID() or spawn.ID() == 0 then
+            return math.huge
+        end
+
+        local spawnX = spawn.X() or 0
+        local spawnY = spawn.Y() or 0
+        
+        -- Calculate 2D distance (X/Y only, like the map circle)
+        local xDiff = spawnX - refX
+        local yDiff = spawnY - refY
+        
+        return math.sqrt(xDiff * xDiff + yDiff * yDiff)
+    end
+
     -- Calculate distance from a reference point to a spawn
     -- @param spawnID number - The ID of the spawn to check
     -- @param refX number - Reference X coordinate
     -- @param refY number - Reference Y coordinate
+    -- @param refZ number - Reference Z coordinate (optional, uses current player Z if not provided)
     -- @return number - The 3D distance from reference point to spawn
-    function helpers.distanceFromReference(spawnID, refX, refY)
+    function helpers.distanceFromReference(spawnID, refX, refY, refZ)
         local spawn = mq.TLO.Spawn(spawnID)
         if not spawn or not spawn.ID() or spawn.ID() == 0 then
             return math.huge
@@ -61,10 +83,13 @@ local function new(myAch)
         local spawnY = spawn.Y() or 0
         local spawnZ = spawn.Z() or 0
         
+        -- Use provided refZ or current player Z as fallback
+        refZ = refZ or (mq.TLO.Me.Z() or 0)
+        
         -- Calculate 3D distance from reference point
         local xDiff = spawnX - refX
         local yDiff = spawnY - refY
-        local zDiff = spawnZ - (mq.TLO.Me.Z() or 0) -- Use current Z for reference if not provided
+        local zDiff = spawnZ - refZ
         
         return math.sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
     end
@@ -86,7 +111,6 @@ local function new(myAch)
             local redR, redG, redB = 220, 20, 60 -- Crimson red
             mq.cmdf('/squelch /maploc %d %d %d size 10 width 1 color 0 0 0 radius %d rcolor %d %d %d label "Range: %d" hunter_ref',
                     referenceY, referenceX, referenceZ, pullRadius, redR, redG, redB, pullRadius)
-            --printf("\ayShowing reference circle at (%.1f, %.1f, %.1f) with radius %d", referenceX, referenceY, referenceZ, pullRadius)
         end
     end
 
@@ -130,8 +154,9 @@ local function new(myAch)
     function helpers.findSpawn(spawn, nameMap)
     if not spawn then return 0 end
 
-    -- Only clear target if we're not in the main thread
-    if not ImGui then
+    -- Skip the target clear and delay in coroutines to avoid interference
+    -- Only do this when not in ImGui context (main thread)
+    if not ImGui and not coroutine.running() then
         mq.cmd("/target clear")
         mq.delay(100) -- Small delay to allow spawn list to update
     end

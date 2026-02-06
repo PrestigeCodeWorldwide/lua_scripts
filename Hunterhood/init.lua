@@ -25,7 +25,7 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.215 loaded')
+BL.info('HunterHood v2.216 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -104,89 +104,93 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     end
 
                     if #checkedMobs > 0 then
-                    if prioritizeNamedMobs then
-                        -- First pass: look for named mobs only
-                        local namedFound = false
-                        for _, mob in ipairs(checkedMobs) do
-                            local spawnID = helpers.findSpawn(mob.name, nameMap)
-                            if spawnID ~= nil and spawnID > 0 then
-                                local spawn = mq.TLO.Spawn(spawnID)
-                                if spawn() and not spawn.Dead() then
-                                    if helpers.hasValidPath(spawn) then
-                                        local distance = helpers.distanceFromReference(spawn.ID(), referenceX, referenceY)
-                                        local zInRange, zDiff = helpers.checkZDistance(spawn.ID(), zHighValue, zLowValue, referenceZ)
-                                        if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
-                                            closestDistance = distance
-                                            closestSpawn = spawn
-                                            namedFound = true
+                    -- First collect all valid candidates within reference point range
+                    local validCandidates = {}
+                    local totalChecked = 0
+                    
+                    -- Collect all valid spawns (both named and placeholders) within reference range
+                    for _, mob in ipairs(checkedMobs) do
+                        -- Check named mob first
+                        local spawnID = helpers.findSpawn(mob.name, nameMap)
+                        totalChecked = totalChecked + 1
+                        if spawnID ~= nil and spawnID > 0 then
+                            local spawn = mq.TLO.Spawn(spawnID)
+                            if spawn() and not spawn.Dead() then
+                                local refDistance = helpers.distanceFromReference(spawn.ID(), referenceX, referenceY, referenceZ)
+                                local refDistance2D = helpers.distanceFromReference2D(spawn.ID(), referenceX, referenceY)
+                                local zInRange, zDiff = helpers.checkZDistance(spawn.ID(), zHighValue, zLowValue, referenceZ)
+                                local hasPath = helpers.hasValidPath(spawn)
+                                local playerDistance = spawn.Distance3D() or 0
+                                
+                                if (not distanceSettingsEnabled or (zInRange and refDistance2D <= pullRadius)) and hasPath then
+                                    table.insert(validCandidates, {spawn = spawn, isNamed = true})
+                                end
+                            end
+                        end
+
+                        -- Check placeholders for this mob
+                        local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
+                        if placeholders and type(placeholders) == "table" then
+                            for _, phName in ipairs(placeholders) do
+                                local phID = helpers.findSpawn(phName, nameMap)
+                                totalChecked = totalChecked + 1
+                                if phID ~= nil and phID > 0 then
+                                    local phSpawn = mq.TLO.Spawn(phID)
+                                    if phSpawn() and not phSpawn.Dead() then
+                                        local refDistance = helpers.distanceFromReference(phSpawn.ID(), referenceX, referenceY, referenceZ)
+                                        local refDistance2D = helpers.distanceFromReference2D(phSpawn.ID(), referenceX, referenceY)
+                                        local zInRange, zDiff = helpers.checkZDistance(phSpawn.ID(), zHighValue, zLowValue, referenceZ)
+                                        local hasPath = helpers.hasValidPath(phSpawn)
+                                        local playerDistance = phSpawn.Distance3D() or 0
+                                        
+                                        if (not distanceSettingsEnabled or (zInRange and refDistance2D <= pullRadius)) and hasPath then
+                                            table.insert(validCandidates, {spawn = phSpawn, isNamed = false})
                                         end
                                     end
                                 end
                             end
                         end
+                    end
+                    
+                    -- Now select the closest spawn to PLAYER from the valid candidates
+                    if prioritizeNamedMobs then
+                        -- First try to find closest named mob
+                        local closestNamedSpawn = nil
+                        local closestNamedDistance = math.huge
                         
-                        -- Only check placeholders if no named mobs were found
-                        if not namedFound then
-                            for _, mob in ipairs(checkedMobs) do
-                                local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
-                                if placeholders and type(placeholders) == "table" then
-                                    for _, phName in ipairs(placeholders) do
-                                        local phID = helpers.findSpawn(phName, nameMap)
-                                        if phID ~= nil and phID > 0 then
-                                            local phSpawn = mq.TLO.Spawn(phID)
-                                            if phSpawn() and not phSpawn.Dead() then
-                                                if helpers.hasValidPath(phSpawn) then
-                                                    local distance = helpers.distanceFromReference(phSpawn.ID(), referenceX, referenceY)
-                                                    local zInRange, zDiff = helpers.checkZDistance(phSpawn.ID(), zHighValue, zLowValue, referenceZ)
-                                                    if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
-                                                        closestDistance = distance
-                                                        closestSpawn = phSpawn
-                                                    end
-                                                end
-                                            end
-                                        end
+                        for _, candidate in ipairs(validCandidates) do
+                            if candidate.isNamed then
+                                local playerDistance = candidate.spawn.Distance3D() or math.huge
+                                if playerDistance < closestNamedDistance then
+                                    closestNamedDistance = playerDistance
+                                    closestNamedSpawn = candidate.spawn
+                                end
+                            end
+                        end
+                        
+                        closestSpawn = closestNamedSpawn
+                        
+                        -- If no named found, find closest placeholder
+                        if not closestSpawn then
+                            local closestPHDistance = math.huge
+                            for _, candidate in ipairs(validCandidates) do
+                                if not candidate.isNamed then
+                                    local playerDistance = candidate.spawn.Distance3D() or math.huge
+                                    if playerDistance < closestPHDistance then
+                                        closestPHDistance = playerDistance
+                                        closestSpawn = candidate.spawn
                                     end
                                 end
                             end
                         end
                     else
-                        -- Original behavior: check both named and placeholders together
-                        for _, mob in ipairs(checkedMobs) do
-                            -- Check named mob first
-                            local spawnID = helpers.findSpawn(mob.name, nameMap)
-                            if spawnID ~= nil and spawnID > 0 then
-                                local spawn = mq.TLO.Spawn(spawnID)
-                                if spawn() and not spawn.Dead() then
-                                    if helpers.hasValidPath(spawn) then
-                                        local distance = helpers.distanceFromReference(spawn.ID(), referenceX, referenceY)
-                                        local zInRange, zDiff = helpers.checkZDistance(spawn.ID(), zHighValue, zLowValue, referenceZ)
-                                        if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
-                                            closestDistance = distance
-                                            closestSpawn = spawn
-                                        end
-                                    end
-                                end
-                            end
-
-                            -- Check placeholders for this mob
-                            local placeholders = phList.getPlaceholders(mob.name, currentZoneID)
-                            if placeholders and type(placeholders) == "table" then
-                                for _, phName in ipairs(placeholders) do
-                                    local phID = helpers.findSpawn(phName, nameMap)
-                                    if phID ~= nil and phID > 0 then
-                                        local phSpawn = mq.TLO.Spawn(phID)
-                                        if phSpawn() and not phSpawn.Dead() then
-                                            if helpers.hasValidPath(phSpawn) then
-                                                local distance = helpers.distanceFromReference(phSpawn.ID(), referenceX, referenceY)
-                                                local zInRange, zDiff = helpers.checkZDistance(phSpawn.ID(), zHighValue, zLowValue, referenceZ)
-                                                if (not distanceSettingsEnabled or (zInRange and distance <= pullRadius)) and distance < closestDistance then
-                                                    closestDistance = distance
-                                                    closestSpawn = phSpawn
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
+                        -- Find closest spawn to player regardless of type
+                        local closestPlayerDistance = math.huge
+                        for _, candidate in ipairs(validCandidates) do
+                            local playerDistance = candidate.spawn.Distance3D() or math.huge
+                            if playerDistance < closestPlayerDistance then
+                                closestPlayerDistance = playerDistance
+                                closestSpawn = candidate.spawn
                             end
                         end
                     end
@@ -440,8 +444,6 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     end
                 end
             else
-                --printf("\ayDEBUG: No valid target or target is dead")
-
                 -- Add invisibility check when no valid targets
                 if useInvis and helpers.groupNeedsInvis() then
                     printf("\ayNo valid targets - ensuring group invisibility...")
@@ -457,19 +459,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     if not mq.TLO.Me.Sitting() then
                         mq.cmd("/sit")
                     end
-
-                    -- Short wait after sitting
-                    for i = 1, 5 do -- 0.5 second delay after sitting
-                        if not navActive then break end
-                        coroutine.yield()
-                    end
                 end
 
                 navComplete = true
                 engagedTarget = nil
 
-                -- Wait a bit before checking for targets again
-                for i = 1, 10 do -- 1 second delay
+                -- Short wait before checking for targets again (more responsive)
+                for i = 1, 3 do -- 0.3 second delay instead of 1 second
                     if not navActive then break end
                     coroutine.yield()
                 end
