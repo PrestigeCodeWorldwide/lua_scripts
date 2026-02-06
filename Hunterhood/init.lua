@@ -25,7 +25,7 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.216 loaded')
+BL.info('HunterHood v2.217 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -242,7 +242,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                     attempts = attempts + 1
                                     if needsInvis then
                                         -- Small delay before retry
-                                        for i = 1, 10 do
+                                        for i = 1, 40 do -- 4 second delay between attempts
                                             if not navActive then break end
                                             coroutine.yield()
                                         end
@@ -301,7 +301,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                             targetDistance = currentNavTarget and currentNavTarget.Distance3D() or 0
 
                                             -- Wait a bit before checking again
-                                            for i = 1, 5 do -- 5 tick delay (0.5s) between attempts
+                                            for i = 1, 10 do -- 1 second delay between attempts
                                                 if not navActive then break end
                                                 coroutine.yield()
                                             end
@@ -451,7 +451,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     mq.cmd("/squelch /alt act 231")
                     
                     -- Wait for cast to complete before sitting
-                    for i = 1, 10 do -- 1 second delay for cast
+                    for i = 1, 5 do -- 0.5 second delay for cast
                         if not navActive then break end
                         coroutine.yield()
                     end
@@ -465,7 +465,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 engagedTarget = nil
 
                 -- Short wait before checking for targets again (more responsive)
-                for i = 1, 3 do -- 0.3 second delay instead of 1 second
+                for i = 1, 1 do -- 0.1 second delay instead of 0.3
                     if not navActive then break end
                     coroutine.yield()
                 end
@@ -1996,5 +1996,5 @@ while Open do
             navActive = false
         end
     end
-    mq.delay(250)
+    mq.delay(100)
 end
