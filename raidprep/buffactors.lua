@@ -1,4 +1,4 @@
---v1.12
+--v1.13
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -13,9 +13,9 @@ local classOrder = {"CLR", "DRU", "ENC", "SHM"}
 
 local myBuffs = {
     CLR = {
-        {name = "Unified Hand of Aegolism XV",    type = "group", checkName = "Aegolism XV"},
-        {name = "Unified Hand of Sharosh",        type = "group", checkName = "Symbol of Sharosh"},
-        {name = "Shining Rampart IX",             type = "single"},
+        { name = "Unified Hand of Aegolism XV",   type = "group", checkName = "Aegolism XV"},
+        { name = "Unified Hand of Sharosh",       type = "group", checkName = "Symbol of Sharosh"},
+        { name = "Shining Rampart IX",            type = "single"},
         { name = "Divine Interstition",           type = "single" },
         { name = "Unified Hand of Helmsbane",     type = "group", checkName = "Symbol of Helmsbane" },
         { name = "Unified Hand of Infallibility", type = "group", checkName = "Commitment" },
@@ -55,8 +55,8 @@ local ACTOR_NAME = "buffactors"
 -- Spell loading variables
 local spellLoadAttempts = {} -- Track spell loading attempts per spell
 local spellLoadTimestamps = {} -- Track when attempts were made for timeout
-local MAX_LOAD_ATTEMPTS = 5 -- Maximum attempts to load a spell
-local LOAD_TIMEOUT = 30 -- timeout before resetting attempts (in seconds)
+local MAX_LOAD_ATTEMPTS = 3 -- Maximum attempts to load a spell
+local LOAD_TIMEOUT = 10 -- timeout before resetting attempts (in seconds)
 
 -- Function to get the actual buff name to check for a given spell
 local function getBuffCheckName(spellName)
@@ -83,10 +83,41 @@ local stackingRules = {
     -- Add more stacking rules as needed
 }
 
--- Function to check if we currently have a specific buff
+-- Function to extract base spell name without rank suffixes
+local function getBaseSpellName(spellName)
+    if not spellName or type(spellName) ~= "string" then
+        return spellName
+    end
+    
+    -- Remove rank suffixes like " Rk. II", " Rk. III", etc.
+    local baseName = spellName:gsub(" Rk%. [IXVL]+$", "")
+    return baseName
+end
+
+-- Function to check if we currently have a specific buff (handles multiple ranks and variations)
 local function hasBuff(buffName)
     local checkName = getBuffCheckName(buffName)
-    return mq.TLO.Me.Buff(checkName)() ~= nil
+    local baseName = getBaseSpellName(checkName)
+    
+    -- Check original spell name first
+    if mq.TLO.Me.Buff(checkName)() then
+        return true
+    end
+    
+    -- Check common rank variations
+    local variations = {
+        baseName,
+        baseName .. " Rk. II",
+        baseName .. " Rk. III",
+    }
+    
+    for _, variation in ipairs(variations) do
+        if mq.TLO.Me.Buff(variation)() then
+            return true
+        end
+    end
+    
+    return false
 end
 
 -- Function to check if requesting a buff would conflict with existing buffs
@@ -127,10 +158,15 @@ end
 -- Function to check if a spell is loaded in the spell bar
 local function isSpellLoaded(spellName)
     local maxGems = mq.TLO.Me.NumGems() or 13
+    local targetBaseName = getBaseSpellName(spellName)
+    
     for i = 1, maxGems do
         local gemSpell = mq.TLO.Me.Gem(i).Name()
-        if gemSpell and gemSpell == spellName then
-            return true, i
+        if gemSpell then
+            local gemBaseName = getBaseSpellName(gemSpell)
+            if gemBaseName == targetBaseName then
+                return true, i
+            end
         end
     end
     return false, nil
@@ -178,15 +214,32 @@ local function loadSpellToAvailableGem(spellName)
         BL.info(string.format("Loading %s into gem %d", spellName, availableGem))
     end
     
-    -- Check if spell exists in spellbook
-    local spellRank = mq.TLO.Spell(spellName).Rank()
-    if not spellRank or spellRank == "" then
-        BL.error(string.format("Spell %s not found in spellbook", spellName))
+    -- Check if spell exists in spellbook and get the actual spell name
+    local targetBaseName = getBaseSpellName(spellName)
+    local actualSpellName = nil
+    
+    -- First, try rank variations first since most players have ranked spells
+    local variations = {
+        spellName .. " Rk. II", 
+        spellName .. " Rk. III",
+        spellName,  -- Try base name last
+    }
+    
+    for _, variation in ipairs(variations) do
+        local testRank = mq.TLO.Spell(variation).Rank()
+        if testRank and testRank ~= "" then
+            actualSpellName = variation
+            break
+        end
+    end
+    
+    if not actualSpellName then
+        BL.error(string.format("Spell %s (or any rank) not found in spellbook", spellName))
         return false
     end
     
     -- Load spell into the available gem
-    mq.cmdf('/memorize "%s" %d', spellName, availableGem)
+    mq.cmdf('/memorize "%s" %d', actualSpellName, availableGem)
     
     -- Return immediately - the actual verification will happen asynchronously
     return true
@@ -203,7 +256,6 @@ local function checkSpellLoading()
                 spellLoadTimestamps[spellName] = nil -- Reset timestamp on success
             else
                 -- Check if we should retry (simple timeout check)
-                -- Note: In a more complex implementation, we'd track timestamps
                 local currentTime = os.time()
                 if spellLoadTimestamps[spellName] and (currentTime - spellLoadTimestamps[spellName]) > LOAD_TIMEOUT then
                     BL.info(string.format("Timeout reached for %s, resetting attempts", spellName))
@@ -224,12 +276,17 @@ local function ensureSpellAvailable(spellName)
     
     -- Check if this spell is currently being loaded
     if spellLoadAttempts[spellName] and spellLoadAttempts[spellName] > 0 then
-        --BL.info(string.format("Spell %s is currently being loaded, please wait", spellName))
         return false -- Don't try to load again, just wait
     end
     
     BL.warn(string.format("Spell %s not loaded in spell bar, attempting to load", spellName))
-    loadSpellToAvailableGem(spellName)
+    local result = loadSpellToAvailableGem(spellName)
+    
+    -- If loading failed, don't keep trying
+    if not result then
+        BL.error(string.format("Failed to start loading %s", spellName))
+        return false
+    end
     
     -- Always return false since we need to wait for the spell to actually load
     return false
@@ -254,8 +311,19 @@ end
 -- Function to process the cast queue (called from main loop)
 local lastProcessedCast = 0
 local CAST_PROCESS_DELAY = 0.5  -- Half second between casts
+local CAST_TIMEOUT = 30  -- 30 seconds timeout for stuck casts
+local lastPendingCount = 0
 local function processCasts()
-    if #pendingCasts == 0 then return end
+    if #pendingCasts == 0 then 
+        lastPendingCount = 0
+        return 
+    end
+    
+    -- Only log when the pending count changes
+    if #pendingCasts ~= lastPendingCount then
+        BL.info(string.format("Processing %d pending casts", #pendingCasts))
+        lastPendingCount = #pendingCasts
+    end
     
     -- Add a small delay between processing casts
     local now = os.clock()
@@ -264,19 +332,37 @@ local function processCasts()
     end
 
     local cast = pendingCasts[1]
+    
+    -- Check if cast has been stuck for too long (30 seconds)
+    if now - cast.timestamp > CAST_TIMEOUT then
+        BL.warn(string.format("Cast of %s on %s timed out after %d seconds, removing from queue", 
+            cast.spellName, cast.targetName, CAST_TIMEOUT))
+        
+        -- Send failure response
+        if actor and actor.send then
+            actor:send({
+                id = "buffResponse",
+                requestId = cast.requestId,
+                buffName = cast.spellName,
+                from = mq.TLO.Me.CleanName(),
+                success = false
+            })
+        end
+        
+        table.remove(pendingCasts, 1)
+        lastProcessedCast = now
+        return
+    end
 
     -- Check if we're already casting
     if mq.TLO.Me.Casting() then
         return -- Wait for current cast to finish
     end
 
-    --BL.info(string.format("Processing cast of %s on %s", cast.spellName, cast.targetName))
-
     -- Final check to ensure spell is available before casting
     if not ensureSpellAvailable(cast.spellName) then
         -- Check if spell is currently being loaded
         if spellLoadAttempts[cast.spellName] and spellLoadAttempts[cast.spellName] > 0 then
-            --BL.info(string.format("Spell %s is still loading, keeping request in queue", cast.spellName))
             return -- Keep the cast in queue for retry
         else
             BL.error(string.format("Cannot cast %s - spell not available", cast.spellName))
