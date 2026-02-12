@@ -3,14 +3,17 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToECannons Script v1.11 Started")
+BL.info("ToECannons Script v1.12 Started")
 BL.info("Type /tcstop to stop the script and connect Dannet/BCS")
 mq.cmd("/plugin boxr load")
 
 local shouldExit = false
 local function StopCannons()
+    BL.info("Stopping cannons - loading Dannet and connecting BCS")
     mq.cmd("/plugin dannet load")
+    mq.delay(1000) -- Wait for plugin to load
     mq.cmd("/bccmd connect")
+    mq.delay(500)  -- Wait for connection
     BL.info("ToE Cannons script stopped by command")
     return true
 end
@@ -47,7 +50,7 @@ while not shouldExit do
     --Cannoneer Name= a scalewrought cannoneer	
     local cannoneer = mq.TLO.Spawn("a scalewrought cannoneer")
 
-    if cannoneer() and cannoneer.Distance() > 15 and not mq.TLO.Nav.Active() then
+    if cannoneer() and cannoneer.Distance() > 15 and not mq.TLO.Navigation.Active() then
         BL.info("Navigating to cannoneer.")
         mq.cmd("/nav spawn a scalewrought cannoneer")
         mq.delay(300)
