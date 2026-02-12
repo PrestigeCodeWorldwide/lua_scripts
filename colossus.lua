@@ -3,14 +3,13 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Colossus Script v1.1 Started")
-BL.warn("Fix the /nav loc, this is a placeholder")
+BL.info("Colossus Script v1.11 Started")
 mq.cmd("/plugin boxr load")
 mq.cmdf("/docommand /${Me.Class.ShortName} autostandonfeign on nosave")
 
 --local stoneDebuff = "Hovering Stone"  -- Debuff to check for instead of timer if there is one
 local stoneEmote = "#*#The colossus tosses a large stone into the air and it hovers heavily over #1#.#*"
-local runtoLocation = "/nav locyx -454 1690" --Need to fix location, this is a placeholder
+local runtoLocation = "/nav locyx -497 1645"
   
 local function EventHandlerstoneEmote(line, nameOne)
     local myName = mq.TLO.Me.CleanName()
