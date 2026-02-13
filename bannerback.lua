@@ -3,7 +3,7 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Bannerback Script v1.21 Started")
+BL.info("Bannerback Script v1.22 Started")
 
 local zonedIn = false
 local zoneName = nil
@@ -69,18 +69,30 @@ local function handleEastFreeport()
         return true
     else
         -- Check for Throne of Heroes AA as fallback
-        local throneOfHeroes = mq.TLO.AltAbility(511)
-        local throneReady = throneOfHeroes and throneOfHeroes() and throneOfHeroes.Spell.CastTime() > 0
+        local throneReady = mq.TLO.Me.AltAbilityReady(511)
+        --BL.info("Throne of Heroes debug - AltAbilityReady value: " .. tostring(throneReady))
         
-        if throneReady then
+        if throneReady == true then
             BL.info("Both anchors on cooldown, using Throne of Heroes AA to return to Guild Lobby")
             BL.cmd.pauseAutomation()
             mq.cmd('/alt act 511')
             BL.cmd.resumeAutomation()
             return true
         else
-            BL.warn("All transport options (Primary Anchor, Secondary Anchor, Throne of Heroes) are on cooldown")
-            return false
+            -- Check for Philter of Major Translocation as final fallback
+            local philter = mq.TLO.FindItem("Philter of Major Translocation")
+            local philterReady = philter and philter.TimerReady() == 0
+            
+            if philterReady then
+                BL.info("All previous options on cooldown, using Philter of Major Translocation")
+                BL.cmd.pauseAutomation()
+                mq.cmd('/useitem "Philter of Major Translocation"')
+                BL.cmd.resumeAutomation()
+                return true
+            else
+                BL.warn("All transport options (Primary Anchor, Secondary Anchor, Throne of Heroes, Philter) are on cooldown")
+                return false
+            end
         end
     end
 end
