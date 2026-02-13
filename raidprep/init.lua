@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.832 Started")
+BL.info("RaidPrep v1.833 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -157,6 +157,7 @@ end
 local selectedExpansion = "--Misc Scripts--"
 local expansions = {
     "--Misc Scripts--",
+    "Shattering of Ro",
     "The Outer Brood",
     "Laurion's Song",
     "Night of Shadows",
@@ -166,8 +167,9 @@ local expansions = {
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack", "Bard", "BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "OfftankX", "TankBandoSwap", "TCN" },
-    ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer", "HPMez", "HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
+    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN" },
+    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanarbar" },
+    ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
     ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
     ["Terror of Luclin"] = { "Doomshade", "FreeTheGoranga", "SheiBane" },
@@ -178,7 +180,6 @@ local expansionScripts = {
 local scriptTooltips = {
     -- Misc Scripts
     ["BannerBack"] = "Runs toon back to GH and takes banner back if they are in the Lobby",
-    ["Bard"] = "Koda's Bard automation lua",
     ["BoxHUD"] = "Heads-up display for boxed characters",
     ["ButtonMaster"] = "Customizable button interface for common commands",
     ["GoldenPickPL"] = "Uses the Golden Pick to hit each mob once during PL'ing",
@@ -190,16 +191,19 @@ local scriptTooltips = {
     ["Magellan"] = "/travelto zones with UI",
     ["Moblist"] = "Tracks spawns in a zone with UI",
     ["Offtank"] = "Allows selecting specific mobs to offtank automatically",
-    ["OfftankX"] = "Allows selecting a specific xtarget # to offtank automatically",
     ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
     ["TCN"] = "Tradeskill Consturction Next",
+
+    -- Shattering of Ro scripts
+    ["Colossus"] = "Runs toons away from stone emote during the Colossus raid",
+    ["SharDrahn"] = "Mounts and dismounts for knockback during the Shar Drahn raid",
+    ["Xanarbar"] = "Turns off all AE healing during the Xanarbar raid",
 
     -- The Outer Brood scripts
     ["SilenceTheCannons"] =
     "Runs away toons called out for the Overcharged Orbs emote during the Silence the Cannons raid",
     ["LHeartRaid"] = "Loots lenses and swaps targets on the bright/dark engergist during the Leviathan Heart raid",
     ["HPRaid"] = "Runs toons for the 2 cures and swaps stickhow's during the High Priest raid",
-    ["HPMez"] = "Bard Mez Messengers during the High Priest raid",
     ["DockoftheBay"] = "Runs the 4 toons to safe spots in the East tunnel during the Dock of the Bay raid",
     ["BroodRaid"] = "Runs toons to the south tunnel until debuff is gone during the Brood Architect raid",
     ["ControlRoom"] =
@@ -245,19 +249,7 @@ local function drawluaTab()
         imgui.EndCombo()
     end
 
-    -- Add Stop All button
-    imgui.SameLine(0, 10)
-    if imgui.Button("?", 20, 0) then
-        -- Add functionality to stop all scripts here
-        print("Stopping all scripts...")
-        mq.cmd("/dga /lua stop")
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Mystery Button! What does it do?")
-        imgui.EndTooltip()
-    end
-
+    
     -- Check for selected expansion
     if selectedExpansion and expansionScripts[selectedExpansion] then
         imgui.Separator()
@@ -663,11 +655,11 @@ local function drawCWTNTab()
         [1] = "1 - Left 10",
         [2] = "2 - Right 10",
         [3] = "3 - Front 10",
-        [4] = "4 - Behind 15",
-        [5] = "5 - Left 15",
-        [6] = "6 - Right 15",
-        [7] = "7 - Front 15",
-        [8] = "8 - Behind 10",
+        [4] = "4 - Behind 25",
+        [5] = "5 - Left 25",
+        [6] = "6 - Right 25",
+        [7] = "7 - Front 25",
+        [8] = "8 - Front 30",
         [9] = "9 - 35 Ranger",
     }
 
