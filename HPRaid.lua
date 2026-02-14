@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.04 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.05 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 
 -- Shared State
@@ -166,9 +166,6 @@ local function handleMez()
             BL.info("Handling debuffs, pausing mez activity")
         end
         return
-    elseif isMezPaused then
-        isMezPaused = false
-        BL.cmd.resumeAutomation()
     end
 
     local highPriest = mq.TLO.Spawn("Yaran") ---High Priest Yaran or just Yaran
@@ -189,21 +186,25 @@ local function handleMez()
     local closestMessenger = nil
     local minDistance = 200 -- Only consider messenger within 200 units
     local messengerCount = tonumber(mq.TLO.SpawnCount(messengerType)()) or 0
-
+    
     for i = 1, messengerCount do
         local messenger = mq.TLO.NearestSpawn(i, messengerType)
         if messenger() and messenger.ID() ~= 0 then
-            local messengerY = tonumber(messenger.Y())
-            local messengerX = tonumber(messenger.X())
+            -- Check if this messenger matches the specific type we want
+            local messengerName = messenger.CleanName():lower()
+            if messengerName:find(messengerType:lower()) then
+                local messengerY = tonumber(messenger.Y())
+                local messengerX = tonumber(messenger.X())
 
-            if messengerY and messengerX then
-                local distance = calculateDistance(hpX, hpY, messengerX, messengerY)
-                BL.info(string.format("messenger %s distance: %.1f", messenger.ID(), distance))
+                if messengerY and messengerX then
+                    local distance = calculateDistance(hpX, hpY, messengerX, messengerY)
+                    BL.info(string.format("messenger %s distance: %.1f", messenger.ID(), distance))
 
-                -- Track the closest messenger within range
-                if distance <= 200 and distance < minDistance then
-                    minDistance = distance
-                    closestMessenger = messenger
+                    -- Track the closest messenger within range
+                    if distance <= 200 and distance < minDistance then
+                        minDistance = distance
+                        closestMessenger = messenger
+                    end
                 end
             end
         end
@@ -221,19 +222,26 @@ local function handleMez()
         end
 
         -- Check if we have line of sight and are in range to cast
-        if closestMessenger.Distance() < 190 and closestMessenger.LineOfSight() then
+        if closestMessenger.Distance() < 200 and closestMessenger.LineOfSight() then
             BL.info("messenger is in range, casting slumber")
             BL.cmd.pauseAutomation()
             isMezPaused = true
             mq.cmd("/stopsong")
             mq.delay(100)
             mq.cmdf("/cast \"%s\"", mezSpell)
-            mq.delay(3400)
-        elseif closestMessenger.Distance() > 150 or not closestMessenger.LineOfSight() then
+            mq.delay(3700)
+        elseif closestMessenger.Distance() > 180 or not closestMessenger.LineOfSight() then
             BL.info("Moving closer to messenger")
             mq.cmdf("/nav id %d", closestMessenger.ID())
         end
     else
+        -- Only unpause if we previously paused and now have no messengers in range
+        if isMezPaused then
+            BL.info("No messengers in range, resuming automation")
+            BL.cmd.resumeAutomation()
+            isMezPaused = false
+        end
+        
         if hadMessengersLastCheck then -- Only log if we previously had messengers
             BL.info("No messengers in range (max 200 units)")
         end
