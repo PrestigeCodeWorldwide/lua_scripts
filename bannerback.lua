@@ -2,26 +2,129 @@
 local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
+local imgui = require 'ImGui'
 
-BL.info("Bannerback Script v1.22 Started")
+BL.info("Bannerback Script v1.23 Started")
+
+-- UI State
+local ui_open = true
+local script_paused = false
+local current_step = "Initializing..."
+local last_action = "None"
+local portal_countdown = 0
 
 local zonedIn = false
 local zoneName = nil
 
+-- UI Rendering function
+local function drawUI()
+    if not ui_open then return end
+    
+    local should_show, show = imgui.Begin('Bannerback Script', ui_open, bit32.bor(ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoTitleBar))
+    ui_open = show
+    
+    if should_show then
+        -- Pause/Unpause toggle button
+        local button_text = script_paused and "Resume" or "Pause"
+        if imgui.Button(button_text) then
+            script_paused = not script_paused
+            if script_paused then
+                BL.info("Script paused by user")
+                last_action = "Paused"
+            else
+                BL.info("Script resumed by user")
+                last_action = "Resumed"
+            end
+        end
+        if imgui.IsItemClicked(1) then -- Right click
+            if script_paused then
+                mq.cmd("/dga /bannerback_resume")
+            else
+                mq.cmd("/dga /bannerback_pause")
+            end
+        end
+        if imgui.IsItemHovered() then
+            imgui.SetTooltip("Left: Normal | Right: Broadcast to all toons")
+        end
+        
+        imgui.SameLine()
+        if imgui.Button("END") then
+            BL.info("Bannerback Script terminated by user")
+            mq.exit()
+        end
+        if imgui.IsItemClicked(1) then -- Right click
+            mq.cmd("/dga /lua stop bannerback")
+        end
+        if imgui.IsItemHovered() then
+            imgui.SetTooltip("Left: Normal | Right: Broadcast to all toons")
+        end
+        
+        -- Status information
+        imgui.Text("Status: " .. (script_paused and "PAUSED" or "RUNNING"))
+        local step_text = current_step
+        if portal_countdown > 0 then
+            step_text = step_text .. " (" .. portal_countdown .. ")"
+        end
+        imgui.Text("Step: " .. step_text)
+        imgui.Text("Zone: " .. (mq.TLO.Zone.ShortName() or "Unknown"))
+    end
+    
+    imgui.End()
+end
+
+-- Bind ImGui rendering
+mq.imgui.init('Bannerback', drawUI)
+
+-- Add command to toggle UI
+mq.bind('/bannerback_show', function()
+    ui_open = not ui_open
+    if ui_open then
+        BL.info("Bannerback UI opened")
+    else
+        BL.info("Bannerback UI closed")
+    end
+end)
+
+-- Add command to pause script
+mq.bind('/bannerback_pause', function()
+    script_paused = true
+    last_action = "Paused by command"
+    BL.info("Bannerback Script paused by command")
+end)
+
+-- Add command to resume script
+mq.bind('/bannerback_resume', function()
+    script_paused = false
+    last_action = "Resumed by command"
+    BL.info("Bannerback Script resumed by command")
+end)
+
 local function handleGuildHallPortal()
+    current_step = "Nav to GH portal..."
     BL.info("Navigating to portal location in Guild Hall...")
     BL.cmd.pauseAutomation()
     mq.cmd("/nav locxy 162 -5")
     BL.WaitForNav()
     mq.delay(1000)
     BL.cmd.resumeAutomation()
-    mq.delay(6500)
-    BL.info("Clicking yes to portal.")
+    
+    -- Countdown before clicking portal
+    current_step = "Clicking Yes in"
+    portal_countdown = 7
+    for i = portal_countdown, 1, -1 do
+        portal_countdown = i
+        mq.delay(1000)
+    end
+    portal_countdown = 0
+    
+    BL.info("Clicking Yes in 7 seconds.")
     mq.cmd("/yes")
+    
     return true
 end
 
 local function handlePlaneOfKnowledge()
+    current_step = "/travelto guild lobby..."
     BL.info("In Plane of Knowledge - traveling to Guild Lobby...")
     BL.cmd.pauseAutomation()
     mq.cmd("/travelto guild lobby")
@@ -45,6 +148,7 @@ local function handlePlaneOfKnowledge()
 end
 
 local function handleEastFreeport()
+    current_step = "Handling East Freeport transport..."
     BL.info("In East Freeport - checking transport options...")
     
     -- Check for Primary Anchor Transport Device
@@ -98,6 +202,7 @@ local function handleEastFreeport()
 end
 
 local function zoneToGuildHall()
+    current_step = "Zoning to GH..."
     zonedIn = false
     local currentZone = mq.TLO.Zone.ShortName()
     if currentZone ~= 'guildlobby' then
@@ -145,6 +250,13 @@ end
 
 -- 🔁 Continuous check loop
 while true do
+    -- Check if script is paused
+    if script_paused then
+        mq.delay(100) -- Small delay when paused to prevent high CPU usage
+        current_step = "Script paused"
+        goto continue
+    end
+    
     local currentZone = mq.TLO.Zone.ShortName()
     if currentZone == 'freeporteast' then
         local success = handleEastFreeport()
@@ -175,6 +287,9 @@ while true do
         end
     else
         -- Not in target zones, recheck every 5 seconds
+        current_step = "Waiting for target zone..."
         mq.delay(5000)
     end
+    
+    ::continue::
 end
