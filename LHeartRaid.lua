@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("LHeartRaid Script v1.0 Started")
+BL.info("LHeartRaid Script v1.1 Started")
 
 --mq.cmd("/useadv off")
 --mq.cmd("/lootnodrop never")
@@ -59,30 +59,30 @@ while true do
     -- Normal check for getting the Bright debuff trigger
     if BL.IHaveBuff(debuffBright) and not iAmWaiting then
         iAmWaiting = true
-        BL.info('I have the Bright debuff. Switching Target to Dark')
+        BL.info('I have the Bright debuff. Targeting myself')
 
         BL.cmd.pauseAutomation()
         mq.delay(100)
         mq.cmd("/tar")
         --change to 'a dark energist'
-        mq.cmd("/tar npc a dark energist")
-        mq.cmd("/nav target")
-        BL.WaitForNav()
-        mq.cmd("/attack on")
+        --mq.cmd("/tar npc a dark energist")
+        --mq.cmd("/nav target")
+        --BL.WaitForNav()
+        --mq.cmd("/attack on")
     end
     -- Normal check for getting the Dark debuff trigger
     if BL.IHaveBuff(debuffDark) and not iAmWaiting then
         iAmWaiting = true
-        BL.info('I have the Dark debuff. Switching Target to Bright')
+        BL.info('I have the Dark debuff. Targeting myself')
 
         BL.cmd.pauseAutomation()
         mq.delay(100)
         mq.cmd("/tar")
         --change to 'a bright energist'
-        mq.cmd("/tar npc a bright energist")
-        mq.cmd("/nav target")
-        BL.WaitForNav()
-        mq.cmd("/attack on")
+        --mq.cmd("/tar npc a bright energist")
+        --mq.cmd("/nav target")
+        --BL.WaitForNav()
+        --mq.cmd("/attack on")
     end
 
     -- Check for resuming if we're waiting and the debuff falls off. 
