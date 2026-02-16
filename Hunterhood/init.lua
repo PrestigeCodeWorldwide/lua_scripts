@@ -32,7 +32,7 @@ local panicRange = 200
 local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 
-BL.info('HunterHood v2.218 loaded')
+BL.info('HunterHood v2.219 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup

@@ -1,4 +1,4 @@
--- v1.121
+-- v1.122
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -205,6 +205,61 @@ local function new(myAch)
 
     return 0
 end
+
+    -- Target named mob or nearest PH (for right-click functionality)
+    -- @param mobName string - Name of named mob to target
+    -- @param zoneID number - Zone ID to search in (current zone if nil)
+    -- @param nameMap table - Name mapping table for spawn name corrections
+    -- @return boolean - True if successfully targeted something, false otherwise
+    function helpers.targetMobOrPH(mobName, zoneID, nameMap)
+        if not mobName then return false end
+        
+        zoneID = zoneID or mq.TLO.Zone.ID()
+        local spawnID = helpers.findSpawn(mobName, nameMap)
+        
+        if spawnID > 0 then
+            -- Named mob is up, target it
+            mq.cmd('/target id ' .. spawnID)
+            printf('\a#f8bd21Targeted named mob: %s (ID: %d)', mobName, spawnID)
+            return true
+        else
+            -- Named not up, try to target nearest PH
+            local phList = require('Hunterhood.ph_list')
+            local phs = phList.getPlaceholders(mobName, zoneID)
+            
+            if phs and #phs > 0 then
+                local nearestPH = nil
+                local nearestDist = 999999
+                
+                for _, ph in ipairs(phs) do
+                    local phID = helpers.findSpawn(ph, nameMap)
+                    if phID > 0 then
+                        local phSpawn = mq.TLO.Spawn(phID)
+                        if phSpawn() and not phSpawn.Dead() then
+                            local dist = phSpawn.Distance()
+                            if dist < nearestDist then
+                                nearestDist = dist
+                                nearestPH = phID
+                            end
+                        end
+                    end
+                end
+                
+                if nearestPH then
+                    local phName = mq.TLO.Spawn(nearestPH).CleanName()
+                    mq.cmd('/target id ' .. nearestPH)
+                    printf('\a#f8bd21Targeted nearest PH for %s: %s (ID: %d)', mobName, phName, nearestPH)
+                    return true
+                else
+                    printf('\arNo PHs found for %s', mobName)
+                end
+            else
+                printf('\arNo PHs defined for %s', mobName)
+            end
+        end
+        
+        return false
+    end
 
     -- Normalize mob names for comparison
     function helpers.normalizeName(name)
