@@ -31,12 +31,19 @@ local panicSoundEnabled = false
 local panicRange = 200
 local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
+local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.219 loaded')
+BL.info('HunterHood v2.220 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
 mq.cmd('/maploc remove')
+
+-- Panic invisibility state variables
+local panicInvisAttempts = 0
+local panicInvisNextAction = 0
+local panicInvisActive = false
+local panicInvisState = "casting" -- "casting" or "retrying"
 
 -- Panic function - emergency stop when non-guild players detected
 local function triggerPanic()
@@ -44,24 +51,27 @@ local function triggerPanic()
     
     printf("\arPANIC! Non-guild player detected - Stopping all navigation!")
     
-    -- Stop navigation (same as Stop button)
+    -- Immediate actions (can be done in ImGui thread)
     navActive = false
     helpers.hideReferenceCircle() -- Clean up reference circle when stopping
     navCoroutine = nil
     mq.cmd("/nav stop")
-    
-    -- Clear current target
     currentTarget = nil
     
-    -- Cast invisibility for safety
+    -- Start invisibility process using main loop timing
     if useInvis then
-        printf("\ayCasting invisibility for safety...")
-        mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
-        mq.cmd("/squelch /alt act 231")
+        panicInvisAttempts = 0
+        panicInvisNextAction = os.clock() + 3.0 -- First cast in 3 seconds
+        panicInvisActive = true
+        panicInvisState = "casting"
+        printf("\ayEnsuring group invisibility for safety...")
     end
     
     panicTriggered = true
-    printf("\arPanic mode activated - Navigation stopped. Uncheck Panic to resume.")
+    printf("\arPanic mode activated - Navigation stopped. Auto-disabling panic checkbox.")
+    
+    -- Automatically uncheck panic checkbox after triggering
+    panicEnabled = false
 end
 
 -- Function to handle navigation to targets
@@ -1263,15 +1273,34 @@ local function RenderOptionsWindow()
                 helpers.playSound("panic.wav")
             end
             
-            -- Trigger panic if enabled and non-guild detected
+            -- Trigger panic if enabled and non-guild detected, but only when no mobs on xtarget
             if panicEnabled and nonGuildCount > 0 and not panicTriggered then
-                triggerPanic()
+                -- Check if any mobs are on xtarget
+                local xtargetCount = mq.TLO.Me.XTarget() or 0
+                local hasMobsOnXTarget = false
+                
+                for i = 1, xtargetCount do
+                    local target = mq.TLO.Me.XTarget(i)
+                    if target() and target.ID() > 0 then
+                        local spawn = mq.TLO.Spawn(target.ID())
+                        if spawn() and not spawn.Dead() and spawn.Type() ~= "PC" then
+                            hasMobsOnXTarget = true
+                            break
+                        end
+                    end
+                end
+                
+                -- Only trigger panic if no mobs are on xtarget
+                if not hasMobsOnXTarget then
+                    triggerPanic()
+                end
             end
             
-            -- Reset panic trigger when panic is disabled
-            if not panicEnabled and panicTriggered then
+            -- Reset panic trigger when panic is re-enabled (after auto-uncheck)
+            if panicEnabled and panicTriggered then
                 panicTriggered = false
-                printf("\ayPanic mode deactivated - Navigation can resume.")
+                panicCoroutine = nil -- Stop any ongoing invisibility coroutine
+                printf("\ayPanic mode reset - Ready to trigger again.")
             end
             
             lastNonGuildCount = nonGuildCount
@@ -2161,5 +2190,51 @@ while Open do
             navActive = false
         end
     end
+    
+    -- Update panic invisibility process
+    if panicInvisActive then
+        local currentTime = os.clock()
+        
+        -- Check if it's time for next action
+        if currentTime >= panicInvisNextAction then
+            if panicInvisState == "casting" then
+                -- Cast invisibility
+                panicInvisAttempts = panicInvisAttempts + 1
+                printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", panicInvisAttempts)
+                mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+                mq.cmd("/squelch /alt act 231")
+                
+                if panicInvisAttempts >= 5 then
+                    printf("\arFailed to ensure group is invisible after 5 attempts")
+                    panicInvisActive = false
+                else
+                    -- Schedule retry check
+                    panicInvisNextAction = currentTime + 5.0
+                    panicInvisState = "retrying"
+                end
+            elseif panicInvisState == "retrying" then
+                -- Check if invisibility worked
+                if helpers.groupNeedsInvis() then
+                    -- Still need invis, cast again
+                    printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", panicInvisAttempts + 1)
+                    mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+                    mq.cmd("/squelch /alt act 231")
+                    
+                    panicInvisAttempts = panicInvisAttempts + 1
+                    if panicInvisAttempts >= 5 then
+                        printf("\arFailed to ensure group is invisible after 5 attempts")
+                        panicInvisActive = false
+                    else
+                        -- Schedule another retry
+                        panicInvisNextAction = currentTime + 5.0
+                    end
+                else
+                    printf("\ayGroup is now invisible, panic complete")
+                    panicInvisActive = false
+                end
+            end
+        end
+    end
+    
     mq.delay(100)
 end
