@@ -168,7 +168,7 @@ local expansions = {
 
 local expansionScripts = {
     ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN" },
-    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanaxrbar" },
+    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanaxbar" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
     ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
