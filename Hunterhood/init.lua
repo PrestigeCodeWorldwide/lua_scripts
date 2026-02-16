@@ -25,11 +25,44 @@ local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
-BL.info('HunterHood v2.217 loaded')
+-- Panic detection variables
+local panicEnabled = false -- Checkbox does nothing for now, detection always runs
+local panicSoundEnabled = false
+local panicRange = 200
+local lastNonGuildCount = 0 -- Track previous count to detect changes
+local panicTriggered = false -- Track if panic has been triggered this session
+
+BL.info('HunterHood v2.218 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
 mq.cmd('/maploc remove')
+
+-- Panic function - emergency stop when non-guild players detected
+local function triggerPanic()
+    if panicTriggered then return end -- Only trigger once per session
+    
+    printf("\arPANIC! Non-guild player detected - Stopping all navigation!")
+    
+    -- Stop navigation (same as Stop button)
+    navActive = false
+    helpers.hideReferenceCircle() -- Clean up reference circle when stopping
+    navCoroutine = nil
+    mq.cmd("/nav stop")
+    
+    -- Clear current target
+    currentTarget = nil
+    
+    -- Cast invisibility for safety
+    if useInvis then
+        printf("\ayCasting invisibility for safety...")
+        mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+        mq.cmd("/squelch /alt act 231")
+    end
+    
+    panicTriggered = true
+    printf("\arPanic mode activated - Navigation stopped. Uncheck Panic to resume.")
+end
 
 -- Function to handle navigation to targets
 local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
@@ -1052,7 +1085,7 @@ local function RenderOptionsWindow()
             end
             
             ImGui.SameLine()
-            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Range")
             ImGui.PopStyleColor(1)
             
@@ -1078,7 +1111,7 @@ local function RenderOptionsWindow()
             end
             
             ImGui.SameLine()
-            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Z-High")
             ImGui.PopStyleColor(1)
             
@@ -1104,12 +1137,144 @@ local function RenderOptionsWindow()
             end
             
             ImGui.SameLine()
-            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Z-Low")
             ImGui.PopStyleColor(1)
             
             ImGui.PopStyleColor(5) -- Pop Z-Low input field colors
             ImGui.PopStyleVar(1) -- Pop the border style
+            
+            ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
+            ImGui.Separator()
+            ImGui.PopStyleColor(1)
+            
+            -- Panic Detection Settings
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
+            ImGui.Text("Everybody Panic!:")
+            ImGui.PopStyleColor(1)
+            
+            -- Style for checkbox to match theme
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            -- Set text color based on checkbox state
+            if panicEnabled then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when enabled (panic)
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when disabled
+            end
+            
+            local newPanicEnabled = ImGui.Checkbox("Panic", panicEnabled)
+            if newPanicEnabled ~= panicEnabled then
+                panicEnabled = newPanicEnabled
+            end
+            
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Stop navigation & cast invis when non-guild players enter range")
+                ImGui.PopStyleColor(1)
+            end
+            
+            -- Add Sound checkbox next to Panic
+            ImGui.SameLine()
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            -- Set text color based on checkbox state
+            if panicSoundEnabled then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when enabled (sound active)
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when disabled
+            end
+            
+            local newPanicSoundEnabled = ImGui.Checkbox("Sound", panicSoundEnabled)
+            if newPanicSoundEnabled ~= panicSoundEnabled then
+                panicSoundEnabled = newPanicSoundEnabled
+            end
+            
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Play sound when non-guild players enter range")
+                ImGui.PopStyleColor(1)
+            end
+            
+            -- Add spacing before range input
+            ImGui.Spacing()
+            
+            -- Range input with stepper (matching Z-High/Low style)
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
+            local oldPanicRange = panicRange
+            panicRange = ImGui.InputInt("##panicrange", panicRange)
+            if panicRange ~= oldPanicRange then
+                -- Ensure panicRange stays within bounds (50-500)
+                panicRange = math.max(50, math.min(9999, panicRange))
+            end
+            
+            ImGui.SameLine()
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
+            ImGui.Text("Range")
+            ImGui.PopStyleColor(1)
+            
+            ImGui.PopStyleColor(5) -- Pop range input field colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Detection range for non-guild players (50-500)")
+                ImGui.PopStyleColor(1)
+            end
+            
+            -- Always show non-guild count for awareness (untethered from panic checkbox)
+            ImGui.Spacing()
+            local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
+            
+            -- Show count with different color based on panic state
+            if panicEnabled then
+                ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1) -- Red text for warning when panic enabled
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text for awareness when panic disabled
+            end
+            ImGui.Text(string.format("Non-Guild in Range: %d", nonGuildCount))
+            ImGui.PopStyleColor(1)
+            
+            -- Play sound only if sound is enabled (independent from panic checkbox), and count changes
+            if panicSoundEnabled and nonGuildCount > 0 and nonGuildCount ~= lastNonGuildCount then
+                helpers.playSound("panic.wav")
+            end
+            
+            -- Trigger panic if enabled and non-guild detected
+            if panicEnabled and nonGuildCount > 0 and not panicTriggered then
+                triggerPanic()
+            end
+            
+            -- Reset panic trigger when panic is disabled
+            if not panicEnabled and panicTriggered then
+                panicTriggered = false
+                printf("\ayPanic mode deactivated - Navigation can resume.")
+            end
+            
+            lastNonGuildCount = nonGuildCount
             
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()

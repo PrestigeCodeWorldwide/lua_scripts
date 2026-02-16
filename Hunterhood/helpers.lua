@@ -1,4 +1,4 @@
--- v1.120
+-- v1.121
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -501,67 +501,13 @@ end
         return bestSpawn or (candidates[1] and candidates[1].spawn)
     end
 
-    -- Target named mob or nearest PH (for right-click functionality)
-    -- @param mobName string - Name of the named mob to target
-    -- @param zoneID number - Zone ID to search in (current zone if nil)
-    -- @param nameMap table - Name mapping table for spawn name corrections
-    -- @return boolean - True if successfully targeted something, false otherwise
-    function helpers.targetMobOrPH(mobName, zoneID, nameMap)
-        if not mobName then return false end
-        
-        zoneID = zoneID or mq.TLO.Zone.ID()
-        local spawnID = helpers.findSpawn(mobName, nameMap)
-        
-        if spawnID > 0 then
-            -- Named mob is up, target it
-            mq.cmd('/target id ' .. spawnID)
-            printf('\a#f8bd21Targeted named mob: %s (ID: %d)', mobName, spawnID)
-            return true
-        else
-            -- Named not up, try to target nearest PH
-            local phList = require('Hunterhood.ph_list')
-            local phs = phList.getPlaceholders(mobName, zoneID)
-            
-            if phs and #phs > 0 then
-                local nearestPH = nil
-                local nearestDist = 999999
-                
-                for _, ph in ipairs(phs) do
-                    local phID = helpers.findSpawn(ph, nameMap)
-                    if phID > 0 then
-                        local phSpawn = mq.TLO.Spawn(phID)
-                        if phSpawn() and not phSpawn.Dead() then
-                            local dist = phSpawn.Distance()
-                            if dist < nearestDist then
-                                nearestDist = dist
-                                nearestPH = phID
-                            end
-                        end
-                    end
-                end
-                
-                if nearestPH then
-                    local phName = mq.TLO.Spawn(nearestPH).CleanName()
-                    mq.cmd('/target id ' .. nearestPH)
-                    printf('\a#f8bd21Targeted nearest PH for %s: %s (ID: %d)', mobName, phName, nearestPH)
-                    return true
-                else
-                    printf('\arNo PHs found for %s', mobName)
-                end
-            else
-                printf('\arNo PHs defined for %s', mobName)
-            end
-        end
-        
-        return false
-    end
-
+    -- Check if group needs invisibility
     function helpers.groupNeedsInvis()
         -- First check if invis is disabled
         if not useInvis then
             return false
         end
-
+        
         -- Check for any active targets
         local xtargetCount = mq.TLO.Me.XTarget() or 0
         if xtargetCount > 0 then
@@ -611,6 +557,107 @@ end
         return membersNeedingInvis > 0
     end
 
+    -- Function to check for non-guild members within range (for panic detection)
+    function helpers.checkNonGuildInRange(maxRange)
+        maxRange = maxRange or 200 -- Default 200 range
+        
+        -- Get your guild name
+        local my_guild = mq.TLO.Me.Guild() or ""
+        local in_guild = my_guild ~= "" and my_guild ~= "unknown"
+        
+        -- Get all PC spawns
+        local spawn_filter = function(spawn)
+            return spawn.Type() == "PC" and spawn.ID() ~= mq.TLO.Me.ID() and (spawn.Distance() or 999) <= maxRange
+        end
+        
+        local pc_spawns = mq.getFilteredSpawns(spawn_filter)
+        local nonGuildCount = 0
+        
+        for _, spawn_obj in ipairs(pc_spawns) do
+            if spawn_obj and spawn_obj.Name and spawn_obj.Name() then
+                local guild = ""
+                
+                -- Get guild information with fallbacks
+                local freshSpawn = mq.TLO.Spawn(spawn_obj.ID())
+                if freshSpawn() then
+                    guild = freshSpawn.Guild() or ""
+                end
+                
+                if guild == "unknown" or guild == "" then
+                    local nameSpawn = mq.TLO.Spawn("pc " .. spawn_obj.Name())
+                    if nameSpawn() then
+                        guild = nameSpawn.Guild() or ""
+                    end
+                end
+                
+                if guild == "unknown" then guild = "" end
+                
+                -- If not in your guild (or no guild), count it
+                if in_guild then
+                    if guild ~= my_guild then
+                        nonGuildCount = nonGuildCount + 1
+                    end
+                else
+                    -- If not in a guild, all players count as non-guild
+                    nonGuildCount = nonGuildCount + 1
+                end
+            end
+        end
+        
+        return nonGuildCount
+    end
+
+    -- Check if all group members are in the same zone
+    -- Uses distance as proxy since member.Zone TLO access has issues
+    function helpers.areAllGroupMembersInZone()
+        local groupSize = mq.TLO.Group.GroupSize() or 0
+        if groupSize <= 1 then
+            return true -- Only you, so trivially all in zone
+        end
+
+        for i = 1, groupSize - 1 do
+            local member = mq.TLO.Group.Member(i)
+            if member() then
+                local spawn = member.Spawn
+                if spawn() then
+                    local distance = spawn.Distance3D() or 0
+                    -- If distance is >= 999999, member is likely in different zone
+                    if distance >= 999999 then
+                        return false
+                    end
+                end
+            end
+        end
+
+        return true
+    end
+
+    -- Get list of group members not in the same zone
+    -- Uses distance as proxy since member.Zone TLO access has issues
+    function helpers.getGroupMembersNotInZone()
+        local notInZone = {}
+        local groupSize = mq.TLO.Group.GroupSize() or 0
+        if groupSize <= 1 then
+            return notInZone -- Only you, so no one to check
+        end
+
+        for i = 1, groupSize - 1 do
+            local member = mq.TLO.Group.Member(i)
+            if member() then
+                local spawn = member.Spawn
+                if spawn() then
+                    local distance = spawn.Distance3D() or 0
+                    -- If distance is >= 999999, member is likely in different zone
+                    if distance >= 999999 then
+                        table.insert(notInZone, spawn.CleanName() or "Unknown")
+                    end
+                end
+            end
+        end
+
+        return notInZone
+    end
+
     return helpers
 end
 
@@ -621,5 +668,8 @@ return {
     end,
     getGroupMembersNotInZone = function()
         return new().getGroupMembersNotInZone()
+    end,
+    checkNonGuildInRange = function(maxRange)
+        return new().checkNonGuildInRange(maxRange)
     end
 }
