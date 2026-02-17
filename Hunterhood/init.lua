@@ -28,12 +28,12 @@ local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 -- Panic detection variables
 local panicEnabled = false -- Checkbox does nothing for now, detection always runs
 local panicSoundEnabled = false
-local panicRange = 200
+local panicRange = 9999
 local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.220 loaded')
+BL.info('HunterHood v2.221 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -923,15 +923,16 @@ local function InfoLine()
     
     ImGui.SameLine()
     local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
+    local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
 
     if pcs > 50 then
-        ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs))
+        ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
     elseif pcs > 25 then
-        ImGui.TextColored(0.95, 0.95, 0.05, 1, tostring(pcs))
+        ImGui.TextColored(0.95, 0.95, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
     elseif pcs > 0 then
-        ImGui.TextColored(0.05, 0.95, 0.05, 1, tostring(pcs))
+        ImGui.TextColored(0.05, 0.95, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
     else
-        ImGui.TextDisabled(tostring(pcs))
+        ImGui.TextDisabled(tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
     end
 
     ImGui.SameLine()
@@ -1633,9 +1634,9 @@ local function renderHoodTab()
 
         local windowWidth = select(1, ImGui.GetContentRegionAvail())
         local col1MinWidth = 202
-        local col2Width = 50                                -- Increased to ensure enough space for distance display
+        local col2Width = 70                               -- Increased significantly to handle large distances
         local remainingSpace = windowWidth - col2Width - 30 -- Slightly reduce the padding
-        local col1Width = math.max(col1MinWidth, remainingSpace * 0.5)
+        local col1Width = math.max(col1MinWidth, remainingSpace * 0.3)
         local col3Width = remainingSpace - col1Width
 
         ImGui.Columns(3, "##mob_columns_header", false)
@@ -1674,15 +1675,16 @@ local function renderHoodTab()
         
         ImGui.SameLine(0, 4) -- Slightly reduced from default
         local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
+        local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
 
         if pcs > 50 then
-            ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs))
+            ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
         elseif pcs > 25 then
-            ImGui.TextColored(0.95, 0.95, 0.05, 1, tostring(pcs))
+            ImGui.TextColored(0.95, 0.95, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
         elseif pcs > 0 then
-            ImGui.TextColored(0.05, 0.95, 0.05, 1, tostring(pcs))
+            ImGui.TextColored(0.05, 0.95, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
         else
-            ImGui.TextDisabled(tostring(pcs))
+            ImGui.TextDisabled(tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
         end
 
         ImGui.SameLine(0, 4) -- Slightly reduced from default
@@ -1712,6 +1714,8 @@ local function renderHoodTab()
         if mq.TLO.Navigation.Active() and currentNavTarget and currentNavTarget() then
             local dist = currentNavTarget.Distance3D() or 0
             if dist > 0 then
+                -- Move to column 2 for distance display
+                ImGui.NextColumn()
                 ImGui.SameLine(0, 4)
                 ImGui.TextColored(0.5, 0.5, 0.5, 0.7, '|')
                 ImGui.SameLine(0, 4)
@@ -1722,9 +1726,9 @@ local function renderHoodTab()
                 else
                     ImGui.TextColored(0.0, 0.95, 0.0, 1, ('%.0f'):format(dist)) -- Green for close
                 end
+                -- Stay in column 2, the main content will move to column 3
             end
         end
-
 
         ImGui.NextColumn()
         ImGui.Columns(1)
