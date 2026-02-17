@@ -33,7 +33,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.221 loaded')
+BL.info('HunterHood v2.222 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -848,6 +848,23 @@ local function createLines(spawn)
     
     -- Draw the mob name
     textEnabled(spawn)
+end
+
+-- Simplified popup menu for HunterHood tab
+local function hoodPopupmenu()
+    ImGui.SetCursorPosX((ImGui.GetWindowWidth() - ImGui.CalcTextSize('HunterHood')) * 0.5)
+    ImGui.TextColored(0.973, 0.741, 0.129, 1, 'HunterHood')
+    ImGui.Separator()
+    ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1)
+    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.33, 0.33, 0.33, 0.5)
+    ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
+
+    if ImGui.Selectable('Stop HunterHood') then 
+        Open = false 
+    end
+    
+    ImGui.PopStyleColor(3)
+    ImGui.EndPopup()
 end
 
 local function popupmenu()
@@ -2118,6 +2135,11 @@ local function HunterHUD()
 
             -- Hood tab
             if ImGui.BeginTabItem("Hood") then
+                -- Add right-click context menu for the Hood tab
+                if ImGui.BeginPopupContextItem('hood_tab_popup') then
+                    hoodPopupmenu()
+                end
+                
                 lastTab = currentTab
                 currentTab = "Hood"
 
