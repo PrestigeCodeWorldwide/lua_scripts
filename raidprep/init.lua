@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.833 Started")
+BL.info("RaidPrep v1.835 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -168,7 +168,7 @@ local expansions = {
 
 local expansionScripts = {
     ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN" },
-    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanarbar" },
+    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanaxbar" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
     ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
@@ -190,14 +190,14 @@ local scriptTooltips = {
     ["LEM"] = "lua event manager",
     ["Magellan"] = "/travelto zones with UI",
     ["Moblist"] = "Tracks spawns in a zone with UI",
-    ["Offtank"] = "Allows selecting specific mobs to offtank automatically",
+    ["Offtank"] = "Allows selecting specific mobs or Xtargets to offtank automatically",
     ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
     ["TCN"] = "Tradeskill Consturction Next",
 
     -- Shattering of Ro scripts
     ["Colossus"] = "Runs toons away from stone emote during the Colossus raid",
     ["SharDrahn"] = "Mounts and dismounts for knockback during the Shar Drahn raid",
-    ["Xanarbar"] = "Turns off all AE healing during the Xanarbar raid",
+    ["Xanaxbar"] = "Turns off all AE healing during the Xanaxbar raid",
 
     -- The Outer Brood scripts
     ["SilenceTheCannons"] =
@@ -273,6 +273,21 @@ local function drawluaTab()
                 imgui.Text(scriptTooltips[script] or (script .. " Script"))
                 imgui.EndTooltip()
             end
+            
+            -- Additional command for GuildClicky - execute /gc show
+            if script == "GuildClicky" then
+                imgui.SameLine()
+                if imgui.Button("Show", 40, 18) then
+                    print("Executing /gc show: " .. script)
+                    mq.cmdf("/squelch /gc show")
+                end
+                if imgui.IsItemHovered() then
+                    imgui.BeginTooltip()
+                    imgui.Text("Toggle /gc show")
+                    imgui.EndTooltip()
+                end
+            end
+            
             imgui.NextColumn()
 
             -- Column 2: Dannet command Buttons
