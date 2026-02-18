@@ -4,7 +4,7 @@ local mq = require('mq')
 local BL = require("biggerlib")
 local imgui = require 'ImGui'
 
-BL.info("Bannerback Script v1.23 Started")
+BL.info("Bannerback Script v1.24 Started")
 
 -- UI State
 local ui_open = true
@@ -138,7 +138,7 @@ local function handlePlaneOfKnowledge()
     
     if mq.TLO.Zone.ShortName() == 'guildlobby' then
         BL.info("Successfully arrived at Guild Lobby")
-        BL.cmd.resumeAutomation()
+        --BL.cmd.resumeAutomation()
         return true
     else
         BL.warn("Failed to travel to Guild Lobby within timeout")
@@ -163,13 +163,13 @@ local function handleEastFreeport()
         BL.info("Primary Anchor Transport Device is ready - using to return to Guild Hall")
         BL.cmd.pauseAutomation()
         mq.cmd('/useitem "Primary Anchor Transport Device"')
-        BL.cmd.resumeAutomation()
+        --BL.cmd.resumeAutomation()
         return true
     elseif secondaryReady then
         BL.info("Secondary Anchor Transport Device is ready - using to return to Guild Hall")
         BL.cmd.pauseAutomation()
         mq.cmd('/useitem "Secondary Anchor Transport Device"')
-        BL.cmd.resumeAutomation()
+        --BL.cmd.resumeAutomation()
         return true
     else
         -- Check for Throne of Heroes AA as fallback
@@ -180,7 +180,7 @@ local function handleEastFreeport()
             BL.info("Both anchors on cooldown, using Throne of Heroes AA to return to Guild Lobby")
             BL.cmd.pauseAutomation()
             mq.cmd('/alt act 511')
-            BL.cmd.resumeAutomation()
+            --BL.cmd.resumeAutomation()
             return true
         else
             -- Check for Philter of Major Translocation as final fallback
@@ -191,7 +191,7 @@ local function handleEastFreeport()
                 BL.info("All previous options on cooldown, using Philter of Major Translocation")
                 BL.cmd.pauseAutomation()
                 mq.cmd('/useitem "Philter of Major Translocation"')
-                BL.cmd.resumeAutomation()
+                --BL.cmd.resumeAutomation()
                 return true
             else
                 BL.warn("All transport options (Primary Anchor, Secondary Anchor, Throne of Heroes, Philter) are on cooldown")
