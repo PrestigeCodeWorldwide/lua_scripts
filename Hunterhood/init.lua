@@ -33,7 +33,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.222 loaded')
+BL.info('HunterHood v2.223 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -1286,43 +1286,6 @@ local function RenderOptionsWindow()
             ImGui.Text(string.format("Non-Guild in Range: %d", nonGuildCount))
             ImGui.PopStyleColor(1)
             
-            -- Play sound only if sound is enabled (independent from panic checkbox), and count changes
-            if panicSoundEnabled and nonGuildCount > 0 and nonGuildCount ~= lastNonGuildCount then
-                helpers.playSound("panic.wav")
-            end
-            
-            -- Trigger panic if enabled and non-guild detected, but only when no mobs on xtarget
-            if panicEnabled and nonGuildCount > 0 and not panicTriggered then
-                -- Check if any mobs are on xtarget
-                local xtargetCount = mq.TLO.Me.XTarget() or 0
-                local hasMobsOnXTarget = false
-                
-                for i = 1, xtargetCount do
-                    local target = mq.TLO.Me.XTarget(i)
-                    if target() and target.ID() > 0 then
-                        local spawn = mq.TLO.Spawn(target.ID())
-                        if spawn() and not spawn.Dead() and spawn.Type() ~= "PC" then
-                            hasMobsOnXTarget = true
-                            break
-                        end
-                    end
-                end
-                
-                -- Only trigger panic if no mobs are on xtarget
-                if not hasMobsOnXTarget then
-                    triggerPanic()
-                end
-            end
-            
-            -- Reset panic trigger when panic is re-enabled (after auto-uncheck)
-            if panicEnabled and panicTriggered then
-                panicTriggered = false
-                panicCoroutine = nil -- Stop any ongoing invisibility coroutine
-                printf("\ayPanic mode reset - Ready to trigger again.")
-            end
-            
-            lastNonGuildCount = nonGuildCount
-            
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
@@ -2169,6 +2132,46 @@ local function HunterHUD()
 
         ImGui.End()
     end
+    
+    -- Non-guild player detection and sound - runs regardless of which tab is active
+    local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
+    
+    -- Play sound only if sound is enabled and count changes
+    if panicSoundEnabled and nonGuildCount > 0 and nonGuildCount ~= lastNonGuildCount then
+        helpers.playSound("panic.wav")
+    end
+    
+    -- Trigger panic if enabled and non-guild detected, but only when no mobs on xtarget
+    if panicEnabled and nonGuildCount > 0 and not panicTriggered then
+        -- Check if any mobs are on xtarget
+        local xtargetCount = mq.TLO.Me.XTarget() or 0
+        local hasMobsOnXTarget = false
+        
+        for i = 1, xtargetCount do
+            local target = mq.TLO.Me.XTarget(i)
+            if target() and target.ID() > 0 then
+                local spawn = mq.TLO.Spawn(target.ID())
+                if spawn() and not spawn.Dead() and spawn.Type() ~= "PC" then
+                    hasMobsOnXTarget = true
+                    break
+                end
+            end
+        end
+        
+        -- Only trigger panic if no mobs are on xtarget
+        if not hasMobsOnXTarget then
+            triggerPanic()
+        end
+    end
+    
+    -- Reset panic trigger when panic is re-enabled (after auto-uncheck)
+    if panicEnabled and panicTriggered then
+        panicTriggered = false
+        panicCoroutine = nil -- Stop any ongoing invisibility coroutine
+        printf("\ayPanic mode reset - Ready to trigger again.")
+    end
+    
+    lastNonGuildCount = nonGuildCount
     
     -- Render the options window if it's open
     RenderOptionsWindow()
