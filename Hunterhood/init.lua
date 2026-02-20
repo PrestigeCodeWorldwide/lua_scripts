@@ -33,7 +33,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.223 loaded')
+BL.info('HunterHood v2.224 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -426,29 +426,25 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             end
                         end
 
-                        -- Check if mob is still in range while waiting for group
+                        -- Continuously navigate to target if it's more than 20 feet away while waiting for group
                         local mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and
                         currentTarget.Distance3D() or math.huge
-                        if mobDistance > 100 then -- Mob is too far, break out of waiting
-                            printf("\arTarget moved too far away (%.1f units), re-evaluating...", mobDistance)
-                            navComplete = true
-                            break
+                        
+                        if mobDistance > 20 then
+                            -- Always navigate to keep up with mobile target
+                            printf("\ayTarget is %.1f feet away, continuing navigation...", mobDistance)
+                            mq.cmdf("/nav id %d log=error", currentTarget.ID())
+                        else
+                            -- Stop navigation if we're close enough (within 20 feet)
+                            if mq.TLO.Navigation.Active() then
+                                mq.cmd("/nav stop")
+                            end
                         end
 
                         -- Wait a bit before checking again
                         for i = 1, 10 do
                             if not navActive then break end
                             coroutine.yield()
-
-                            -- Check mob distance during wait
-                            mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and
-                            currentTarget.Distance3D() or math.huge
-                            if mobDistance > 100 then -- Mob is too far, break out of waiting
-                                printf("\arTarget moved too far away (%.1f units) while waiting, re-evaluating...",
-                                    mobDistance)
-                                navComplete = true
-                                break
-                            end
                         end
                         -- Don't set navComplete yet, will check again next iteration
                     else
