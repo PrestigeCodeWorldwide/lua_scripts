@@ -33,7 +33,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.224 loaded')
+BL.info('HunterHood v2.225 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -996,7 +996,7 @@ end
 
 local function RenderOptionsWindow()
     if showOptionsWindow then
-        ImGui.SetNextWindowSize(170, 200, ImGuiCond.FirstUseEver)
+        ImGui.SetNextWindowSize(175, 305, ImGuiCond.FirstUseEver)
         
         -- Only remove title bar, keep resize functionality
         local windowFlags = ImGuiWindowFlags.NoTitleBar

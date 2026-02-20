@@ -1,4 +1,4 @@
--- v1.123
+-- v1.124
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -622,7 +622,7 @@ end
         
         -- Get all PC spawns
         local spawn_filter = function(spawn)
-            return spawn.Type() == "PC" and spawn.ID() ~= mq.TLO.Me.ID() and (spawn.Distance() or 999) <= maxRange
+            return spawn.Type() == "PC" and spawn.ID() ~= mq.TLO.Me.ID() and (spawn.Distance3D() or 999) <= maxRange
         end
         
         local pc_spawns = mq.getFilteredSpawns(spawn_filter)
