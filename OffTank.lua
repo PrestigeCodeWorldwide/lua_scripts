@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.15 loaded")
+BL.info("Offtank v1.17 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -123,12 +123,14 @@ local function cwtnTANK()
 end
 
 local function TargetAssignedMob()
-	if mq.TLO.Target.ID() ~= State.current_mob_being_tanked.ID() then
+	---@type spawn
+	local mob = State.current_mob_being_tanked
+	if mob and mob() and mq.TLO.Target.ID() ~= mob.ID() then
 		--mq.cmdf("/target %s", State.selected_xtar_to_tank)
 		--BL.info("Changing target to currently assigned, which is:")
 		--BL.dump(State.current_mob_being_tanked.ID())
 		--BL.dump(State.current_mob_being_tanked.Name())
-		State.current_mob_being_tanked.DoTarget()
+		mob.DoTarget()
 		mq.delay(1)
 	end
 end
@@ -222,6 +224,20 @@ local function ParseMobNames(mobNameInput)
 	cwtnCHOSEN()
 end
 
+local function IsNotIgnored(targetName)
+	-- check if targetName is in State.ignored_mobs (case insensitive)
+	if not targetName or targetName == "" then
+		return false  -- Can't ignore a nil/empty name
+	end
+	local targetNameLower = string.lower(targetName)
+	for _, ignored in ipairs(State.ignored_mobs) do
+		if targetNameLower == string.lower(ignored) then
+			return false
+		end
+	end
+	return true
+end
+
 local function FindMobByName()
 	if #State.mob_names == 0 then
 		return nil
@@ -233,8 +249,17 @@ local function FindMobByName()
 	
 	-- Check each mob name in our list
 	for _, mobName in ipairs(State.mob_names) do
+		-- Try both the full name and search for partial matches
 		local spawn = mq.TLO.Spawn(mobName)
-		if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance then
+		if not spawn() then
+			-- If exact match fails, try searching for spawns that contain the mob name
+			local searchSpawn = mq.TLO.Spawn("npc " .. mobName)
+			if searchSpawn() then
+				spawn = searchSpawn
+			end
+		end
+		
+		if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance and IsNotIgnored(spawn.CleanName()) then
 			local distance = spawn.Distance()
 			if distance < closestDistance then
 				closestDistance = distance
@@ -279,20 +304,6 @@ local function MoveToNavTarget()
 	end
 end
 
-local function IsNotIgnored(targetName)
-	-- check if targetName is in State.ignored_mobs (case insensitive)
-	if not targetName or targetName == "" then
-		return false  -- Can't ignore a nil/empty name
-	end
-	local targetNameLower = string.lower(targetName)
-	for _, ignored in ipairs(State.ignored_mobs) do
-		if targetNameLower == string.lower(ignored) then
-			return false
-		end
-	end
-	return true
-end
-
 local function UpdateAggroState()
 	
 	if State.UserChangedModeFlag then
@@ -331,10 +342,19 @@ local function UpdateAggroState()
 		if xtar ~= nil and not xtar.Dead() then
 			local xtarSpawn = mq.TLO.Spawn(xtar.ID())
 			State.current_mob_being_tanked = xtarSpawn
-		else
+		elseif xtar ~= nil and xtar.Dead() then
+			-- XTarget is dead, clear current target and stop tanking
 			State.current_mob_being_tanked = nil
 			cwtnCHOSEN()
 			State.IAmTanking = false
+		else
+			-- XTarget slot is empty or invalid, clear current target
+			-- This handles the case where a mob died and another moved into this slot
+			if State.IAmTanking then
+				State.current_mob_being_tanked = nil
+				cwtnCHOSEN()
+				State.IAmTanking = false
+			end
 		end
 		
 	else -- mobname mode
@@ -391,6 +411,7 @@ local function DoTanking()
 			cwtnCHOSEN()
 			State.IAmTanking = false
 		end
+		return
 	end
 	local spawn_distance = spawn_to_tank.Distance()
 	local spawn_los = spawn_to_tank.LineOfSight()
@@ -925,5 +946,5 @@ init()
 while true do
     main()
 	mq.doevents()
-	mq.delay(500)
+	mq.delay(120)
 end
