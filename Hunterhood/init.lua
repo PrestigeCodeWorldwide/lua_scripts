@@ -26,14 +26,14 @@ local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
 
 -- Panic detection variables
-local panicEnabled = false -- Checkbox does nothing for now, detection always runs
+local panicEnabled = false
 local panicSoundEnabled = false
 local panicRange = 9999
 local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.225 loaded')
+BL.info('HunterHood v2.227 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -408,12 +408,12 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     --inCombat and "Already in combat" or "Adds detected")
                     --end
 
-                    -- Check if all group members are within 100 range (unless we need to skip)
+                    -- Check if all group members are within 120 range (unless we need to skip)
                     local allInRange = skipDistanceCheck
                     local memberStatus = {}
 
                     if not skipDistanceCheck then
-                        allInRange, memberStatus = helpers.getGroupMemberStatus(100)
+                        allInRange, memberStatus = helpers.getGroupMemberStatus(120)
                     end
 
                     if not allInRange then
@@ -1265,7 +1265,7 @@ local function RenderOptionsWindow()
             
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
-                ImGui.SetTooltip("Detection range for non-guild players (50-500)")
+                ImGui.SetTooltip("Detection range for non-guild players (50-9999)")
                 ImGui.PopStyleColor(1)
             end
             
@@ -1447,7 +1447,7 @@ local function renderHoodTab()
     
     if ImGui.IsItemHovered() then
         ImGui.BeginTooltip()
-        ImGui.Text("Settings")
+        ImGui.Text("Toggle Settings Window")
         ImGui.EndTooltip()
     end
 
@@ -1598,7 +1598,7 @@ local function renderHoodTab()
         end
     end
     if ImGui.IsItemHovered() then
-        ImGui.SetTooltip("Click to select your current zone in the drop down")
+        ImGui.SetTooltip("Change zone selection to your current location")
     end
     ImGui.PopStyleColor(2)
     ImGui.PopStyleColor(4)
@@ -1611,8 +1611,8 @@ local function renderHoodTab()
         local windowWidth = select(1, ImGui.GetContentRegionAvail())
         local col1MinWidth = 202
         local col2Width = 70                               -- Increased significantly to handle large distances
-        local remainingSpace = windowWidth - col2Width - 30 -- Slightly reduce the padding
-        local col1Width = math.max(col1MinWidth, remainingSpace * 0.3)
+        local remainingSpace = windowWidth - col2Width - 20 -- Slightly reduce the padding
+        local col1Width = math.max(col1MinWidth, remainingSpace * 0.2)
         local col3Width = remainingSpace - col1Width
 
         ImGui.Columns(3, "##mob_columns_header", false)
@@ -1692,9 +1692,9 @@ local function renderHoodTab()
             if dist > 0 then
                 -- Move to column 2 for distance display
                 ImGui.NextColumn()
-                ImGui.SameLine(0, 4)
+                ImGui.SameLine(0, 8)
                 ImGui.TextColored(0.5, 0.5, 0.5, 0.7, '|')
-                ImGui.SameLine(0, 4)
+                ImGui.SameLine(0, 5)
                 if dist > 500 then
                     ImGui.TextColored(1.0, 0.2, 0.2, 1, ('%.0f'):format(dist))  -- Red for very far
                 elseif dist > 150 then
