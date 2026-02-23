@@ -4,7 +4,7 @@ local mq = require('mq')
 local BL = require("biggerlib")
 local imgui = require 'ImGui'
 
-BL.info("Bannerback Script v1.24 Started")
+BL.info("Bannerback Script v1.25 Started")
 
 -- UI State
 local ui_open = true
@@ -150,6 +150,11 @@ end
 local function handleEastFreeport()
     current_step = "Handling East Freeport transport..."
     BL.info("In East Freeport - checking transport options...")
+    
+    -- Add 5-second delay after zone check before attempting to cast
+    current_step = "Waiting 5 seconds before anchor check..."
+    BL.info("Waiting 5 seconds before checking Primary Anchor...")
+    mq.delay(5000)
     
     -- Check for Primary Anchor Transport Device
     local primaryAnchor = mq.TLO.FindItem("Primary Anchor Transport Device")
