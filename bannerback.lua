@@ -4,7 +4,7 @@ local mq = require('mq')
 local BL = require("biggerlib")
 local imgui = require 'ImGui'
 
-BL.info("Bannerback Script v1.25 Started")
+BL.info("Bannerback Script v1.26 Started")
 
 -- UI State
 local ui_open = true
@@ -177,30 +177,49 @@ local function handleEastFreeport()
         --BL.cmd.resumeAutomation()
         return true
     else
-        -- Check for Throne of Heroes AA as fallback
-        local throneReady = mq.TLO.Me.AltAbilityReady(511)
-        --BL.info("Throne of Heroes debug - AltAbilityReady value: " .. tostring(throneReady))
+        -- Check for Gate AA as fallback (only for classes that have it)
+        local myClass = mq.TLO.Me.Class.ShortName()
+        local gateClasses = {CLR=true, DRU=true, SHM=true, NEC=true, WIZ=true, MAG=true, ENC=true}
+        local gateReady = false
         
-        if throneReady == true then
-            BL.info("Both anchors on cooldown, using Throne of Heroes AA to return to Guild Lobby")
+        if gateClasses[myClass] then
+            local gateAA = mq.TLO.Me.AltAbility(1217)
+            gateReady = gateAA and mq.TLO.Me.AltAbilityReady(1217)
+        end
+        
+        if gateReady then
+            BL.info("Both anchors on cooldown, using Gate AA to return to bind point")
             BL.cmd.pauseAutomation()
-            mq.cmd('/alt act 511')
+            mq.cmd('/alt act 1217')
             --BL.cmd.resumeAutomation()
             return true
         else
-            -- Check for Philter of Major Translocation as final fallback
-            local philter = mq.TLO.FindItem("Philter of Major Translocation")
-            local philterReady = philter and philter.TimerReady() == 0
+            -- Check for Throne of Heroes AA as next fallback
+            local throneAA = mq.TLO.Me.AltAbility(511)
+            local throneReady = throneAA and mq.TLO.Me.AltAbilityReady(511)
+            --BL.info("Throne of Heroes debug - AltAbilityReady value: " .. tostring(throneReady))
             
-            if philterReady then
-                BL.info("All previous options on cooldown, using Philter of Major Translocation")
+            if throneReady then
+                BL.info("All previous options on cooldown, using Throne of Heroes AA to return to Guild Lobby")
                 BL.cmd.pauseAutomation()
-                mq.cmd('/useitem "Philter of Major Translocation"')
+                mq.cmd('/alt act 511')
                 --BL.cmd.resumeAutomation()
                 return true
             else
-                BL.warn("All transport options (Primary Anchor, Secondary Anchor, Throne of Heroes, Philter) are on cooldown")
-                return false
+                -- Check for Philter of Major Translocation as final fallback
+                local philter = mq.TLO.FindItem("Philter of Major Translocation")
+                local philterReady = philter and philter.TimerReady() == 0
+                
+                if philterReady then
+                    BL.info("All previous options on cooldown, using Philter of Major Translocation")
+                    BL.cmd.pauseAutomation()
+                    mq.cmd('/useitem "Philter of Major Translocation"')
+                    --BL.cmd.resumeAutomation()
+                    return true
+                else
+                    BL.warn("All transport options (Primary Anchor, Secondary Anchor, Gate AA, Throne of Heroes, Philter) are on cooldown")
+                    return false
+                end
             end
         end
     end
