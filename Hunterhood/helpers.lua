@@ -1,4 +1,4 @@
--- v1.124
+-- v1.125
 local mq = require 'mq'
 local BL = require("biggerlib")
 
@@ -554,6 +554,190 @@ end
 
         -- If no valid paths found, fall back to direct distance
         return bestSpawn or (candidates[1] and candidates[1].spawn)
+    end
+
+    -- Get group member class information and invisibility priority
+    -- @return table - List of group members with their classes and invis capabilities
+    function helpers.getGroupInvisInfo()
+        local groupInfo = {}
+        local groupSize = mq.TLO.Group.GroupSize() or 0
+        
+        -- Add script runner first
+        local myClass = mq.TLO.Me.Class() or ""
+        table.insert(groupInfo, {
+            name = mq.TLO.Me.CleanName() or "You",
+            class = myClass,
+            level = mq.TLO.Me.Level() or 0,
+            isMerc = false,
+            isRunner = true
+        })
+        
+        -- Add other group members
+        if groupSize > 1 then
+            for i = 1, groupSize - 1 do
+                local member = mq.TLO.Group.Member(i)
+                if member() then
+                    local spawn = member.Spawn
+                    if spawn() then
+                        table.insert(groupInfo, {
+                            name = spawn.CleanName() or "Unknown",
+                            class = member.Class() or "",
+                            level = member.Level() or 0,
+                            isMerc = member.Mercenary() or false,
+                            isRunner = false
+                        })
+                    end
+                end
+            end
+        end
+        
+        return groupInfo
+    end
+    
+    -- Determine best invisibility method based on group composition
+    -- @return table - Invis method info with priority and command
+    function helpers.getBestInvisMethod()
+        local groupInfo = helpers.getGroupInvisInfo()
+        local availableMethods = {}
+        
+        -- Define invisibility methods with their priorities (lower number = higher priority)
+        local invisMethods = {
+            {
+                name = "Bard AA",
+                priority = 1,
+                classes = {"Bard"},
+                commands = {"/alt act 231", "/squelch /noparse /docommand /dgza /alt act 231"}, -- Shauri's Sonorous Clouding 
+                aaRequired = false,
+                levelRequired = 110
+            },
+            {
+                name = "Shaman AA",
+                priority = 2,
+                classes = {"Shaman"},
+                commands = {"/dgza /alt act 630"}, -- Group Silent Presence
+                aaRequired = true,
+                levelRequired = 100
+            },
+            {
+                name = "Druid AA",
+                priority = 2,
+                classes = {"Druid"},
+                commands = {"/dgza /alt act 518"}, -- Shared Camo
+                aaRequired = true,
+                levelRequired = 85
+            },
+            {
+                name = "Enchanter AA",
+                priority = 3,
+                classes = {"Enchanter"},
+                commands = {"/dgza /alt act 1210"}, -- Group Perfected Invisibility
+                aaRequired = true,
+                levelRequired = 76
+            },
+            {
+                name = "Mage AA",
+                priority = 3,
+                classes = {"Magician"},
+                commands = {"/dgza /alt act 1210"}, -- Group Perfected Invisibility
+                aaRequired = true,
+                levelRequired = 76
+            },
+            {
+                name = "Ranger AA",
+                priority = 3,
+                classes = {"Ranger"},
+                commands = {"/dgza /alt act 518"}, -- Shared Camo
+                aaRequired = true,
+                levelRequired = 85
+            },
+        }
+        
+        -- Check which methods are available based on group composition
+        for _, member in ipairs(groupInfo) do
+            if not member.isMerc then -- Skip mercenaries
+                for _, method in ipairs(invisMethods) do
+                    -- Check if member's class can use this method
+                    for _, class in ipairs(method.classes) do
+                        if member.class:lower():find(class:lower(), 1, true) then
+                            -- Check level requirement
+                            if member.level >= method.levelRequired then
+                                -- For AA abilities, we could add additional checks here
+                                -- For now, assume they have the AA if they meet level requirement
+                                
+                                table.insert(availableMethods, {
+                                    member = member,
+                                    method = method
+                                })
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Sort by priority (lower number = higher priority)
+        table.sort(availableMethods, function(a, b) 
+            return a.method.priority < b.method.priority 
+        end)
+        
+        -- Return the best available method
+        if #availableMethods > 0 then
+            local best = availableMethods[1]
+            return {
+                member = best.member,
+                method = best.method,
+                commands = best.method.commands,
+                description = string.format("%s (%s - %s)", 
+                    best.method.name, 
+                    best.member.name, 
+                    best.member.class)
+            }
+        end
+        
+        return nil -- No invisibility method available
+    end
+    
+    -- Cast invisibility using the best available method
+    -- @return boolean - True if invisibility was cast, false otherwise
+    function helpers.castGroupInvisibility()
+        local invisMethod = helpers.getBestInvisMethod()
+        
+        if not invisMethod then
+            printf("\arNo group invisibility method available")
+            return false
+        end
+        
+        printf("\ayCasting invisibility: %s", invisMethod.description)
+        
+        -- Execute all commands for this method
+        for _, command in ipairs(invisMethod.commands) do
+            mq.cmd("/squelch " .. command)
+        end
+        
+        return true
+    end
+    
+    -- Debug function to show available invisibility methods
+    function helpers.debugInvisMethods()
+        local groupInfo = helpers.getGroupInvisInfo()
+        local invisMethod = helpers.getBestInvisMethod()
+        
+        printf("\a#f8bd21=== Invisibility Debug Info ===")
+        printf("\ayGroup Members:")
+        for _, member in ipairs(groupInfo) do
+            local mercTag = member.isMerc and " (Merc)" or ""
+            local runnerTag = member.isRunner and " (You)" or ""
+            printf("  - %s%s: Level %d %s%s", 
+                member.name, mercTag, member.level, member.class, runnerTag)
+        end
+        
+        if invisMethod then
+            printf("\a#f8bd21Best Available Method: %s", invisMethod.description)
+        else
+            printf("\arNo invisibility methods available in group")
+        end
+        
+        printf("\a#f8bd21=== End Debug Info ===")
     end
 
     -- Check if group needs invisibility

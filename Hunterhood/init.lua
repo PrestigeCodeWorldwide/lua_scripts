@@ -34,7 +34,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.228 loaded')
+BL.info('HunterHood v2.229 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -268,8 +268,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                 while needsInvis and attempts < 5 do -- Try up to 5 times
                                     if helpers.groupNeedsInvis() then
                                         printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", attempts + 1)
-                                        mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
-                                        mq.cmd("/squelch /alt act 231")
+                                        helpers.castGroupInvisibility()
                                         -- Wait for cast to complete
                                         for i = 1, 10 do
                                             if not navActive then break end
@@ -338,8 +337,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
 
                                         -- Cast invisibility on group and self until successful or nav is stopped
                                         while navActive and helpers.groupNeedsInvis() and targetDistance > 100 do
-                                            mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
-                                            mq.cmd("/squelch /alt act 231")
+                                            helpers.castGroupInvisibility()
 
                                             -- Update target distance in case we moved during the cast
                                             targetDistance = currentNavTarget and currentNavTarget.Distance3D() or 0
@@ -487,8 +485,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 -- Add invisibility check when no valid targets
                 if useInvis and helpers.groupNeedsInvis() then
                     printf("\ayNo valid targets - ensuring group invisibility...")
-                    mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
-                    mq.cmd("/squelch /alt act 231")
+                    helpers.castGroupInvisibility()
                     
                     -- Wait for cast to complete before sitting
                     for i = 1, 5 do -- 0.5 second delay for cast
@@ -1047,6 +1044,23 @@ local function RenderOptionsWindow()
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Use Invis while navigating between mobs")
                 ImGui.PopStyleColor(1)
+            end
+            
+            -- Show priority invis character next to checkbox
+            if useInvis then
+                local invisMethod = helpers.getBestInvisMethod()
+                if invisMethod then
+                    ImGui.SameLine()
+                    ImGui.PushStyleColor(ImGuiCol.Text, 0.2, 0.8, 1.0, 1) -- Light blue for method info
+                    local memberName = invisMethod.member.name
+                    ImGui.Text("(" .. memberName .. ")")
+                    ImGui.PopStyleColor(1)
+                else
+                    ImGui.SameLine()
+                    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.5, 0.5, 1) -- Red for no method
+                    ImGui.Text("(N/A)")
+                    ImGui.PopStyleColor(1)
+                end
             end
             
             -- Add spacing before next checkbox
