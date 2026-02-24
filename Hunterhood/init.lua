@@ -20,7 +20,8 @@ local pullRadius = 9999 -- State variable for pull radius (max range)
 local zHighValue = 9999 -- State variable for Z-High (max range)
 local zLowValue = -9999 -- State variable for Z-Low (max range)
 local distanceSettingsEnabled = true -- Always enabled
-local prioritizeNamedMobs = false -- Prioritize named mobs over placeholders when enabled
+local prioritizeNamedMobs = true -- Prioritize named mobs over placeholders when enabled
+local checkGroupDistance = true -- Check if group members are within 120 feet before engaging
 local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
@@ -33,7 +34,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.227 loaded')
+BL.info('HunterHood v2.228 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -408,11 +409,11 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     --inCombat and "Already in combat" or "Adds detected")
                     --end
 
-                    -- Check if all group members are within 120 range (unless we need to skip)
-                    local allInRange = skipDistanceCheck
+                    -- Check if all group members are within 120 range (unless we need to skip or it's disabled)
+                    local allInRange = skipDistanceCheck or not checkGroupDistance
                     local memberStatus = {}
 
-                    if not skipDistanceCheck then
+                    if not skipDistanceCheck and checkGroupDistance then
                         allInRange, memberStatus = helpers.getGroupMemberStatus(120)
                     end
 
@@ -1077,6 +1078,38 @@ local function RenderOptionsWindow()
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Always target named mobs over placeholders, even if placeholders are closer")
+                ImGui.PopStyleColor(1)
+            end
+            
+            -- Add spacing before next checkbox
+            ImGui.Spacing()
+            
+            -- Style the checkbox for group distance check
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            -- Set text color based on checkbox state
+            if checkGroupDistance then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
+            end
+            
+            local newCheckGroupDistance = ImGui.Checkbox("Group Watch", checkGroupDistance)
+            if newCheckGroupDistance ~= checkGroupDistance then
+                checkGroupDistance = newCheckGroupDistance
+            end
+            
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Wait for all group members to be within 120 feet before engaging mobs")
                 ImGui.PopStyleColor(1)
             end
             
