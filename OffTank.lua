@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.17 loaded")
+BL.info("Offtank v1.18 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -72,6 +72,7 @@ local State = {
 	nav_target_name = "",  -- Input field for PC/NPC name to navigate to
 	nav_target_spawn = nil,  -- Current spawn object for navigation target
 	last_nav_update = 0,  -- Track last navigation target update
+	chase_distance = 20,  -- Distance to get within when using waypoint/nav target
 }
 
 local function initMQBindings()
@@ -295,7 +296,7 @@ local function MoveToNavTarget()
 	local spawn = State.nav_target_spawn
 	if spawn() and spawn.Y() and spawn.X() and spawn.Z() then
 		mq.cmdf("/nav loc %f %f %f", spawn.Y(), spawn.X(), spawn.Z())
-		print("\arMoving to %s at (%.1f, %.1f, %.1f)\ax", spawn.CleanName() or "Unknown", spawn.Y(), spawn.X(), spawn.Z())
+		print(string.format("\arMoving to %s at (%.1f, %.1f, %.1f)\ax", spawn.CleanName() or "Unknown", spawn.Y(), spawn.X(), spawn.Z()))
 		return true
 	else
 		print("\arNavigation target is no longer valid\ax")
@@ -378,9 +379,25 @@ local function UpdateAggroState()
 		if targetMob then
 			State.current_mob_being_tanked = targetMob
 		else
-			State.current_mob_being_tanked = nil
-			cwtnCHOSEN()
-			State.IAmTanking = false
+			-- Only stop tanking if we were actively tanking and the mob is actually dead/gone
+			-- Don't stop just because it's beyond engage distance
+			if State.IAmTanking and State.current_mob_being_tanked then
+				local currentTarget = mq.TLO.Target
+				if currentTarget() and not currentTarget.Dead() then
+					-- We have a target and it's not dead, keep tanking even if beyond engage distance
+					-- Don't clear current_mob_being_tanked or call cwtnCHOSEN()
+				else
+					-- No target or target is dead, stop tanking
+					State.current_mob_being_tanked = nil
+					cwtnCHOSEN()
+					State.IAmTanking = false
+				end
+			else
+				-- Not actively tanking or target is nil, update normally
+				State.current_mob_being_tanked = nil
+				cwtnCHOSEN()
+				State.IAmTanking = false
+			end
 		end
 	end
 end
@@ -489,7 +506,7 @@ local function DoTanking()
 		
 		-- Only move to waypoint every 3 seconds when at 100% aggro and not already at waypoint
 		if target() and target.PctAggro() == 100 and (current_time - State.last_waypoint_time) > 3000 then
-			if wp_distance > 20 then  -- Only nav if more than 20 units away
+			if wp_distance > State.chase_distance then  -- Only nav if more than chase distance away
 				-- Switch to manual mode to prevent fighting with navigation
 				mq.cmdf("/%s mode 0", State.my_class)
 				MoveToWaypoint(State.current_waypoint)
@@ -520,7 +537,7 @@ local function DoTanking()
 		
 		-- Only move to nav target every 3 seconds when at 100% aggro and not already at target
 		if target() and target.PctAggro() == 100 and (current_time - State.last_waypoint_time) > 3000 then
-			if nav_distance > 20 then  -- Only nav if more than 20 units away
+			if nav_distance > State.chase_distance then  -- Only nav if more than chase distance away
 				-- Switch to manual mode to prevent fighting with navigation
 				mq.cmdf("/%s mode 0", State.my_class)
 				MoveToNavTarget()
@@ -639,16 +656,37 @@ local DrawUI = function()
 	
 	ImGui.SetNextItemWidth(100)  -- Set width for distance input
 	State.distance, State.isChanged = ImGui.InputInt(
-		"Distance",
+		"Engage Distance",
 		State.distance, 5,
 		0, 0
 	)
+	if ImGui.IsItemHovered() then
+		ImGui.SetTooltip("Maximum distance to engage targets")
+	end
 	
 	if State.distance < State.MIN_DIST then
 		State.distance = State.MIN_DIST
 	end
 	if State.distance > State.MAX_DIST then
 		State.distance = State.MAX_DIST
+	end
+	
+	-- Chase Distance for waypoint/nav target positioning
+	ImGui.SetNextItemWidth(100)  -- Set width for chase distance input
+	State.chase_distance, State.isChanged = ImGui.InputInt(
+		"Chase Dist",
+		State.chase_distance, 5,
+		0, 0
+	)
+	if ImGui.IsItemHovered() then
+		ImGui.SetTooltip("How close to get to WP's or NPC/PC when using waypoint/nav target positioning")
+	end
+	
+	if State.chase_distance < 5 then
+		State.chase_distance = 5
+	end
+	if State.chase_distance > 999 then
+		State.chase_distance = 999
 	end
 	
 	-- Non-Tanking Mode selection (appears after distance for both modes)
