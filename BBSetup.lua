@@ -3,6 +3,8 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
+BL.info("V1.01")
+
 local CharacterMover = {}
 
 -- Locations and scripts for each toon - update these coordinates and script names as needed
@@ -49,7 +51,7 @@ function CharacterMover.moveToAndRun()
     mq.delay(500)   
 
     -- Disconnect from BCS
-    mq.cmd("/bccmd disconnect")
+    mq.cmd("/bccmd quit")
     print("BCS disconnected!")
     mq.delay(500)
 
