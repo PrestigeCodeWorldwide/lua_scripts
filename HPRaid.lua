@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.05 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.07 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 
 -- Shared State
@@ -64,10 +64,21 @@ local function Purif2Handler(line)
     debuffStateMachine = "SECONDDEBUFFOUT"
 end
 
+-- Failure Handlers
+local function Purif1FailureHandler(line)
+    mq.cmd("/rs I failed the SE purification debuff!")
+end
+
+local function Purif2FailureHandler(line)
+    mq.cmd("/rs I failed the NW penance debuff!")
+end
+
 -- Register events
 mq.event("Behind", "#*#The High Priest tenses and takes a deep breath.#*#", StickBehind)
 mq.event("Purif1", "#*#The High Priest demands the Penance from #*#", Purif1Handler)
 mq.event("Purif2", "#*#And he sets the Purification of Veeshan upon #*#", Purif2Handler)
+mq.event("Purif1Fail", "#*#You are purified, and it is painful#*#", Purif1FailureHandler)
+mq.event("Purif2Fail", "#*#You suffer your penance#*#", Purif2FailureHandler)
 
 -- Handle debuff movement and state
 local function handleDebuffs()
@@ -182,9 +193,8 @@ local function handleMez()
         return
     end
 
-    -- Find all messenger and track the closest one within range
-    local closestMessenger = nil
-    local minDistance = 200 -- Only consider messenger within 200 units
+    -- Find all messengers of the assigned type within range
+    local targetMessenger = nil
     local messengerCount = tonumber(mq.TLO.SpawnCount(messengerType)()) or 0
     
     for i = 1, messengerCount do
@@ -200,39 +210,44 @@ local function handleMez()
                     local distance = calculateDistance(hpX, hpY, messengerX, messengerY)
                     BL.info(string.format("messenger %s distance: %.1f", messenger.ID(), distance))
 
-                    -- Track the closest messenger within range
-                    if distance <= 200 and distance < minDistance then
-                        minDistance = distance
-                        closestMessenger = messenger
+                    -- Found our assigned messenger type within 500 units
+                    if distance <= 500 then
+                        targetMessenger = messenger
+                        break -- Found our messenger, no need to continue searching
                     end
                 end
             end
         end
     end
 
-    -- Process the closest messenger if found
-    if closestMessenger then
-        BL.info(string.format("Found messenger %s at %.1f distance", closestMessenger.ID(), minDistance))
+    -- Process the messenger if found
+    if targetMessenger then
+        BL.info(string.format("Found messenger %s at %.1f distance", targetMessenger.ID(), calculateDistance(hpX, hpY, targetMessenger.X(), targetMessenger.Y())))
         hadMessengersLastCheck = true
 
         -- Target the messenger if not already targeted
-        if mq.TLO.Target.ID() ~= closestMessenger.ID() then
-            closestMessenger.DoTarget()
+        if mq.TLO.Target.ID() ~= targetMessenger.ID() then
+            targetMessenger.DoTarget()
             mq.delay(100)
         end
 
         -- Check if we have line of sight and are in range to cast
-        if closestMessenger.Distance() < 200 and closestMessenger.LineOfSight() then
+        if targetMessenger.Distance() < 500 and targetMessenger.LineOfSight() then
             BL.info("messenger is in range, casting slumber")
             BL.cmd.pauseAutomation()
             isMezPaused = true
             mq.cmd("/stopsong")
             mq.delay(100)
             mq.cmdf("/cast \"%s\"", mezSpell)
-            mq.delay(3700)
-        elseif closestMessenger.Distance() > 180 or not closestMessenger.LineOfSight() then
+            local myClass = mq.TLO.Me.Class.ShortName()
+            if myClass == "BRD" then
+                mq.delay(3700) -- Bard cast delay
+            else -- ENC
+                mq.delay(3200) -- Enchanter cast delay
+            end
+        elseif targetMessenger.Distance() > 180 or not targetMessenger.LineOfSight() then
             BL.info("Moving closer to messenger")
-            mq.cmdf("/nav id %d", closestMessenger.ID())
+            mq.cmdf("/nav id %d", targetMessenger.ID())
         end
     else
         -- Only unpause if we previously paused and now have no messengers in range
@@ -243,7 +258,7 @@ local function handleMez()
         end
         
         if hadMessengersLastCheck then -- Only log if we previously had messengers
-            BL.info("No messengers in range (max 200 units)")
+            BL.info("No messengers in range (max 500 units)")
         end
         hadMessengersLastCheck = false
     end
@@ -285,12 +300,12 @@ end
 
 -- Main loop
 while true do
-    mq.doevents() -- Process any events first
     handleDebuffs()
     -- Only run mez handling if we specified a messenger type
     if shouldDoMez then
         handleMez()
     end
     BL.checkChestSpawn("a_golden_chest")
-    mq.delay(500)
+    mq.doevents() -- Process any events last
+    mq.delay(250)
 end
