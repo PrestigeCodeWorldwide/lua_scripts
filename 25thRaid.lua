@@ -39,7 +39,7 @@ local function duck_handler(line, target)
             mq.cmd("/keypress DUCK")
         end
         -- Wait 8 seconds while ducked
-        mq.delay(8000)
+        mq.delay(10000)
         mq.cmd("/stand")
         BL.cmd.resumeAutomation()
         BL.info("Duck complete - resuming automation")
@@ -73,7 +73,7 @@ local function trash_handler(line, target)
         BL.info("Searching for ground items...")
         
         -- Wait for ground spawns to appear (up to 10 seconds)
-        local max_wait_time = 10000  -- 10 seconds max wait
+        local max_wait_time = 150000  -- 15 seconds max wait
         local wait_start = os.clock()
         local ground_search = nil
         
@@ -111,7 +111,7 @@ local function trash_handler(line, target)
                             local distance = item.Distance()
                             BL.info("Ground item at index " .. i .. " with ID: " .. item_id .. " distance: " .. distance)
                             
-                            if distance <= max_distance then
+                            if distance and distance <= max_distance then
                                 found_any = true
                                 items_picked_up = items_picked_up + 1
                                 BL.info("Picking up item " .. items_picked_up .. " at index " .. i .. " with ID: " .. item_id .. " distance: " .. distance)
