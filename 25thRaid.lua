@@ -1,7 +1,7 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 
-BL.info("25th Anni Raid Script v1.01 Started")
+BL.info("25th Anni Raid Script v1.03 Started")
 
 local my_name = mq.TLO.Me.CleanName()
 local my_class = mq.TLO.Me.Class.ShortName()
@@ -30,7 +30,8 @@ local function duck_handler(line, target)
         mq.cmd("/stopsong")
         mq.delay(300)
         -- Make sure we're standing before ducking
-        if mq.TLO.Me.State() == "SIT" or mq.TLO.Me.State() == "FEIGN" then
+        local my_state = mq.TLO.Me.State()
+        if my_state and (my_state == "SIT" or my_state == "FEIGN") then
             mq.cmd("/stand")
             mq.delay(1000)  -- Wait for stand to complete
         end
@@ -116,13 +117,24 @@ local function trash_handler(line, target)
                                 items_picked_up = items_picked_up + 1
                                 BL.info("Picking up item " .. items_picked_up .. " at index " .. i .. " with ID: " .. item_id .. " distance: " .. distance)
                                 
-                                -- Navigate to the ground spawn
-                                mq.cmdf("/nav locxyz %d %d %d", item.X(), item.Y(), item.Z())
-                                BL.WaitForNav()
+                                -- Navigate to ground spawn
+                                local item_x, item_y, item_z = item.X(), item.Y(), item.Z()
+                                if item_x and item_y and item_z then
+                                    mq.cmdf("/nav locxyz %d %d %d", item_x, item_y, item_z)
+                                    BL.WaitForNav()
+                                else
+                                    BL.info("Item coordinates invalid, skipping")
+                                    break
+                                end
                                 
                                 -- Pick up item
-                                item.Grab()
-                                mq.delay(1000)
+                                if item and item.ID() > 0 then
+                                    item.Grab()
+                                    mq.delay(1000)
+                                else
+                                    BL.info("Item disappeared before pickup, skipping")
+                                    break
+                                end
                                 
                                 -- Wait for item to appear on cursor
                                 local cursor_wait = 0
@@ -134,9 +146,9 @@ local function trash_handler(line, target)
                                     cursor_wait = cursor_wait + 100
                                 end
                                 
-                                if mq.TLO.Cursor() then
-                                    local cursor_item_name = mq.TLO.Cursor()  -- Cursor returns item name directly
-                                    saved_item_name = cursor_item_name  -- Save the name
+                                if mq.TLO.Cursor() and mq.TLO.Cursor() ~= "" then
+                                    local cursor_item_name = mq.TLO.Cursor()
+                                    saved_item_name = cursor_item_name
                                 end
                                 
                                 -- Now open inventory and use the saved item name
@@ -149,7 +161,12 @@ local function trash_handler(line, target)
                                 end
                                 
                                 -- Refresh search after pickup
-                                ground_search = mq.TLO.Ground.Search("")
+                                local new_search = mq.TLO.Ground.Search("")
+                                if new_search then
+                                    ground_search = new_search
+                                else
+                                    ground_search = nil
+                                end
                                 break  -- Restart loop with fresh search
                             else
                                 BL.info("Ground item too far: " .. distance .. " > " .. max_distance)
@@ -179,8 +196,7 @@ mq.event('duck_event', '#*#Everyone feels a compulsion to duck#*', duck_handler)
 --mq.event('trees_event', '#*#Everyone feels a compulsion to touch trees#*', trees_handler)
 mq.event('trash_event', '#*#Everyone feels a compulsion to pick up the trash#*', trash_handler)
 
-while true
-do
+while true do
     mq.doevents()
     mq.delay(100)
 end
