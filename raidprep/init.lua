@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.835 Started")
+BL.info("RaidPrep v1.836 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -163,18 +163,20 @@ local expansions = {
     "Night of Shadows",
     "Terror of Luclin",
     "Claws of Veeshan",
-    "Torment of Velious"
+    "Torment of Velious",
+    "Misc Raids",
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN" },
-    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanaxbar" },
+    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast","epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN", "Trophies" },
+    ["Shattering of Ro"] = { "Colossus","SharDrahn","Xanaxbar", "Spitetangle" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
     ["Night of Shadows"] = { "Darklight", "OpenTheDoorBanes", "OpenTheDoorRunAway", "ShadowsMove" },
-    ["Terror of Luclin"] = { "Doomshade", "FreeTheGoranga", "SheiBane" },
+    ["Terror of Luclin"] = { "Doomshade", "FreeTheGoranga", "SheiBane", "AtenSilence" },
     ["Claws of Veeshan"] = { "Tantor" },
     ["Torment of Velious"] = { "Griklor", "ToFS3", "VelksRaid" },
+    ["Misc Raids"] = { "23rdRaid", "25thRaid", }
 }
 
 local scriptTooltips = {
@@ -182,6 +184,7 @@ local scriptTooltips = {
     ["BannerBack"] = "Runs toon back to GH and takes banner back if they are in the Lobby",
     ["BoxHUD"] = "Heads-up display for boxed characters",
     ["ButtonMaster"] = "Customizable button interface for common commands",
+    ["Chaincast"] = "Chain casts selected spells/AA's with conifguration",
     ["GoldenPickPL"] = "Uses the Golden Pick to hit each mob once during PL'ing",
     ["GuildClicky"] = "Manages guild hall zone port clickies",
     ["Hemicfam"] = "Casts Scrykin then Personal Hemic familiar",
@@ -193,10 +196,12 @@ local scriptTooltips = {
     ["Offtank"] = "Allows selecting specific mobs or Xtargets to offtank automatically",
     ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
     ["TCN"] = "Tradeskill Consturction Next",
+    ["Trophies"] = "Checks and snitches in /g and /rs if trophies are not on",
 
     -- Shattering of Ro scripts
     ["Colossus"] = "Runs toons away from stone emote during the Colossus raid",
     ["SharDrahn"] = "Mounts and dismounts for knockback during the Shar Drahn raid",
+    ["Spitetangle"] = "Handles posion call out and rogues disarm traps during the Spitetangle raid",
     ["Xanaxbar"] = "Turns off all AE healing during the Xanaxbar raid",
 
     -- The Outer Brood scripts
@@ -229,6 +234,9 @@ local scriptTooltips = {
     ["ShadowsMove"] = "Handles the Setting Sun and Rising Sun emotes during the Firefall Pass raid",
     ["ToFS3"] = "Calls out which character and race is duplicated for ToFS #3 raid",
     ["Doomshade"] = "Runs characters to safe spots for the viral and doom emotes during the Doomshade raid",
+    ["AtenSilence"] = "Does the silence run away on Aten Ha Ra raid or mission",
+    ["23rdRaid"] = "Does the silence run away on 23rd Anni raid",
+    ["25thRaid"] = "Does the Duck and Pick up Trash on 25th Anni raid",
 }
 
 local function drawluaTab()
