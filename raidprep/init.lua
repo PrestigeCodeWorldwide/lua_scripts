@@ -10,7 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 
 
-BL.info("RaidPrep v1.836 Started")
+BL.info("RaidPrep v1.837 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -26,6 +26,7 @@ local UseAoE = 0 -- 0=SET, 1=ON, 2=OFF
 local RaidMode = false
 local UseAlliance = 0
 local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
+local UseCures = 0 -- 0=SET, 1=ON, 2=OFF
 --local BYOS = 0
 --local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
 --local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
@@ -56,6 +57,19 @@ local function applySettings()
     mq.cmdf("%s RaidMode %s", getCWTNBind(), RaidMode and "on" or "off")
     mq.cmdf("%s usealliance %s", getCWTNBind(), UseAlliance and "on" or "off")
     mq.cmdf("%s usemelee %s", getCWTNBind(), UseMelee and "on" or "off")
+    if UseCures == 1 then
+        mq.cmdf("%s activate cure venenium", AllIncludingSelfBind)
+        mq.cmdf("%s activate cure \"cleansing rod\"", AllIncludingSelfBind)
+        mq.cmdf("%s activate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
+        mq.cmdf("%s activate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
+        mq.cmdf("%s activate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
+    elseif UseCures == 2 then
+        mq.cmdf("%s deactivate cure venenium", AllIncludingSelfBind)
+        mq.cmdf("%s deactivate cure \"cleansing rod\"", AllIncludingSelfBind)
+        mq.cmdf("%s deactivate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
+        mq.cmdf("%s deactivate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
+        mq.cmdf("%s deactivate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
+    end
     --mq.cmdf("%s byos %s", getCWTNBind(), BYOS and "on" or "off")
 
     if selectedRaidAssist and selectedRaidAssist ~= "Select RA" then
@@ -88,6 +102,7 @@ local function loadSettings()
             RaidMode = settings.RaidMode or RaidMode
             UseAlliance = settings.UseAlliance or UseAlliance
             UseMelee = settings.UseMelee or UseMelee
+            UseCures = settings.UseCures or UseCures
             --BYOS = settings.BYOS or BYOS
             selectedRaidAssist = settings.selectedRaidAssist or selectedRaidAssist
             applySettings()
@@ -121,6 +136,7 @@ local function saveSettings()
         RaidMode = RaidMode,
         UseAlliance = UseAlliance,
         UseMelee = UseMelee,
+        UseCures = UseCures,
         --BYOS = BYOS,
         selectedRaidAssist = selectedRaidAssist
     }
@@ -995,6 +1011,59 @@ local function drawCWTNTab()
         imgui.Text("Load saved settings")
         imgui.EndTooltip()
     end
+
+    imgui.SameLine()
+    
+    -- Cures toggle button
+    local curesText = "Cures: "
+    local curesStateText = { "SET", "ON", "OFF" }
+    local curesButtonState = UseCures + 1
+
+    -- Set text color based on state
+    local curesStateColor
+    if UseCures == 0 then
+        curesStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseCures == 1 then
+        curesStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        curesStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "Cures:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(curesText)
+    imgui.PopStyleColor()
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Turns common Cure clickies On/Off in Addclicky Cures")
+        imgui.EndTooltip()
+    end
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(curesStateColor))
+    imgui.PushID("cures_button")
+    if imgui.Button(curesStateText[curesButtonState]) then
+        UseCures = (UseCures + 1) % 3
+        if UseCures == 1 then
+            mq.cmdf("%s activate cure venenium", AllIncludingSelfBind)
+            mq.cmdf("%s activate cure \"cleansing rod\"", AllIncludingSelfBind)
+            mq.cmdf("%s activate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
+            mq.cmdf("%s activate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
+            mq.cmdf("%s activate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
+            print("Set Cures to ON")
+        elseif UseCures == 2 then
+            mq.cmdf("%s deactivate cure venenium", AllIncludingSelfBind)
+            mq.cmdf("%s deactivate cure \"cleansing rod\"", AllIncludingSelfBind)
+            mq.cmdf("%s deactivate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
+            mq.cmdf("%s deactivate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
+            mq.cmdf("%s deactivate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
+            print("Set Cures to OFF")
+        end
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+    
     -- Reset to single-column layout
 end
 
