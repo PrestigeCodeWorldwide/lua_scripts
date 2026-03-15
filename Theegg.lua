@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEgg Script v1.11 started")
+BL.info("TheEgg Script v1.12 started")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
