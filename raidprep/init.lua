@@ -8,9 +8,10 @@ local imgui = require("ImGui")
 local ActorsLib = require("actors")
 local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
+local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.837 Started")
+BL.info("RaidPrep v1.838 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -27,6 +28,7 @@ local RaidMode = false
 local UseAlliance = 0
 local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
 local UseCures = 0 -- 0=SET, 1=ON, 2=OFF
+local UseAEHeals = 0 -- 0=SET, 1=ON, 2=OFF
 --local BYOS = 0
 --local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
 --local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
@@ -57,19 +59,12 @@ local function applySettings()
     mq.cmdf("%s RaidMode %s", getCWTNBind(), RaidMode and "on" or "off")
     mq.cmdf("%s usealliance %s", getCWTNBind(), UseAlliance and "on" or "off")
     mq.cmdf("%s usemelee %s", getCWTNBind(), UseMelee and "on" or "off")
-    if UseCures == 1 then
-        mq.cmdf("%s activate cure venenium", AllIncludingSelfBind)
-        mq.cmdf("%s activate cure \"cleansing rod\"", AllIncludingSelfBind)
-        mq.cmdf("%s activate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
-        mq.cmdf("%s activate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
-        mq.cmdf("%s activate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
-    elseif UseCures == 2 then
-        mq.cmdf("%s deactivate cure venenium", AllIncludingSelfBind)
-        mq.cmdf("%s deactivate cure \"cleansing rod\"", AllIncludingSelfBind)
-        mq.cmdf("%s deactivate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
-        mq.cmdf("%s deactivate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
-        mq.cmdf("%s deactivate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
-    end
+    mq.cmdf("%s usecures %s", getCWTNBind(), UseCures and "on" or "off")
+    mq.cmdf("%s usesquall %s", getCWTNBind(), UseAEHeals and "on" or "off")
+    
+    -- Apply addclicky settings
+    addclickyUI.applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, AllButSelfBind)
+    
     --mq.cmdf("%s byos %s", getCWTNBind(), BYOS and "on" or "off")
 
     if selectedRaidAssist and selectedRaidAssist ~= "Select RA" then
@@ -103,8 +98,13 @@ local function loadSettings()
             UseAlliance = settings.UseAlliance or UseAlliance
             UseMelee = settings.UseMelee or UseMelee
             UseCures = settings.UseCures or UseCures
+            UseAEHeals = settings.UseAEHeals or UseAEHeals
             --BYOS = settings.BYOS or BYOS
             selectedRaidAssist = settings.selectedRaidAssist or selectedRaidAssist
+            
+            -- Load addclicky settings
+            addclickyUI.loadAddclickySettings(settings)
+            
             applySettings()
             forceRefresh = 2 -- <-- trigger the UI to update
             print("Settings loaded successfully")
@@ -137,9 +137,13 @@ local function saveSettings()
         UseAlliance = UseAlliance,
         UseMelee = UseMelee,
         UseCures = UseCures,
+        UseAEHeals = UseAEHeals,
         --BYOS = BYOS,
         selectedRaidAssist = selectedRaidAssist
     }
+    
+    -- Save addclicky settings
+    addclickyUI.saveAddclickySettings(settings)
 
     -- Create a Lua table definition
     local content = "return {\n"
@@ -991,6 +995,121 @@ local function drawCWTNTab()
 
     --imgui.NewLine()
     imgui.Columns(1)
+
+    -- Cures toggle
+    local curesText = "Cures: "
+    local curesStateText = { "SET", "ON", "OFF" }
+    local curesButtonState = UseCures + 1
+
+    -- Set text color based on state
+    local curesStateColor
+    if UseCures == 0 then
+        curesStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseCures == 1 then
+        curesStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        curesStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "Cures:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(curesText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(curesStateColor))
+    imgui.PushID("cures_button_save")
+    if imgui.Button(curesStateText[curesButtonState]) then
+        UseCures = (UseCures + 1) % 3
+        if UseCures == 1 then
+            mq.cmdf("%s usecures on", AllIncludingSelfBind)
+            mq.cmdf("%s MemCureAll on", AllIncludingSelfBind)
+            mq.cmdf("%s MemGroupCureAll on", AllIncludingSelfBind)
+            print("Set Cures to ON")
+        elseif UseCures == 2 then
+            mq.cmdf("%s usecures off", AllIncludingSelfBind)
+            mq.cmdf("%s MemCureAll off", AllIncludingSelfBind)
+            mq.cmdf("%s MemGroupCureAll off", AllIncludingSelfBind)
+            print("Set Cures to OFF")
+        end
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+        imgui.Text("Turns all curing On/Off")
+        imgui.PopStyleColor()
+        imgui.EndTooltip()
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
+    imgui.SameLine()
+
+    -- AEHeals toggle
+    local aehealsText = "AEHeals: "
+    local aehealsStateText = { "SET", "ON", "OFF" }
+    local aehealsButtonState = UseAEHeals + 1
+
+    -- Set text color based on state
+    local aehealsStateColor
+    if UseAEHeals == 0 then
+        aehealsStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseAEHeals == 1 then
+        aehealsStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        aehealsStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "AEHeals:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(aehealsText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(aehealsStateColor))
+    imgui.PushID("aeheals_button")
+    if imgui.Button(aehealsStateText[aehealsButtonState]) then
+        UseAEHeals = (UseAEHeals + 1) % 3
+        -- For AEHeals commands, we'll use /dga or /dge directly
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
+        if UseAEHeals == 1 then
+            mq.cmdf("%s UseSquall on", AllIncludingSelfBind)
+            mq.cmdf("%s UseSplash on", AllIncludingSelfBind)
+            mq.cmdf("%s MemSplash on", AllIncludingSelfBind)
+            mq.cmdf("%s UseWardAA on", AllIncludingSelfBind)
+            mq.cmdf("%s UseNaturesBoon on", AllIncludingSelfBind)
+            -- Add usealliance on for priests only (DRU, CLR, SHM)
+            mq.cmdf("%s /docommand /clr usealliance on", bindPrefix)
+            mq.cmdf("%s /docommand /shm usealliance on", bindPrefix)
+            mq.cmdf("%s /docommand /dru usealliance on", bindPrefix)
+            print("Set AEHeals to ON")
+        elseif UseAEHeals == 2 then
+            mq.cmdf("%s UseSquall off", AllIncludingSelfBind)
+            mq.cmdf("%s UseSplash off", AllIncludingSelfBind)
+            mq.cmdf("%s MemSplash off", AllIncludingSelfBind)
+            mq.cmdf("%s UseWardAA off", AllIncludingSelfBind)
+            mq.cmdf("%s UseNaturesBoon off", AllIncludingSelfBind)
+            -- Add usealliance off for priests only (DRU, CLR, SHM)
+            mq.cmdf("%s /docommand /clr usealliance off", bindPrefix)
+            mq.cmdf("%s /docommand /shm usealliance off", bindPrefix)
+            mq.cmdf("%s /docommand /dru usealliance off", bindPrefix)
+            print("Set AEHeals to OFF")
+        end
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+        imgui.Text("Turns all AE Healing abilities On/Off")
+        imgui.PopStyleColor()
+        imgui.EndTooltip()
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
+    imgui.SameLine()
+
     if imgui.Button("Save") then
         saveSettings()
     end
@@ -1011,58 +1130,6 @@ local function drawCWTNTab()
         imgui.Text("Load saved settings")
         imgui.EndTooltip()
     end
-
-    imgui.SameLine()
-    
-    -- Cures toggle button
-    local curesText = "Cures: "
-    local curesStateText = { "SET", "ON", "OFF" }
-    local curesButtonState = UseCures + 1
-
-    -- Set text color based on state
-    local curesStateColor
-    if UseCures == 0 then
-        curesStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseCures == 1 then
-        curesStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        curesStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    end
-
-    -- Draw "Cures:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(curesText)
-    imgui.PopStyleColor()
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Turns common Cure clickies On/Off in Addclicky Cures")
-        imgui.EndTooltip()
-    end
-
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(curesStateColor))
-    imgui.PushID("cures_button")
-    if imgui.Button(curesStateText[curesButtonState]) then
-        UseCures = (UseCures + 1) % 3
-        if UseCures == 1 then
-            mq.cmdf("%s activate cure venenium", AllIncludingSelfBind)
-            mq.cmdf("%s activate cure \"cleansing rod\"", AllIncludingSelfBind)
-            mq.cmdf("%s activate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
-            mq.cmdf("%s activate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
-            mq.cmdf("%s activate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
-            print("Set Cures to ON")
-        elseif UseCures == 2 then
-            mq.cmdf("%s deactivate cure venenium", AllIncludingSelfBind)
-            mq.cmdf("%s deactivate cure \"cleansing rod\"", AllIncludingSelfBind)
-            mq.cmdf("%s deactivate cure \"Distillate of Antidote XV\"", AllIncludingSelfBind)
-            mq.cmdf("%s deactivate cure \"Shield of the Immaculate\"", AllIncludingSelfBind)
-            mq.cmdf("%s deactivate cure \"Shield of Immaculate Light\"", AllIncludingSelfBind)
-            print("Set Cures to OFF")
-        end
-    end
-    imgui.PopID()
-    imgui.PopStyleColor()
     
     -- Reset to single-column layout
 end
@@ -1167,6 +1234,15 @@ local function drawGUI()
                 local success, err = pcall(drawCWTNTab)
                 if not success then
                     print("[ERROR] In CWTN tab: " .. tostring(err))
+                end
+                imgui.EndTabItem()
+            end
+
+            -- Clickies tab
+            if imgui.BeginTabItem("Clickies") then
+                local success, err = pcall(addclickyUI.drawClickiesTab, applytoallChecked, AllIncludingSelfBind, AllButSelfBind)
+                if not success then
+                    print("[ERROR] In Clickies tab: " .. tostring(err))
                 end
                 imgui.EndTabItem()
             end
