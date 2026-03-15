@@ -35,7 +35,7 @@ local function activateEggMode()
         
         -- Navigate to archsage spawn location
         -- You may need to adjust the coordinates based on your zone
-        mq.cmd("/nav spawn archsage")
+        mq.cmd("/nav locyx 847 -2256")
         BL.WaitForNav()
         
         BL.info("Egg mode activated: Manual mode engaged, navigating to archsage spawn")
