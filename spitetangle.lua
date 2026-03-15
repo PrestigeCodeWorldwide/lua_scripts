@@ -3,13 +3,13 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Spitetangle Script v1.0 started")
+BL.info("Spitetangle Script v1.12 started")
 
 local myClass = mq.TLO.Me.Class.ShortName()
-local myName = mq.TLO.Me.Name()
+--local myName = mq.TLO.Me.Name()
 local isProcessingStickyWeb = false
-local isHandlingPoisonWeave = false
 local shouldExit = false
+local lastDisarmAttempt = 0
 
 -- Command bind for manual stop
 mq.bind('/spitestop', function()
@@ -19,78 +19,45 @@ end)
 
 BL.info("Type /spitestop to stop the script and reload CWTN plugins")
 
-mq.cmdf("/%s byos off nosave", myClass)
+mq.cmdf("/%s usecures on nosave", myClass)
+mq.cmdf("/%s memcureall on nosave", myClass)
+mq.cmdf("/%s memgroupcureall on nosave", myClass)
 mq.cmdf("/%s memsplash off nosave", myClass)
 mq.cmdf("/%s usewardaa off nosave", myClass)
 mq.cmdf("/%s usesquall off nosave", myClass)
 mq.cmdf("/%s usesplash off nosave", myClass)
 mq.cmdf("/%s usenatureboon off nosave", myClass)
+mq.cmdf("/%s activate cure \"Venenium\"", myClass)
+mq.cmdf("/%s activate cure \"Cleansing Rod\"", myClass)
+mq.cmdf("/%s activate cure \"Distillate of Antidote XV\"", myClass)
 
 -- Only disable alliance for priests (DRU, CLR, SHM)
 if myClass == "DRU" or myClass == "CLR" or myClass == "SHM" then
     mq.cmdf("/%s usealliance off nosave", myClass)
 end
 
--- Poison weave event handler (takes priority over sticky web)
-local function handlePoisonWeave(emoteText)
-    -- Prevent multiple simultaneous executions
-    if isHandlingPoisonWeave then
-        return
-    end
-    
-    -- Only process if we have valid emote text
-    if not emoteText or emoteText == "" then
-        return
-    end
-    
-    -- Check if the emote contains our character name
-    if emoteText:find(myName, 1, true) then
-        isHandlingPoisonWeave = true
-        
-        if isProcessingStickyWeb then
-            BL.info("Poison weave detected during sticky web processing - interrupting!")
-        else
-            BL.info("Poison weave detected on " .. myName .. " - pausing automation")
+-- Non-rogues will loop and monitor for chest spawn or manual stop
+if myClass ~= "ROG" then
+    BL.info("Not a rogue - monitoring for chest spawn or manual stop...")
+    while not shouldExit do
+        -- Check if chest has spawned (encounter complete)
+        if BL.checkChestSpawn("a_tangled_chest") then
+            BL.info("Chest spawned! Encounter complete - ending script...")
+            shouldExit = true
+            break
         end
         
-        BL.cmd.ChangeAutomationModeToManual()
-        
-        -- Target self
-        mq.cmd("/target " .. myName)
-        mq.delay(500)
-        
-        BL.info("Waiting 15 seconds for poison weave to complete...")
-        mq.delay(15000)
-        
-        BL.info("Resuming automation after poison weave")
-        BL.cmd.ChangeAutomationModeToChase()
-        
-        -- Reset flags
-        isProcessingStickyWeb = false
-        isHandlingPoisonWeave = false
-    end
-end
-
--- Register event handler for poison weave emote (affects all classes)
--- Pattern matches the exact emote text or variations for testing
-mq.event('poisonWeave', "#*#The Spitetangle weaves poison around #1#", handlePoisonWeave)
-
--- Only rogues should process sticky webs
-if myClass ~= "ROG" then
-    BL.info("Not a rogue - only monitoring poison weave emotes")
-    -- Keep script running for poison weave handling
-    while not shouldExit do
-        mq.delay(1000)
-        mq.doevents() -- Process any events
+        mq.delay(1000) -- Check every second
     end
     
     -- Cleanup and reload
-    BL.info("Manual stop detected - reloading and exiting...")
+    BL.info("Script ending - reloading CWTN plugins...")
     if mq.TLO.CWTN and mq.TLO.CWTN() then
         mq.cmdf("/%s reload", myClass)
     else
         BL.info("No CWTN plugin loaded, skipping reload")
     end
+    return
 end
 
 -- Sticky Web Rogue Functionality
@@ -120,11 +87,9 @@ local function processStickyWeb()
             
             -- Wait until we're close enough
             while stickyWeb.Distance() > 10 do
-                mq.doevents() -- Check for poison weave during navigation
                 mq.delay(500)
                 if not stickyWeb() then
                     BL.info("Sticky web disappeared!")
-                    -- Resume automation
                     BL.cmd.resumeAutomation()
                     return false
                 end
@@ -140,10 +105,18 @@ local function processStickyWeb()
             BL.cmd.resumeAutomation()
             return false
         end
-        -- Use ability 1(Disarm Trap) on sticky web
-        BL.info("Using ability 1 on sticky web...")
-        mq.cmd("/doability 1")
-        mq.delay(1000)
+        -- Use ability 1(Disarm Trap) on sticky web with 5.5 second throttle
+        local currentTime = mq.gettime()
+        if currentTime - lastDisarmAttempt >= 5500 then
+            BL.info("Using ability 1 on sticky web...")
+            mq.cmd("/doability 1")
+            lastDisarmAttempt = currentTime
+            mq.delay(1000)
+        else
+            BL.info("Disarm attempt throttled - waiting...")
+            BL.cmd.resumeAutomation()
+            return false
+        end
         -- Auto inventory the wad of spider silk
         BL.info("Waiting on wad of spider silk...")
         mq.cmd("/autoinventory")
@@ -155,9 +128,32 @@ local function processStickyWeb()
         
         -- Use wad of spider silk item
         if mq.TLO.Target() and mq.TLO.Target.Name():find("rusher") then  --rusher
+            -- Navigate to rusher if more than 20 feet away
+            if mq.TLO.Target.Distance() > 20 then
+                BL.info("Moving to rusher...")
+                mq.cmd("/nav spawn rusher") --rusher
+                
+                -- Wait until we're close enough with timeout
+                local navTimeout = mq.gettime() + 10000 -- 10 second timeout
+                while mq.TLO.Target.Distance() > 20 do
+                    mq.delay(500)
+                    if not mq.TLO.Target() then
+                        BL.info("Rusher disappeared!")
+                        BL.cmd.resumeAutomation()
+                        return false
+                    end
+                    if mq.gettime() > navTimeout then
+                        BL.info("Navigation timeout - rusher too far or unreachable!")
+                        BL.cmd.resumeAutomation()
+                        return false
+                    end
+                end
+            end
+            
             BL.info("Using wad of spider silk on rusher...")
+            mq.delay(1500) -- 1 second delay after navigation
             mq.cmd("/useitem wad of")  --wad of spider silk
-            mq.delay(200)
+            mq.delay(3500)
             -- Resume automation
             BL.cmd.resumeAutomation()
             return true
@@ -177,21 +173,16 @@ end
 -- Main loop
 while not shouldExit do
     -- Check if chest has spawned (encounter complete)
-    if BL.checkChestSpawn("spitetangle_chest_placeholder") then
+    if BL.checkChestSpawn("a_tangled_chest") then
         BL.info("Chest spawned! Encounter complete - ending script...")
         shouldExit = true
         break
     end
     
-    mq.doevents() -- Process events immediately at start of loop
-    if myClass == "ROG" then
-        if processStickyWeb() then
-            BL.info("Sticky web cycle completed. Checking for another...")
-        end
-        mq.delay(100)
-    else
-        mq.delay(500)
+    if processStickyWeb() then
+        BL.info("Sticky web cycle completed. Checking for another...")
     end
+    mq.delay(100)
 end
 
 -- Cleanup and reload
