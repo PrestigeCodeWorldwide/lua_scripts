@@ -3,7 +3,7 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Xanaxbar Script 1.02 Started")
+BL.info("Xanaxbar Script 1.03 Started")
 BL.info("Type /xanaxstop to stop the script rather than wait on chest to spawn")
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
@@ -14,7 +14,7 @@ mq.bind('/xanaxstop', function()
     shouldExit = true
 end)
 
-mq.cmdf("/%s byos off nosave", myClass)
+--mq.cmdf("/%s byos off nosave", myClass)
 mq.cmdf("/%s memsplash off nosave", myClass)
 mq.cmdf("/%s usewardaa off nosave", myClass)
 mq.cmdf("/%s usesquall off nosave", myClass)
