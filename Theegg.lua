@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEgg Script v1.12 started")
+BL.info("TheEgg Script v1.13 started")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
@@ -11,10 +11,47 @@ local eggTimer = 0
 local eggActive = false
 local EGG_DURATION = 15 -- seconds
 
+-- Dynamic run location variables
+local runLocationY = 847  -- Default Y coordinate
+local runLocationX = -2256 -- Default X coordinate
+local runLocationSet = false
+
 -- Command bind for manual stop
 mq.bind('/eggstop', function()
     BL.info("Manual stop triggered - will exit after cleanup...")
     shouldExit = true
+end)
+
+-- Command bind for announcing current location
+mq.bind('/eggloc', function()
+    local currentY = mq.TLO.Me.Y()
+    local currentX = mq.TLO.Me.X()
+    local currentZ = mq.TLO.Me.Z()
+    mq.cmdf("/rs NEW RUN LOCATION: Y=%.0f X=%.0f Z=%.0f", currentY, currentX, currentZ)
+    BL.info(string.format("Announced current location: Y=%.0f X=%.0f Z=%.0f", currentY, currentX, currentZ))
+end)
+
+-- Command bind for checking current location state
+mq.bind('/eggstatus', function()
+    BL.info(string.format("Location state: Set=%s, Y=%.0f, X=%.0f", tostring(runLocationSet), runLocationY, runLocationX))
+end)
+
+-- Command bind for manually setting run location
+mq.bind('/eggsetloc', function(y, x)
+    if y and x then
+        local newY = tonumber(y)
+        local newX = tonumber(x)
+        if newY and newX then
+            runLocationY = newY
+            runLocationX = newX
+            runLocationSet = true
+            BL.info(string.format("Run location manually set to: Y=%.0f X=%.0f", runLocationY, runLocationX))
+        else
+            BL.info("Invalid coordinates provided")
+        end
+    else
+        BL.info(string.format("Current run location: Y=%.0f X=%.0f", runLocationY, runLocationX))
+    end
 end)
 
 mq.cmdf("/%s usecures off nosave", myClass)
@@ -33,9 +70,14 @@ local function activateEggMode()
         -- Switch to manual mode
        BL.cmd.ChangeAutomationModeToManual()
         
-        -- Navigate to archsage spawn location
-        -- You may need to adjust the coordinates based on your zone
-        mq.cmd("/nav locyx 847 -2256")
+        -- Navigate to run location (dynamic or default)
+        if runLocationSet then
+            mq.cmdf("/nav locyx %.0f %.0f", runLocationY, runLocationX)
+            BL.info(string.format("Navigating to dynamic run location: Y=%.0f X=%.0f", runLocationY, runLocationX))
+        else
+            mq.cmd("/nav locyx 847 -2256")
+            BL.info("Navigating to default run location: Y=847 X=-2256")
+        end
         BL.WaitForNav()
         
         BL.info("Egg mode activated: Manual mode engaged, navigating to archsage spawn")
@@ -84,7 +126,7 @@ end
 -- Check for chest spawn
 local function checkChestSpawn()
     -- TODO: Replace with actual chest name
-    local chestName = "a_tangled_chest" -- Placeholder from spiteangle.lua
+    local chestName = "a_floating_chest" -- Placeholder from spiteangle.lua
     if BL.checkChestSpawn(chestName) then
         BL.info("Chest spawned! Encounter complete - ending script...")
         return true
@@ -92,8 +134,51 @@ local function checkChestSpawn()
     return false
 end
 
--- Register event handler for silk stringer emote
+-- Event handler for raid say messages (NEW RUN LOCATION)
+local function event_raidsay(line)
+    -- Skip our own messages to avoid recursion
+    if string.find(line, mq.TLO.Me.Name()) then
+        return
+    end
+    
+    -- Find NEW RUN LOCATION anywhere in the message and trim everything before it
+    local location_part = string.match(line, ".*NEW RUN LOCATION:(.*)")
+    if location_part then
+        -- Trim leading whitespace and remove trailing quote
+        location_part = string.match(location_part, "^%s*(.*)")
+        location_part = string.match(location_part, "(.*)'")
+        
+        -- Parse Y, X, Z coordinates
+        local y, x, z = string.match(location_part, "Y=([%d%.%-]+)%s*X=([%d%.%-]+)%s*Z=([%d%.%-]+)")
+        if y and x then
+            local newY = tonumber(y)
+            local newX = tonumber(x)
+            if newY and newX then
+                runLocationY = newY
+                runLocationX = newX
+                runLocationSet = true
+                BL.info(string.format("Updated run location: Y=%.0f X=%.0f Z=%.0f", runLocationY, runLocationX, tonumber(z) or 0))
+            end
+        else
+            -- Try parsing without Z coordinate
+            local y2, x2 = string.match(location_part, "Y=([%d%.%-]+)%s*X=([%d%.%-]+)")
+            if y2 and x2 then
+                local newY = tonumber(y2)
+                local newX = tonumber(x2)
+                if newY and newX then
+                    runLocationY = newY
+                    runLocationX = newX
+                    runLocationSet = true
+                    BL.info(string.format("Updated run location: Y=%.0f X=%.0f", runLocationY, runLocationX))
+                end
+            end
+        end
+    end
+end
+
+-- Register event handlers
 mq.event("silk_stringer", "#*# is hit with a silk stringer.", event_silk_stringer)
+mq.event("raidsay", "#*# tells the raid, #*#", event_raidsay)
 
 BL.info("Monitoring for silk stringer events")
 
