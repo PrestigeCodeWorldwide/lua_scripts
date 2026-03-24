@@ -3,7 +3,8 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEgg Script v1.13 started")
+BL.info("TheEgg Script v1.14 started")
+BL.info("/eggloc to change the run away loc on the fly. /eggstop to stop script and reset plugin settings")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
@@ -125,8 +126,7 @@ end
 
 -- Check for chest spawn
 local function checkChestSpawn()
-    -- TODO: Replace with actual chest name
-    local chestName = "a_floating_chest" -- Placeholder from spiteangle.lua
+    local chestName = "a_floating_chest"
     if BL.checkChestSpawn(chestName) then
         BL.info("Chest spawned! Encounter complete - ending script...")
         return true
