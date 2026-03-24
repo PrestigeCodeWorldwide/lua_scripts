@@ -4,7 +4,7 @@ local Log = require("biggerlib.log")
 local Enum = require("biggerlib.enum")
 local Gui = require("biggerlib.ui")
 
--- Version: 0.2.2
+-- Version: 0.2.3
 
 -- Lua Require Paths for zen subfolder:
 -- MQ\lua\zen\?.lua
@@ -75,14 +75,14 @@ end
 --- Turns off AoE's and AoE related settings for all classes using CWTN plugins. 
 --- Meant for events that we don't want any AoE damage.
 function BL.cmd.TurnOffAllAoE()
-	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE off")
-	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 99")
+	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE off nosave")
+	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 99 nosave")
 	if mq.TLO.Me.Class.ShortName() == "BER" or mq.TLO.Me.Class.ShortName() == "MNK" then
-		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault off")
-		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive off")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault off nosave")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive off nosave")
 	end
 	if mq.TLO.Me.Class.ShortName() == "SHD" then
-		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious off")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious off nosave")
 	end
 	if mq.TLO.Me.Class.ShortName() == "SHM" and mq.TLO.Me.AltAbility("Languid Bite: Enabled").ID() ~= nil then
 		mq.cmd("/alt act 861")
@@ -90,14 +90,14 @@ function BL.cmd.TurnOffAllAoE()
 end
 
 function BL.cmd.TurnOnAllAoE()
-	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE on")
-	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 2")
+	mq.cmd("/docommand /${Me.Class.ShortName} UseAoE on nosave")
+	mq.cmd("/docommand /${Me.Class.ShortName} AoECount 2 nosave")
 	if mq.TLO.Me.Class.ShortName() == "BER" or mq.TLO.Me.Class.ShortName() == "MNK" then
-		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault on")
-		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive on")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDevAssault on nosave")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseDestructive on nosave")
 	end
 	if mq.TLO.Me.Class.ShortName() == "SHD" then
-		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious on")
+		mq.cmd("/docommand /${Me.Class.ShortName} UseInsidious on nosave")
 	end
 	if mq.TLO.Me.Class.ShortName() == "SHM" and mq.TLO.Me.AltAbility("Languid Bite: Disabled").ID() ~= nil then
 		mq.cmd("/alt act 861")
