@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Spitetangle Script v1.12 started")
+BL.info("Spitetangle Script v1.13 started")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 --local myName = mq.TLO.Me.Name()
@@ -12,12 +12,12 @@ local shouldExit = false
 local lastDisarmAttempt = 0
 
 -- Command bind for manual stop
-mq.bind('/spitestop', function()
+mq.bind('/stopspite', function()
     BL.info("Manual stop triggered - will exit after cleanup...")
     shouldExit = true
 end)
 
-BL.info("Type /spitestop to stop the script and reload CWTN plugins")
+BL.info("Type /stopspite to stop the script and reload CWTN plugins")
 
 mq.cmdf("/%s usecures on nosave", myClass)
 mq.cmdf("/%s memcureall on nosave", myClass)
