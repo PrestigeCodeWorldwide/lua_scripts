@@ -2,15 +2,25 @@
 local mq = require('mq')
 local BL = require("biggerlib")
 
+local myClass = mq.TLO.Me.Class.ShortName()
+local shouldExit = false
+
 -- Get command line arguments
 local args = {...}
 local ANNOUNCE_CHAR = args[1] and args[1]:lower()  -- Convert to lowercase for case-insensitive comparison
 
-BL.info("BroodRaid Script v1.25 Started" .. (ANNOUNCE_CHAR and (" - Announcements from: " .. ANNOUNCE_CHAR) or " - No announcement character specified"))
+BL.info("BroodRaid Script v1.26 Started" .. (ANNOUNCE_CHAR and (" - Announcements from: " .. ANNOUNCE_CHAR) or " - No announcement character specified"))
 BL.info("Current character: " .. mq.TLO.Me.Name())
 if ANNOUNCE_CHAR then
     BL.info("Will announce from: " .. ANNOUNCE_CHAR)
 end
+BL.info("/stopbrood to stop script and reset plugin settings")
+
+-- Command bind for manual stop
+mq.bind('/stopbrood', function()
+    BL.info("Manual stop triggered - will exit after cleanup...")
+    shouldExit = true
+end)
 mq.cmd("/plugin boxr load")
 BL.cmd.TurnOffAllAoE()
 
@@ -34,7 +44,7 @@ local function isSpawnUp()
     return spawn.ID() ~= nil and spawn.ID() ~= 0
 end
 
-while true do
+while not shouldExit do
     -- Green Slime spawn check - only if ANNOUNCE_CHAR is specified
     local currentChar = mq.TLO.Me.Name():lower()  -- Convert to lowercase for comparison
     if ANNOUNCE_CHAR and currentChar == ANNOUNCE_CHAR then
@@ -75,6 +85,17 @@ while true do
         BL.cmd.ChangeAutomationModeToChase()
         BL.cmd.StandIfFeigned()
     end
-    BL.checkChestSpawn("a_grimy_chest")
+    if BL.checkChestSpawn("a_grimy_chest") then
+        shouldExit = true
+        break
+    end
     mq.delay(750)
+end
+
+-- Cleanup and reload
+BL.info("Script ending - reloading CWTN plugins...")
+if mq.TLO.CWTN and mq.TLO.CWTN() then
+    mq.cmdf("/%s reload", myClass)
+else
+    BL.info("No CWTN plugin loaded, skipping reload")
 end
