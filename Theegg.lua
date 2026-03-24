@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEgg Script v1.14 started")
+BL.info("TheEgg Script v1.15 started")
 BL.info("/eggloc to change the run away loc on the fly. /eggstop to stop script and reset plugin settings")
 
 local myClass = mq.TLO.Me.Class.ShortName()
@@ -56,9 +56,15 @@ mq.bind('/eggsetloc', function(y, x)
 end)
 
 mq.cmdf("/%s usecures off nosave", myClass)
+mq.cmdf("/%s memcureall off nosave", myClass)
+mq.cmdf("/%s memgroupcureall off nosave", myClass)
 mq.cmdf("/%s deactivate cure \"Venenium\"", myClass)
 mq.cmdf("/%s deactivate cure \"Cleansing Rod\"", myClass)
 mq.cmdf("/%s deactivate cure \"Distillate of Antidote XV\"", myClass)
+
+if myClass == "PAL" then
+    mq.cmdf("/%s UseSplash off nosave", myClass)
+end
 
 
 
@@ -195,8 +201,6 @@ while not shouldExit do
     mq.doevents()
     mq.delay(100) -- Check every 100ms
 end
-
-BL.info("Egg script ended")
 
 -- Cleanup and reload
 BL.info("Script ending - reloading CWTN plugins...")
