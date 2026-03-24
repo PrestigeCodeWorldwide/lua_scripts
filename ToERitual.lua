@@ -3,15 +3,25 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ToERitual Script v1.25 Started")
+local myClass = mq.TLO.Me.Class.ShortName()
+local shouldExit = false
+
+BL.info("ToERitual Script v1.26 Started")
+BL.info("/stopritual to stop script and reset plugin settings")
+
+-- Command bind for manual stop
+mq.bind('/stopritual', function()
+    BL.info("Manual stop triggered - will exit after cleanup...")
+    shouldExit = true
+end)
 mq.cmd("/plugin boxr load")
 
-mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} mode 2")
+mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} mode 2 nosave")
 mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} chasedistance 10 nosave")
-mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} raidmode off")
-mq.cmdf("/docommand /${Me.Class.ShortName} raidmode on")
+mq.cmdf("/noparse /dgge /docommand /${Me.Class.ShortName} raidmode off nosave")
+mq.cmdf("/docommand /${Me.Class.ShortName} raidmode on nosave")
 mq.cmdf("/docommand /grouproles set ${Me.Name} 2")
-mq.cmdf("/dgge /docommand /${Me.Class.ShortName} useselos off nosave")
+mq.cmdf("/dgge /docommand /brd useselos off nosave")
 mq.cmdf("/dgga /docommand /removebuff Selo's Accelerato")
 
 local ritualinprogress = false
@@ -166,8 +176,11 @@ mq.event("BlueCircle", "#*#The circle to the south flashes with blue energy#*#",
 mq.event("YellowCircle", "#*#The circle to the west flashes with yellow energy#*#", YellowCircle)
 
 -- Main loop
-while true do
-    BL.checkChestSpawn("a_military_chest")
+while not shouldExit do
+    if BL.checkChestSpawn("a_military_chest") then
+        shouldExit = true
+        break
+    end
     
     -- If we were moving to a circle but a group member died, stop movement
     if movingToCircle and isAnyGroupMemberDead() then
@@ -178,4 +191,12 @@ while true do
 
     mq.doevents()
     mq.delay(200)
+end
+
+-- Cleanup and reload
+BL.info("Script ending - reloading CWTN plugins...")
+if mq.TLO.CWTN and mq.TLO.CWTN() then
+    mq.cmdf("/%s reload", myClass)
+else
+    BL.info("No CWTN plugin loaded, skipping reload")
 end
