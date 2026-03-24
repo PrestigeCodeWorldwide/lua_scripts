@@ -3,13 +3,13 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Xanaxbar Script 1.04 Started")
-BL.info("Type /xanaxstop to stop the script rather than wait on chest to spawn")
+BL.info("Xanaxbar Script 1.05 Started")
+BL.info("Type /stopxanax to stop the script rather than wait on chest to spawn")
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
 
 -- Command bind for manual stop
-mq.bind('/xanaxstop', function()
+mq.bind('/stopxanax', function()
     BL.info("Manual stop triggered - will exit after cleanup...")
     shouldExit = true
 end)
