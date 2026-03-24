@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("LHeartRaid Script v1.1 Started")
+BL.info("LHeartRaid Script v1.2 Started")
 
 --mq.cmd("/useadv off")
 --mq.cmd("/lootnodrop never")
@@ -78,6 +78,7 @@ while true do
         BL.cmd.pauseAutomation()
         mq.delay(100)
         mq.cmd("/tar")
+        mq.cmd("/face away fast")
         --change to 'a bright energist'
         --mq.cmd("/tar npc a bright energist")
         --mq.cmd("/nav target")
