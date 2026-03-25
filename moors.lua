@@ -3,12 +3,12 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Moors Script v1.11 Started")
+BL.info("Moors Script v1.12 Started")
 mq.cmd("/plugin boxr load")
 
-local debuffName = "Freezing Grasp"
-local locX = 480
-local locY = 128
+local debuffName = "Freezing Grasp" -- Freezing Grasp
+local locX = 11
+local locY = 952
 local iAmWaiting = false
 
 while true do
@@ -23,7 +23,7 @@ while true do
         BL.cmd.StandIfFeigned()
         BL.cmd.removeZerkerRootDisc()
         mq.delay(100)
-        mq.cmdf('/nav locyx %s %s', locX, locY)
+        mq.cmdf('/nav locyx %s %s', locY, locX)
 
         BL.WaitForNav()
         BL.info("Arrived at safe spot")
