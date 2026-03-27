@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.840 Started")
+BL.info("RaidPrep v1.841 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -642,6 +642,12 @@ local function drawCWTNTab()
         return currentValue
     end
 
+    -- Gold separator line
+    imgui.Separator()
+    imgui.PushStyleColor(ImGuiCol.Separator, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Separator()
+    imgui.PopStyleColor()
+
     -- AutoAssistAt
     imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
     autoAssistAt = updateSetting("##AutoAssistAt", autoAssistAt, function(val)
@@ -856,44 +862,12 @@ local function drawCWTNTab()
     imgui.PopStyleColor()
 --]] -- Comment end
 
-    -- UseAoE toggle
-    local aoeText = "AoE: "
-    local aoeStateText = { "SET", "ON", "OFF" }
-    local aoeButtonState = UseAoE + 1
-
-    -- Set text color based on state
-    local aoeStateColor
-    if UseAoE == 0 then
-        aoeStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseAoE == 1 then
-        aoeStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        aoeStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    end
-
-    -- Draw "AoE:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(aoeText)
+    -- Gold separator line
+    imgui.Separator()
+    imgui.PushStyleColor(ImGuiCol.Separator, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Separator()
     imgui.PopStyleColor()
 
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(aoeStateColor))
-    imgui.PushID("aoe_button")
-    if imgui.Button(aoeStateText[aoeButtonState]) then
-        UseAoE = (UseAoE + 1) % 3
-        if UseAoE == 1 then
-            mq.cmdf("%s useaoe on", getCWTNBind())
-            print("Set AoE to ON")
-        elseif UseAoE == 2 then
-            mq.cmdf("%s useaoe off", getCWTNBind())
-            print("Set AoE to OFF")
-        end
-    end
-    imgui.PopID()
-    imgui.PopStyleColor()
-
-    imgui.SameLine()
     local allianceText = "Alliance: "
     local allianceStateText = { "SET", "ON", "OFF" }
     local allianceButtonState = UseAlliance + 1
@@ -1119,18 +1093,6 @@ local function drawCWTNTab()
         imgui.EndTooltip()
     end
 
-    imgui.SameLine()
-
-    -- Load Button
-    if imgui.Button("Load") then
-        loadSettings()
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Load saved settings")
-        imgui.EndTooltip()
-    end
-    
     -- Reset to single-column layout
 end
 
