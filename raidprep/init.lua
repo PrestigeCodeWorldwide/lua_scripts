@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.841 Started")
+BL.info("RaidPrep v1.842 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -19,7 +19,9 @@ local openGUI = true
 --local selectedClass = nil
 local autoAssistAt = 99
 local CampRadius = 60
+local CampRadiusCaster = 60
 local ChaseDistance = 15
+local lastCasterRadiusUpdate = 0
 local AoECount = 2
 local BurnCount = 99
 local StickHow = -1
@@ -666,7 +668,26 @@ local function drawCWTNTab()
     end)
     imgui.PopStyleColor()
     imgui.SameLine()
-    imgui.Text("CampRadius")
+    imgui.Text("CampRadius(All)")
+
+    -- CampRadius for casters
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
+    CampRadiusCaster = updateSetting("##CampRadiusCaster", CampRadiusCaster, function(val)
+        local now = mq.gettime()
+        if now - lastCasterRadiusUpdate > 100 then -- Throttle to once every 500ms
+            local bindPrefix = applytoallChecked and "/dga" or "/dge"
+            mq.cmdf("%s /docommand /enc campradius %d", bindPrefix, val)
+            mq.cmdf("%s /docommand /nec campradius %d", bindPrefix, val)
+            mq.cmdf("%s /docommand /wiz campradius %d", bindPrefix, val)
+            mq.cmdf("%s /docommand /mag campradius %d", bindPrefix, val)
+            mq.cmdf("%s /docommand /dru campradius %d", bindPrefix, val)
+            print(string.format("Set CampRadius(Caster) to %d", val))
+            lastCasterRadiusUpdate = now
+        end
+    end)
+    imgui.PopStyleColor()
+    imgui.SameLine()
+    imgui.Text("CampRadius(Caster)")
 
     -- ChaseDistance
     imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
