@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.839 Started")
+BL.info("RaidPrep v1.840 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -222,7 +222,7 @@ local scriptTooltips = {
     ["Colossus"] = "Runs toons away from stone emote during the Colossus raid",
     ["Spitetangle"] = "Handles posion call out and rogues disarm traps during the Spitetangle raid",
     ["Xanaxbar"] = "Turns off all AE healing during the Xanaxbar raid",
-    ["Theegg"] = "Handles the run away during the The Egg raid",
+    ["TheEgg"] = "Handles the run away during the Tallgongast, The Egg raid",
 
     -- The Outer Brood scripts
     ["SilenceTheCannons"] =
