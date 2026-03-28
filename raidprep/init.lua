@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.843 Started")
+BL.info("RaidPrep v1.844 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -393,7 +393,7 @@ local function drawClassTab()
 
     local classAbilities = {
         Bard = {
-            { label = "ADT", cmd = "/squelch /dga /brd ActiveDownTime on", offcmd = "/squelch /dga /brd ActiveDownTime off", tooltip = "ActiveDowntime" },
+            { label = "CHR", cmd = "/squelch /dga /brd UseCharm on", offcmd = "/squelch /dga /brd UseCharm off", tooltip = "UseCharm" },
             { label = "MST", cmd = "/squelch /dga /brd UseMezST on",       offcmd = "/squelch /dga /brd UseMezST off",       tooltip = "MezST" },
             { label = "MAE", cmd = "/squelch /dga /brd UseMezAoE on",      offcmd = "/squelch /dga /brd UseMezAoE off",      tooltip = "MezAoE" }
         },
@@ -411,6 +411,11 @@ local function drawClassTab()
             { label = "SPL", cmd = "/squelch /dga /clr MemSplash on",      offcmd = "/squelch /dga /clr MemSplash off",      tooltip = "MemSplash" },
             { label = "ANT", cmd = "/squelch /dga /clr UseAnticipated on", offcmd = "/squelch /dga /clr UseAnticipated off", tooltip = "Anticipated" },
             { label = "RET", cmd = "/squelch /dga /clr UseRetort on",      offcmd = "/squelch /dga /clr UseRetort off",      tooltip = "Retort" }
+        },
+        Enchanter = {
+            { label = "MST", cmd = "/squelch /dga /enc UseMez on",      offcmd = "/squelch /dga /enc UseMez off",      tooltip = "UseMez" },
+            { label = "MAE", cmd = "/squelch /dga /enc UseMezAoE on",      offcmd = "/squelch /dga /enc UseMezAoE off",      tooltip = "MezAoE" },
+            { label = "CHR", cmd = "/squelch /dga /enc UseCharm on",      offcmd = "/squelch /dga /enc UseCharm off",      tooltip = "UseCharm" }
         },
         Monk = {
             { label = "DEV", cmd = "/squelch /dga /mnk UseDevAssault on",  offcmd = "/squelch /dga /mnk UseDevAssault off",  tooltip = "DevAssault" },
@@ -446,7 +451,7 @@ local function drawClassTab()
 
     for _, class in ipairs({
         "Bard", "Beastlord", "Berserker", "Cleric",
-        "Monk", "Paladin",
+        "Enchanter", "Monk", "Paladin",
         "Rogue", "Shadowknight", "Shaman", "Warrior",
     }) do
         -- Column 1: Class name (default color)
