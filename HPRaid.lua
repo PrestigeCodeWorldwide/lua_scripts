@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.07 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.09 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 
 -- Shared State
@@ -78,7 +78,7 @@ mq.event("Behind", "#*#The High Priest tenses and takes a deep breath.#*#", Stic
 mq.event("Purif1", "#*#The High Priest demands the Penance from #*#", Purif1Handler)
 mq.event("Purif2", "#*#And he sets the Purification of Veeshan upon #*#", Purif2Handler)
 mq.event("Purif1Fail", "#*#You are purified, and it is painful#*#", Purif1FailureHandler)
-mq.event("Purif2Fail", "#*#You suffer your penance#*#", Purif2FailureHandler)
+--mq.event("Purif2Fail", "#*#You suffer your penance#*#", Purif2FailureHandler)
 
 -- Handle debuff movement and state
 local function handleDebuffs()
@@ -138,10 +138,15 @@ local function handleDebuffs()
     if not BL.IHaveBuff(debuffNameSE) and not BL.IHaveBuff(debuffNameNW) and iAmWaiting then
         iAmWaiting = false
         isHandlingDebuff = false
-        BL.info("Returning to the fight")
+        BL.info("Debuff cleared, moving to center spot")
         BL.cmd.resumeAutomation()
         BL.cmd.StandIfFeigned()
         mq.delay(100)
+        mq.cmdf("/docommand /%s mode 0", mq.TLO.Me.Class.ShortName())
+        mq.cmd("/nav locyx 467 51")
+        mq.delay(12000)
+        mq.cmdf("/docommand /%s mode 2", mq.TLO.Me.Class.ShortName())
+        BL.info("Returning to the fight")
     end
 
     -- Handle when I'm NOT called by running away
