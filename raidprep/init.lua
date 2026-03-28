@@ -381,7 +381,7 @@ end
 local function drawClassTab()
     imgui.Separator()
     imgui.Columns(2)
-    imgui.SetColumnWidth(0, 100) -- fixed width for left column
+    imgui.SetColumnWidth(0, 75) -- fixed width for left column
 
     -- Column headers in lime green
     imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Class and Commandtext color
@@ -432,7 +432,7 @@ local function drawClassTab()
             { label = "LIG", cmd = "/squelch /dga /rog UseLigamentSlice on", offcmd = "/squelch /dga /rog UseLigamentSlice off", tooltip = "LigamentSlice" },
             { label = "PET", cmd = "/squelch /dga /rog UsePet on",           offcmd = "/squelch /dga /rog UsePet off",           tooltip = "UsePet" }
         },
-        Shadowknight = {
+        SK = {
             { label = "INS", cmd = "/squelch /dga /shd UseInsidious on", offcmd = "/squelch /dga /shd UseInsidious off", tooltip = "Insidious" },
             { label = "PET", cmd = "/squelch /dga /shd UsePet on",       offcmd = "/squelch /dga /shd UsePet off",       tooltip = "Pet" },
             { label = "FEI", cmd = "/squelch /dga /shd UseFeign on",     offcmd = "/squelch /dga /shd UseFeign off",     tooltip = "Feign" }
@@ -452,7 +452,7 @@ local function drawClassTab()
     for _, class in ipairs({
         "Bard", "Beastlord", "Berserker", "Cleric",
         "Enchanter", "Monk", "Paladin",
-        "Rogue", "Shadowknight", "Shaman", "Warrior",
+        "Rogue", "SK", "Shaman", "Warrior",
     }) do
         -- Column 1: Class name (default color)
         imgui.Text(class)
