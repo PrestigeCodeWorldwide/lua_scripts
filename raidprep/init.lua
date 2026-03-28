@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.842 Started")
+BL.info("RaidPrep v1.843 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -43,6 +43,8 @@ local settingsFile = scriptDir .. "raidprep_settings.lua"
 local forceRefresh = 0
 local isWindowMinimized = false
 local windowHeight = 600 -- default height, will be adjusted when window is restored
+local topSectionCollapsed = false -- Track if top section is collapsed
+local quickActionsStateLoaded = false -- Track if we've loaded the state from file
 
 -- Helper function to get the appropriate bind based on applytoallChecked
 local function getCWTNBind()
@@ -500,131 +502,38 @@ local function drawCWTNTab()
         forceRefresh = forceRefresh - 1
     end
 
-    imgui.Separator()
-    local topButtons = {
-        { label = "BON",  command = "BurnAlways ON",  tooltip = "BurnAlways ON" },
-        { label = "BOFF", command = "BurnAlways OFF", tooltip = "BurnAlways OFF" },
-        { label = "CHA",  command = "mode chase",     tooltip = "Chase mode" },
-        { label = "ASS",  command = "mode assist",    tooltip = "Assist mode" },
-        { label = "PON",  command = "pause ON",       tooltip = "Pause ON" },
-        { label = "POFF", command = "pause OFF",      tooltip = "Pause OFF" },
-    }
-
-    -- StyleVar indices (ImGuiStyleVar enum)
-    local STYLEVAR_FramePadding = 5
-
-    imgui.PushStyleVar(STYLEVAR_FramePadding, 1, 1)
-
-    for _, btn in ipairs(topButtons) do
-        imgui.PushID("top_" .. btn.label)
-        if imgui.Button(btn.label, 38, 25) then
-            if btn.label == "BOFF" then
-                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
-                mq.cmdf("%s %s", AllIncludingSelfBind, "BurnAllNamed OFF")
-                print("Issued BurnAlways OFF and BurnAllNamed OFF")
-            else
-                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
-                print("Issued " .. btn.command)
+    -- Load quick actions collapse state from file
+    local quickActionsStateFile = scriptDir .. "quickactions_state.txt"
+    local function loadQuickActionsState()
+        local file = io.open(quickActionsStateFile, "r")
+        if file then
+            local content = file:read("*all")
+            file:close()
+            if content == "collapsed" then
+                topSectionCollapsed = true
+            elseif content == "expanded" then
+                topSectionCollapsed = false
             end
         end
-        if imgui.IsItemHovered() then
-            imgui.BeginTooltip()
-            imgui.Text(btn.tooltip)
-            imgui.EndTooltip()
+    end
+
+    -- Save quick actions collapse state to file
+    local function saveQuickActionsState()
+        local file = io.open(quickActionsStateFile, "w")
+        if file then
+            local state = topSectionCollapsed and "collapsed" or "expanded"
+            file:write(state)
+            file:close()
         end
-        imgui.PopID()
-        imgui.SameLine()
     end
 
-    imgui.PopStyleVar()
-    imgui.NewLine()
-
-    if imgui.Button("AE On") then
-        --mq.cmdf("%s %s", getCWTNBind(), "UseAoE on")
-        --mq.cmdf("%s %s", getCWTNBind(), "AoECount 2")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDevAssault on")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDestructive on")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseInsidious on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 2")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
-        mq.cmd(
-            "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Turn on all AoE on all characters.")
-        imgui.EndTooltip()
+    -- Load state on first draw
+    if not quickActionsStateLoaded then
+        loadQuickActionsState()
+        quickActionsStateLoaded = true
     end
 
-    imgui.SameLine()
-
-    if imgui.Button("AE Off") then
-        --mq.cmdf("%s %s", getCWTNBind(), "UseAoE off")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDevAssault off")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseDestructive off")
-        --mq.cmdf("%s %s", getCWTNBind(), "UseInsidious off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 99")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive off")
-        mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious off")
-        mq.cmd(
-            "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861")
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Turn off all AoE on all characters. (includes DevAssault, Destructive, Insidious, Languid Bite)")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-
-    if imgui.Button("D-Glyph") then
-        mq.cmdf("%s /alt act 5100", getCWTNBind())
-        mq.cmdf("%s /alt buy 5100", getCWTNBind())
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Uses Dragon Scale Glyph on all characters but the one you are on now.")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-
-    if imgui.Button("P-Glyph") then
-        mq.cmdf("%s /alt act 5303", getCWTNBind())
-        mq.cmdf("%s /alt buy 5303", getCWTNBind())
-    end
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Uses Power/DPS Glyph on all characters but the one you are on now.")
-        imgui.EndTooltip()
-    end
-
-    imgui.SameLine()
-    imgui.SetCursorPosX(imgui.GetCursorPosX() + 5)
-    -- Store the current state
-    local newState = applytoallChecked
-    -- Update the checkbox and get the new state
-    newState = imgui.Checkbox("All##cwtnall", newState)
-
-    -- Only update and print if the state changed
-    if newState ~= applytoallChecked then
-        applytoallChecked = newState
-        print(applytoallChecked and "Including current character in CWTN commands" or
-            "Excluding current character from CWTN commands")
-    end
-
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Check to include current character in CWTN commands")
-        imgui.EndTooltip()
-    end
-
-
+    imgui.Separator()
 
     -- LEFT COLUMN: All current settings
     -- Utility to wrap settings
@@ -643,12 +552,6 @@ local function drawCWTNTab()
         end
         return currentValue
     end
-
-    -- Gold separator line
-    imgui.Separator()
-    imgui.PushStyleColor(ImGuiCol.Separator, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Separator()
-    imgui.PopStyleColor()
 
     -- AutoAssistAt
     imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green color for number
@@ -889,6 +792,179 @@ local function drawCWTNTab()
     imgui.Separator()
     imgui.PopStyleColor()
 
+    --imgui.NewLine()
+    imgui.Columns(1)
+
+    -- Cures toggle
+    local curesText = "Cures: "
+    local curesStateText = { "SET", "ON", "OFF" }
+    local curesButtonState = UseCures + 1
+
+    -- Set text color based on state
+    local curesStateColor
+    if UseCures == 0 then
+        curesStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseCures == 1 then
+        curesStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        curesStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "Cures:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(curesText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(curesStateColor))
+    imgui.PushID("cures_button_save")
+    if imgui.Button(curesStateText[curesButtonState]) then
+        UseCures = (UseCures + 1) % 3
+        if UseCures == 1 then
+            mq.cmdf("%s usecures on", AllIncludingSelfBind)
+            mq.cmdf("%s MemCureAll on", AllIncludingSelfBind)
+            mq.cmdf("%s MemGroupCureAll on", AllIncludingSelfBind)
+            print("Set Cures to ON")
+        elseif UseCures == 2 then
+            mq.cmdf("%s usecures off", AllIncludingSelfBind)
+            mq.cmdf("%s MemCureAll off", AllIncludingSelfBind)
+            mq.cmdf("%s MemGroupCureAll off", AllIncludingSelfBind)
+            print("Set Cures to OFF")
+        end
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+        imgui.Text("Turns all curing On/Off")
+        imgui.PopStyleColor()
+        imgui.EndTooltip()
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
+    imgui.SameLine()
+
+    -- AEHeals toggle
+    local aehealsText = "AE(Heal): "
+    local aehealsStateText = { "SET", "ON", "OFF" }
+    local aehealsButtonState = UseAEHeals + 1
+
+    -- Set text color based on state
+    local aehealsStateColor
+    if UseAEHeals == 0 then
+        aehealsStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseAEHeals == 1 then
+        aehealsStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        aehealsStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "AEHeals:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(aehealsText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(aehealsStateColor))
+    imgui.PushID("aeheals_button")
+    if imgui.Button(aehealsStateText[aehealsButtonState]) then
+        UseAEHeals = (UseAEHeals + 1) % 3
+        -- For AEHeals commands, we'll use /dga or /dge directly
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
+        if UseAEHeals == 1 then
+            mq.cmdf("%s UseSquall on", AllIncludingSelfBind)
+            mq.cmdf("%s UseSplash on", AllIncludingSelfBind)
+            mq.cmdf("%s MemSplash on", AllIncludingSelfBind)
+            mq.cmdf("%s UseWardAA on", AllIncludingSelfBind)
+            mq.cmdf("%s UseNaturesBoon on", AllIncludingSelfBind)
+            -- Add usealliance on for priests only (DRU, CLR, SHM)
+            mq.cmdf("%s /docommand /clr usealliance on", bindPrefix)
+            mq.cmdf("%s /docommand /shm usealliance on", bindPrefix)
+            mq.cmdf("%s /docommand /dru usealliance on", bindPrefix)
+            print("Set AEHeals to ON")
+        elseif UseAEHeals == 2 then
+            mq.cmdf("%s UseSquall off", AllIncludingSelfBind)
+            mq.cmdf("%s UseSplash off", AllIncludingSelfBind)
+            mq.cmdf("%s MemSplash off", AllIncludingSelfBind)
+            mq.cmdf("%s UseWardAA off", AllIncludingSelfBind)
+            mq.cmdf("%s UseNaturesBoon off", AllIncludingSelfBind)
+            -- Add usealliance off for priests only (DRU, CLR, SHM)
+            mq.cmdf("%s /docommand /clr usealliance off", bindPrefix)
+            mq.cmdf("%s /docommand /shm usealliance off", bindPrefix)
+            mq.cmdf("%s /docommand /dru usealliance off", bindPrefix)
+            print("Set AEHeals to OFF")
+        end
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+        imgui.Text("Turns all AE Healing abilities On/Off")
+        imgui.PopStyleColor()
+        imgui.EndTooltip()
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
+    imgui.SameLine()
+
+    -- AE toggle
+    local aeText = "AE(DMG): "
+    local aeStateText = { "SET", "ON", "OFF" }
+    local aeButtonState = UseAoE + 1
+
+    -- Set text color based on state
+    local aeStateColor
+    if UseAoE == 0 then
+        aeStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseAoE == 1 then
+        aeStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        aeStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "AE:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(aeText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(aeStateColor))
+    imgui.PushID("ae_button")
+    if imgui.Button(aeStateText[aeButtonState]) then
+        UseAoE = (UseAoE + 1) % 3
+        if UseAoE == 1 then
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE on")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 2")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault on")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive on")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious on")
+            mq.cmd(
+                "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Disabled].ID}) /alt act 861")
+            print("Set AE to ON")
+        elseif UseAoE == 2 then
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseAoE off")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} AoECount 99")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDevAssault off")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDestructive off")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseInsidious off")
+            mq.cmd(
+                "/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} && ${Me.AltAbility[Languid Bite: Enabled].ID}) /alt act 861")
+            print("Set AE to OFF")
+        end
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+        imgui.Text("Turns all AoE damaging abilities On/Off")
+        imgui.PopStyleColor()
+        imgui.EndTooltip()
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
     local allianceText = "Alliance: "
     local allianceStateText = { "SET", "ON", "OFF" }
     local allianceButtonState = UseAlliance + 1
@@ -988,130 +1064,96 @@ local function drawCWTNTab()
     imgui.PopID()
     imgui.PopStyleColor()
 
-    --imgui.NewLine()
-    imgui.Columns(1)
+    -- Collapsible section for quick actions at the bottom
+    imgui.Separator()
+    local arrowText = topSectionCollapsed and "+" or "-"
+    if imgui.Button(arrowText, 18, 18) then
+        topSectionCollapsed = not topSectionCollapsed
+        saveQuickActionsState() -- Save the new state to file
+    end
+    imgui.SameLine(0, 5)
+    imgui.Text("Quick Actions")
+    
+    if not topSectionCollapsed then
+        local topButtons = {
+        { label = "BON",  command = "BurnAlways ON",  tooltip = "BurnAlways ON" },
+        { label = "BOFF", command = "BurnAlways OFF", tooltip = "BurnAlways OFF" },
+        { label = "CHA",  command = "mode chase",     tooltip = "Chase mode" },
+        { label = "ASS",  command = "mode assist",    tooltip = "Assist mode" },
+        { label = "PON",  command = "pause ON",       tooltip = "Pause ON" },
+        { label = "POFF", command = "pause OFF",      tooltip = "Pause OFF" },
+    }
 
-    -- Cures toggle
-    local curesText = "Cures: "
-    local curesStateText = { "SET", "ON", "OFF" }
-    local curesButtonState = UseCures + 1
+    -- StyleVar indices (ImGuiStyleVar enum)
+    local STYLEVAR_FramePadding = 5
 
-    -- Set text color based on state
-    local curesStateColor
-    if UseCures == 0 then
-        curesStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseCures == 1 then
-        curesStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        curesStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    imgui.PushStyleVar(STYLEVAR_FramePadding, 1, 1)
+
+    for _, btn in ipairs(topButtons) do
+        imgui.PushID("top_" .. btn.label)
+        if imgui.Button(btn.label, 38, 25) then
+            if btn.label == "BOFF" then
+                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
+                mq.cmdf("%s %s", AllIncludingSelfBind, "BurnAllNamed OFF")
+                print("Issued BurnAlways OFF and BurnAllNamed OFF")
+            else
+                mq.cmdf("%s %s", AllIncludingSelfBind, btn.command)
+                print("Issued " .. btn.command)
+            end
+        end
+        if imgui.IsItemHovered() then
+            imgui.BeginTooltip()
+            imgui.Text(btn.tooltip)
+            imgui.EndTooltip()
+        end
+        imgui.PopID()
+        imgui.SameLine()
     end
 
-    -- Draw "Cures:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(curesText)
-    imgui.PopStyleColor()
+    imgui.PopStyleVar()
+    imgui.NewLine()
 
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(curesStateColor))
-    imgui.PushID("cures_button_save")
-    if imgui.Button(curesStateText[curesButtonState]) then
-        UseCures = (UseCures + 1) % 3
-        if UseCures == 1 then
-            mq.cmdf("%s usecures on", AllIncludingSelfBind)
-            mq.cmdf("%s MemCureAll on", AllIncludingSelfBind)
-            mq.cmdf("%s MemGroupCureAll on", AllIncludingSelfBind)
-            print("Set Cures to ON")
-        elseif UseCures == 2 then
-            mq.cmdf("%s usecures off", AllIncludingSelfBind)
-            mq.cmdf("%s MemCureAll off", AllIncludingSelfBind)
-            mq.cmdf("%s MemGroupCureAll off", AllIncludingSelfBind)
-            print("Set Cures to OFF")
-        end
+    if imgui.Button("D-Glyph") then
+        mq.cmdf("%s /alt act 5100", getCWTNBind())
+        mq.cmdf("%s /alt buy 5100", getCWTNBind())
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
-        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-        imgui.Text("Turns all curing On/Off")
-        imgui.PopStyleColor()
+        imgui.Text("Uses Dragon Scale Glyph on all characters but the one you are on now.")
         imgui.EndTooltip()
     end
-    imgui.PopID()
-    imgui.PopStyleColor()
 
     imgui.SameLine()
 
-    -- AEHeals toggle
-    local aehealsText = "AEHeals: "
-    local aehealsStateText = { "SET", "ON", "OFF" }
-    local aehealsButtonState = UseAEHeals + 1
-
-    -- Set text color based on state
-    local aehealsStateColor
-    if UseAEHeals == 0 then
-        aehealsStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
-    elseif UseAEHeals == 1 then
-        aehealsStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
-    else
-        aehealsStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
-    end
-
-    -- Draw "AEHeals:" in gold
-    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-    imgui.Text(aehealsText)
-    imgui.PopStyleColor()
-
-    -- Draw the state text with appropriate color
-    imgui.SameLine(0, 0)
-    imgui.PushStyleColor(ImGuiCol.Text, unpack(aehealsStateColor))
-    imgui.PushID("aeheals_button")
-    if imgui.Button(aehealsStateText[aehealsButtonState]) then
-        UseAEHeals = (UseAEHeals + 1) % 3
-        -- For AEHeals commands, we'll use /dga or /dge directly
-        local bindPrefix = applytoallChecked and "/dga" or "/dge"
-        if UseAEHeals == 1 then
-            mq.cmdf("%s UseSquall on", AllIncludingSelfBind)
-            mq.cmdf("%s UseSplash on", AllIncludingSelfBind)
-            mq.cmdf("%s MemSplash on", AllIncludingSelfBind)
-            mq.cmdf("%s UseWardAA on", AllIncludingSelfBind)
-            mq.cmdf("%s UseNaturesBoon on", AllIncludingSelfBind)
-            -- Add usealliance on for priests only (DRU, CLR, SHM)
-            mq.cmdf("%s /docommand /clr usealliance on", bindPrefix)
-            mq.cmdf("%s /docommand /shm usealliance on", bindPrefix)
-            mq.cmdf("%s /docommand /dru usealliance on", bindPrefix)
-            print("Set AEHeals to ON")
-        elseif UseAEHeals == 2 then
-            mq.cmdf("%s UseSquall off", AllIncludingSelfBind)
-            mq.cmdf("%s UseSplash off", AllIncludingSelfBind)
-            mq.cmdf("%s MemSplash off", AllIncludingSelfBind)
-            mq.cmdf("%s UseWardAA off", AllIncludingSelfBind)
-            mq.cmdf("%s UseNaturesBoon off", AllIncludingSelfBind)
-            -- Add usealliance off for priests only (DRU, CLR, SHM)
-            mq.cmdf("%s /docommand /clr usealliance off", bindPrefix)
-            mq.cmdf("%s /docommand /shm usealliance off", bindPrefix)
-            mq.cmdf("%s /docommand /dru usealliance off", bindPrefix)
-            print("Set AEHeals to OFF")
-        end
+    if imgui.Button("P-Glyph") then
+        mq.cmdf("%s /alt act 5303", getCWTNBind())
+        mq.cmdf("%s /alt buy 5303", getCWTNBind())
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
-        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
-        imgui.Text("Turns all AE Healing abilities On/Off")
-        imgui.PopStyleColor()
+        imgui.Text("Uses Power/DPS Glyph on all characters but the one you are on now.")
         imgui.EndTooltip()
     end
-    imgui.PopID()
-    imgui.PopStyleColor()
 
     imgui.SameLine()
+    imgui.SetCursorPosX(imgui.GetCursorPosX() + 5)
+    -- Store the current state
+    local newState = applytoallChecked
+    -- Update the checkbox and get the new state
+    newState = imgui.Checkbox("All##cwtnall", newState)
 
-    if imgui.Button("Save") then
-        saveSettings()
+    -- Only update and print if the state changed
+    if newState ~= applytoallChecked then
+        applytoallChecked = newState
+        print(applytoallChecked and "Including current character in CWTN commands" or
+            "Excluding current character from CWTN commands")
     end
+
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
-        imgui.Text("Save current settings as default")
+        imgui.Text("Check to include current character in CWTN commands")
         imgui.EndTooltip()
+    end
     end
 
     -- Reset to single-column layout
