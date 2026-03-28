@@ -1,4 +1,4 @@
--- v1.03
+-- v1.04
 ---@type Mq
 local mq = require("mq")
 ---@type ImGui
@@ -13,31 +13,31 @@ local selectedSection = "Cures" -- Default to Cures section
 -- Section data
 local sectionData = {
     Cures = {
-        { name = "Venenium", displayName = "Venenium", active = false },
-        { name = "Cleansing Rod", displayName = "Cleansing Rod", active = false },
-        { name = "Distillate of Antidote XV", displayName = "Distillate of Antidote XV", active = false },
-        { name = "Shield of Immaculate", displayName = "Shield of Immaculate", active = false },
-        { name = "Shield of Immaculate Light", displayName = "Shield of Immaculate Light", active = false }
+        { name = "Venenium", displayName = "Venenium", state = 0 },
+        { name = "Cleansing Rod", displayName = "Cleansing Rod", state = 0 },
+        { name = "Distillate of Antidote XV", displayName = "Distillate of Antidote XV", state = 0 },
+        { name = "Shield of Immaculate", displayName = "Shield of Immaculate", state = 0 },
+        { name = "Shield of Immaculate Light", displayName = "Shield of Immaculate Light", state = 0 }
     },
     Burn = {
-        { name = "Rage of Rolfron", displayName = "Rage of Rolfron", active = false },
-        --{ name = "BurnNamed", displayName = "Burn Named", active = false },
-        --{ name = "BurnAE", displayName = "Burn AE", active = false }
+        { name = "Rage of Rolfron", displayName = "Rage of Rolfron", state = 0 },
+        --{ name = "BurnNamed", displayName = "Burn Named", state = 0 },
+        --{ name = "BurnAE", displayName = "Burn AE", state = 0 }
     },
     Offensive = {
-        { name = "Draught of Shattered Evocations", displayName = "Draught of Shattered Evocations", active = false },
-        { name = "Flask of Shattered Bolstering", displayName = "Flask of Shattered Bolstering", active = false },
-        { name = "Consigned Bite of the Shissar XXII", displayName = "Consigned Bite of the Shissar XXII", active = false },
-        { name = "Consigned Bite of the Shissar XXIII", displayName = "Consigned Bite of the Shissar XXIII", active = false },
-        { name = "Spider's Bite XXII", displayName = "Spider's Bite XXII", active = false },
-        { name = "Scorpion's Agony XXI", displayName = "Scorpion's Agony XXI", active = false },
-        { name = "Tallon's Tactic XXIII", displayName = "Tallon's Tactic XXIII", active = false },
-        { name = "Vallon's Tactic XXIII", displayName = "Vallon's Tactic XXIII", active = false },
-        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", active = false },
+        { name = "Draught of Shattered Evocations", displayName = "Draught of Shattered Evocations", state = 0 },
+        { name = "Flask of Shattered Bolstering", displayName = "Flask of Shattered Bolstering", state = 0 },
+        { name = "Consigned Bite of the Shissar XXII", displayName = "Consigned Bite of the Shissar XXII", state = 0 },
+        { name = "Consigned Bite of the Shissar XXIII", displayName = "Consigned Bite of the Shissar XXIII", state = 0 },
+        { name = "Spider's Bite XXII", displayName = "Spider's Bite XXII", state = 0 },
+        { name = "Scorpion's Agony XXI", displayName = "Scorpion's Agony XXI", state = 0 },
+        { name = "Tallon's Tactic XXIII", displayName = "Tallon's Tactic XXIII", state = 0 },
+        { name = "Vallon's Tactic XXIII", displayName = "Vallon's Tactic XXIII", state = 0 },
+        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", state = 0 },
     },
     Downtime = {
-        { name = "ActiveDownTime", displayName = "Active Downtime", active = false },
-        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", active = false }
+        { name = "ActiveDownTime", displayName = "Active Downtime", state = 0 },
+        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", state = 0 }
     }
 }
 
@@ -52,13 +52,13 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
         -- ALL ON - activate all cures
         for _, cure in ipairs(sectionData.Cures) do
             mq.cmdf("%s activate cure \"%s\"", AllIncludingSelfBind, cure.name)
-            cure.active = true
+            cure.state = 1
         end
     elseif UseCures == 2 then
         -- ALL OFF - deactivate all cures
         for _, cure in ipairs(sectionData.Cures) do
             mq.cmdf("%s deactivate cure \"%s\"", AllIncludingSelfBind, cure.name)
-            cure.active = false
+            cure.state = 2
         end
     end
     
@@ -66,7 +66,7 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
     for sectionName, section in pairs(sectionData) do
         if sectionName == "Burn" then
             for _, item in ipairs(section) do
-                if item.active then
+                if item.state == 1 then
                     mq.cmdf("%s activate burn \"%s\"", AllIncludingSelfBind, item.name)
                 else
                     mq.cmdf("%s deactivate burn", AllIncludingSelfBind)
@@ -74,7 +74,7 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
             end
         elseif sectionName == "Offensive" then
             for _, item in ipairs(section) do
-                if item.active then
+                if item.state == 1 then
                     mq.cmdf("%s activate offensive \"%s\"", AllIncludingSelfBind, item.name)
                 else
                     mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
@@ -82,7 +82,7 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
             end
         elseif sectionName == "Downtime" then
             for _, item in ipairs(section) do
-                if item.active then
+                if item.state == 1 then
                     mq.cmdf("%s activate downtime \"%s\"", AllIncludingSelfBind, item.name)
                 else
                     mq.cmdf("%s deactivate downtime \"%s\"", AllIncludingSelfBind, item.name)
@@ -91,7 +91,7 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
         else
             -- For Cures section, use cure commands
             for _, cure in ipairs(sectionData.Cures) do
-                if cure.active then
+                if cure.state == 1 then
                     mq.cmdf("%s activate cure \"%s\"", AllIncludingSelfBind, cure.name)
                 else
                     mq.cmdf("%s deactivate cure \"%s\"", AllIncludingSelfBind, cure.name)
@@ -108,8 +108,8 @@ local function loadAddclickySettings(settings)
     -- Load individual cure states
     if settings.individualCures then
         for i, cure in ipairs(individualCures) do
-            if settings.individualCures[i] and settings.individualCures[i].active ~= nil then
-                cure.active = settings.individualCures[i].active
+            if settings.individualCures[i] and settings.individualCures[i].state ~= nil then
+                cure.state = settings.individualCures[i].state
             end
         end
     end
@@ -119,8 +119,8 @@ local function loadAddclickySettings(settings)
         for sectionName, section in pairs(settings.sectionData) do
             if sectionName ~= "Cures" and sectionData[sectionName] then
                 for i, item in ipairs(sectionData[sectionName]) do
-                    if settings.sectionData[sectionName][i] and settings.sectionData[sectionName][i].active ~= nil then
-                        item.active = settings.sectionData[sectionName][i].active
+                    if settings.sectionData[sectionName][i] and settings.sectionData[sectionName][i].state ~= nil then
+                        item.state = settings.sectionData[sectionName][i].state
                     end
                 end
             end
@@ -134,11 +134,11 @@ local function saveAddclickySettings(settings)
     
     -- Save individual cure states
     settings.individualCures = {}
-    for i, cure in ipairs(individualCures) do
+    for i, cure in ipairs(sectionData.Cures) do
         settings.individualCures[i] = {
             name = cure.name,
             displayName = cure.displayName,
-            active = cure.active
+            state = cure.state
         }
     end
     
@@ -151,7 +151,7 @@ local function saveAddclickySettings(settings)
                 settings.sectionData[sectionName][i] = {
                     name = item.name,
                     displayName = item.displayName,
-                    active = item.active
+                    state = item.state
                 }
             end
         end
@@ -218,7 +218,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     elseif selectedSection == "Downtime" then
                         mq.cmdf("%s activate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
-                    item.active = true
+                    item.state = 1
                 end
             end
             print("Set All " .. selectedSection .. " to ON")
@@ -229,13 +229,13 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     if selectedSection == "Cures" then
                         mq.cmdf("%s deactivate cure \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Burn" then
-                        mq.cmdf("%s deactivate burn \"%s\"", AllIncludingSelfBind, item.name)
+                        mq.cmdf("%s deactivate burn", AllIncludingSelfBind)
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
                         mq.cmdf("%s deactivate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
-                    item.active = false
+                    item.state = 2
                 end
             end
             print("Set All " .. selectedSection .. " to OFF")
@@ -265,13 +265,21 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
             imgui.PushID("item_" .. i)
             
             -- Individual toggle button first (on left)
-            local individualStateText = item.active and "ON" or "OFF"
-            local individualStateColor = item.active and { 0.0, 1.0, 0.0, 1.0 } or { 1.0, 0.0, 0.0, 1.0 }
+            local stateText = { "SET", "ON", "OFF" }
+            local individualButtonState = item.state + 1
+            local individualStateColor
+            if item.state == 0 then
+                individualStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+            elseif item.state == 1 then
+                individualStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+            else
+                individualStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+            end
             
             imgui.PushStyleColor(ImGuiCol.Text, unpack(individualStateColor))
-            if imgui.Button(individualStateText, 50, 20) then
-                item.active = not item.active
-                if item.active then
+            if imgui.Button(stateText[individualButtonState], 50, 20) then
+                item.state = (item.state + 1) % 3
+                if item.state == 1 then
                     if selectedSection == "Cures" then
                         mq.cmdf("%s activate cure \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Burn" then
@@ -282,11 +290,11 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                         mq.cmdf("%s activate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
                     print("Activated " .. item.displayName)
-                else
+                elseif item.state == 2 then
                     if selectedSection == "Cures" then
                         mq.cmdf("%s deactivate cure \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Burn" then
-                        mq.cmdf("%s deactivate burn \"%s\"", AllIncludingSelfBind, item.name)
+                        mq.cmdf("%s deactivate burn", AllIncludingSelfBind)
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
