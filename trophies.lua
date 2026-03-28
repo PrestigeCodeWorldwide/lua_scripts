@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Trophies Script v1.1 Started")
+BL.info("Trophies Script v1.2 Started")
 
 local function GetActiveTrophyBenefits()
     local benefits = {}
@@ -68,6 +68,48 @@ local function AreTrophiesActivated()
     return isActivated
 end
 
+local function IsPersonalTributeActive()
+    local tributeWnd = mq.TLO.Window("TributeBenefitWnd")
+    local wasOpen = tributeWnd.Open() or false
+    
+    -- Open the tribute benefit window if it's not already open
+    if not wasOpen then
+        BL.info("Opening tribute benefit window for personal tribute check...")
+        mq.cmd("/windowstate TributeBenefitWnd open")
+        mq.delay(1000)
+    end
+    
+    local isActive = false
+    
+    -- Check the TBWP_ActivateButton text within the personal page
+    local personalActivateButton = tributeWnd.Child('TBW_Subwindows').Child('TBW_PersonalPage').Child('TBWP_ActivateButton')
+    if personalActivateButton() and personalActivateButton.Text() then
+        if personalActivateButton.Text() == "Deactivate" then
+            isActive = true
+            BL.info("Personal tribute activate button text is 'Deactivate', so it's active.")
+        else
+            BL.info("Personal tribute activate button text is '%s', so it's not active.", personalActivateButton.Text())
+        end
+    else
+        BL.info("Could not find or read text from TBWP_ActivateButton.")
+    end
+    
+    BL.info("Personal tribute active status: %s", tostring(isActive))
+    
+    -- Close the window if we opened it
+    if not wasOpen and tributeWnd.Open() then
+        mq.cmd("/windowstate TributeBenefitWnd close")
+    end
+    
+    return isActive
+end
+
+local function GetTributeAmount()
+    local favorAmount = mq.TLO.Me.CurrentFavor() or 0
+    BL.info("Current tribute favor: %d", favorAmount)
+    return favorAmount
+end
+
 local function GetPowerSourceStatus()
     local powerSource = mq.TLO.Me.Inventory("powersource")
     
@@ -93,6 +135,8 @@ local function main()
     BL.info("Starting trophy check...")
     local activeBenefits = GetActiveTrophyBenefits()
     local isActivated = AreTrophiesActivated()
+    local isPersonalTributeActive = IsPersonalTributeActive()
+    local tributeAmount = GetTributeAmount()
     local powerName, currentPower, powerPercentage = GetPowerSourceStatus()
     
     if #activeBenefits == 0 then
@@ -110,6 +154,23 @@ local function main()
         mq.cmd("/g [Trophy] Trophies are NOT activated!")
     else
         BL.info("Trophies are activated")
+    end
+    
+    if not isPersonalTributeActive then
+        BL.info("Personal tribute is not activated")
+        mq.cmd("/rs [Tribute] Personal tribute is NOT activated!")
+        mq.cmd("/g [Tribute] Personal tribute is NOT activated!")
+    else
+        BL.info("Personal tribute is activated")
+    end
+    
+    -- Tribute favor check
+    if tributeAmount < 50000 then
+        BL.info("Tribute favor is low: %d", tributeAmount)
+        mq.cmd(string.format("/rs [Tribute] Tribute favor is LOW: %d!", tributeAmount))
+        mq.cmd(string.format("/g [Tribute] Tribute favor is LOW: %d!", tributeAmount))
+    else
+        BL.info("Tribute favor OK: %d", tributeAmount)
     end
     
     -- Power source check with percentage
