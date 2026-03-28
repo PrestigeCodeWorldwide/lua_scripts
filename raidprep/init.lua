@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.844 Started")
+BL.info("RaidPrep v1.845 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true

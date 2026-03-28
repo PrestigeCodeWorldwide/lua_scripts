@@ -1,4 +1,4 @@
--- v1.02
+-- v1.03
 ---@type Mq
 local mq = require("mq")
 ---@type ImGui
@@ -31,12 +31,13 @@ local sectionData = {
         { name = "Consigned Bite of the Shissar XXIII", displayName = "Consigned Bite of the Shissar XXIII", active = false },
         { name = "Spider's Bite XXII", displayName = "Spider's Bite XXII", active = false },
         { name = "Scorpion's Agony XXI", displayName = "Scorpion's Agony XXI", active = false },
-        { name = "Tallon's Tactic XXI", displayName = "Tallon's Tactic XXI", active = false },
-        { name = "Vallon's Tactic XXI", displayName = "Vallon's Tactic XXI", active = false }
+        { name = "Tallon's Tactic XXIII", displayName = "Tallon's Tactic XXIII", active = false },
+        { name = "Vallon's Tactic XXIII", displayName = "Vallon's Tactic XXIII", active = false },
+        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", active = false },
     },
     Downtime = {
         { name = "ActiveDownTime", displayName = "Active Downtime", active = false },
-        --{ name = "MemSplash", displayName = "Mem Splash", active = false }
+        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", active = false }
     }
 }
 
@@ -82,9 +83,9 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
         elseif sectionName == "Downtime" then
             for _, item in ipairs(section) do
                 if item.active then
-                    mq.cmdf("%s activate downtime %s", AllIncludingSelfBind, item.name)
+                    mq.cmdf("%s activate downtime \"%s\"", AllIncludingSelfBind, item.name)
                 else
-                    mq.cmdf("%s deactivate downtime", AllIncludingSelfBind)
+                    mq.cmdf("%s deactivate downtime \"%s\"", AllIncludingSelfBind, item.name)
                 end
             end
         else
@@ -215,7 +216,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s activate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
-                        mq.cmdf("%s activate downtime %s", AllIncludingSelfBind, item.name)
+                        mq.cmdf("%s activate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
                     item.active = true
                 end
@@ -232,7 +233,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
-                        mq.cmdf("%s deactivate downtime", AllIncludingSelfBind)
+                        mq.cmdf("%s deactivate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
                     item.active = false
                 end
@@ -278,7 +279,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s activate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
-                        mq.cmdf("%s activate downtime %s", AllIncludingSelfBind, item.name)
+                        mq.cmdf("%s activate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
                     print("Activated " .. item.displayName)
                 else
@@ -289,7 +290,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
-                        mq.cmdf("%s deactivate downtime", AllIncludingSelfBind)
+                        mq.cmdf("%s deactivate downtime \"%s\"", AllIncludingSelfBind, item.name)
                     end
                     print("Deactivated " .. item.displayName)
                 end
