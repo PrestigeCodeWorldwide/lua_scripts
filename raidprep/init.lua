@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.845 Started")
+BL.info("RaidPrep v1.846 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -45,6 +45,12 @@ local isWindowMinimized = false
 local windowHeight = 600 -- default height, will be adjusted when window is restored
 local topSectionCollapsed = false -- Track if top section is collapsed
 local quickActionsStateLoaded = false -- Track if we've loaded the state from file
+
+-- Global settings variables
+local Global_DIS = false
+local Global_ILS = false
+local Global_DCK = false
+local Global_FEI = false
 
 -- Helper function to get the appropriate bind based on applytoallChecked
 local function getCWTNBind()
@@ -380,6 +386,67 @@ end
 --Class Tab UI
 local function drawClassTab()
     imgui.Separator()
+    imgui.Columns(2)
+    imgui.SetColumnWidth(0, 75) -- fixed width for left column
+
+    -- Global settings section
+    imgui.Columns(1) -- Use single column for Global section
+    
+    -- Center the "Global" text
+    local globalTextWidth = imgui.CalcTextSize("Global")
+    local availableWidth = imgui.GetContentRegionAvail()
+    local globalTextX = (availableWidth - globalTextWidth) / 2
+    imgui.SetCursorPosX(globalTextX)
+    
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Lime green text
+    imgui.Text("Global")
+    imgui.PopStyleColor()
+    
+    imgui.PushID("Global")
+    local rowY = imgui.GetCursorPosY()
+    local startX = imgui.GetCursorPosX()
+    local slotWidth = 70 -- spacing between checkbox slots
+
+    local globalSettings = {
+        { label = "ADM", var = Global_DIS, cmd = AllIncludingSelfBind .. " autodismount on", offcmd = AllIncludingSelfBind .. " autodismount off", tooltip = "Auto Dismount" },
+        { label = "ARI", var = Global_ILS, cmd = AllIncludingSelfBind .. " autoremoveillusion on", offcmd = AllIncludingSelfBind .. " autoremoveillusion off", tooltip = "Auto Remove Illusion" },
+        { label = "ASD", var = Global_DCK, cmd = AllIncludingSelfBind .. " autostandonduck on", offcmd = AllIncludingSelfBind .. " autostandonduck off", tooltip = "Auto Stand on Duck" },
+        { label = "ASF", var = Global_FEI, cmd = AllIncludingSelfBind .. " autostandonfeign on", offcmd = AllIncludingSelfBind .. " autostandonfeign off", tooltip = "Auto Stand on Feign" }
+    }
+
+    -- Calculate position for 4 checkboxes with DIS at fixed left position
+    local totalWidth = #globalSettings * slotWidth
+    local startX_fixed = 5 -- Fixed starting position (minimal left padding)
+
+    for i, setting in ipairs(globalSettings) do
+        imgui.SetCursorPos(startX_fixed + (i - 1) * slotWidth, rowY)
+
+        local varName = "Global_" .. setting.label
+        _G[varName] = _G[varName] or false
+        local checked, changed = imgui.Checkbox(setting.label, _G[varName])
+        _G[varName] = checked
+
+        if imgui.IsItemHovered() and setting.tooltip then
+            imgui.BeginTooltip()
+            imgui.TextUnformatted(setting.tooltip)
+            imgui.EndTooltip()
+        end
+
+        if changed then
+            if checked then
+                mq.cmd(setting.cmd)
+            elseif setting.offcmd then
+                mq.cmd(setting.offcmd)
+            end
+        end
+    end
+    imgui.PopID()
+
+    -- Gold separator line
+    imgui.PushStyleColor(ImGuiCol.Separator, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Separator()
+    imgui.PopStyleColor()
+    
     imgui.Columns(2)
     imgui.SetColumnWidth(0, 75) -- fixed width for left column
 
