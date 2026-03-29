@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("HPRaid Script v2.09 Started - Combined Mez, run aways and stickhow flipping on boss")
+BL.info("HPRaid Script v2.11 Started - Combined Mez, run aways and stickhow flipping on boss")
 BL.info("add a messenger name to enable mezzing. /lua run hpraid health")
 
 -- Shared State
@@ -78,7 +78,7 @@ mq.event("Behind", "#*#The High Priest tenses and takes a deep breath.#*#", Stic
 mq.event("Purif1", "#*#The High Priest demands the Penance from #*#", Purif1Handler)
 mq.event("Purif2", "#*#And he sets the Purification of Veeshan upon #*#", Purif2Handler)
 mq.event("Purif1Fail", "#*#You are purified, and it is painful#*#", Purif1FailureHandler)
---mq.event("Purif2Fail", "#*#You suffer your penance#*#", Purif2FailureHandler)
+mq.event("Purif2Fail", "#*#You suffer your penance#*#", Purif2FailureHandler)
 
 -- Handle debuff movement and state
 local function handleDebuffs()
@@ -216,7 +216,7 @@ local function handleMez()
                     BL.info(string.format("messenger %s distance: %.1f", messenger.ID(), distance))
 
                     -- Found our assigned messenger type within 500 units
-                    if distance <= 500 then
+                    if distance <= 350 then
                         targetMessenger = messenger
                         break -- Found our messenger, no need to continue searching
                     end
@@ -237,8 +237,84 @@ local function handleMez()
         end
 
         -- Check if we have line of sight and are in range to cast
-        if targetMessenger.Distance() < 500 and targetMessenger.LineOfSight() then
-            BL.info("messenger is in range, casting slumber")
+        if targetMessenger.Distance() < 200 and targetMessenger.LineOfSight() then
+            -- Check if mez debuff is already on the target
+            local targetHasMez = mq.TLO.Target.Buff(mezSpell)() ~= nil
+            if targetHasMez then
+                BL.info("Mez debuff is already on messenger, navigating to melee range to break it")
+                BL.cmd.pauseAutomation()
+                isMezPaused = true
+                mq.cmd("/stopsong")
+                mq.delay(100)
+                
+                -- Navigate to messenger to get in melee range
+                BL.info(string.format("Navigating to messenger for melee: %s", targetMessenger.CleanName()))
+                mq.cmdf("/nav spawn %s", targetMessenger.CleanName())
+                
+                -- Wait for navigation to complete
+                local navTimeout = 0
+                while mq.TLO.Navigation.Active() and navTimeout < 100 do -- Max 10 seconds
+                    mq.delay(100)
+                    navTimeout = navTimeout + 1
+                end
+                
+                -- Additional delay to ensure we've arrived
+                mq.delay(500)
+                BL.info("Navigation completed, targeting messenger")
+                
+                -- Target the messenger again after navigation
+                if mq.TLO.Target.ID() ~= targetMessenger.ID() then
+                    targetMessenger.DoTarget()
+                    mq.delay(100)
+                end
+                
+                -- Verify we're in melee range before attacking
+                if mq.TLO.Target.Distance() > 10 then
+                    BL.info("Still too far from messenger, moving closer")
+                    mq.cmdf("/nav id %d", targetMessenger.ID())
+                    mq.delay(2000)
+                end
+                
+                -- Turn on attack and wait for mez to fade
+                --mq.cmd("/face fast")
+                mq.cmd("/attack on")
+                while mq.TLO.Target.Buff(mezSpell)() ~= nil do
+                    -- Check if target is too far away and navigate if needed
+                    if mq.TLO.Target.Distance() > 10 then
+                        BL.info("Target moved out of range, navigating closer")
+                        mq.cmd("/attack off")
+                        mq.cmdf("/nav id %d", targetMessenger.ID())
+                        
+                        -- Wait for navigation to complete
+                        local navTimeout = 0
+                        while mq.TLO.Navigation.Active() and navTimeout < 50 do -- Max 5 seconds
+                            mq.delay(100)
+                            navTimeout = navTimeout + 1
+                        end
+                        
+                        -- Re-target and resume attack
+                        if mq.TLO.Target.ID() ~= targetMessenger.ID() then
+                            targetMessenger.DoTarget()
+                            mq.delay(100)
+                        end
+                        --mq.cmd("/face fast")
+                        mq.cmd("/attack on")
+                    end
+                    
+                    mq.delay(500)
+                    -- Make sure we're still targeting the same messenger
+                    if mq.TLO.Target.ID() ~= targetMessenger.ID() then
+                        targetMessenger.DoTarget()
+                        mq.delay(100)
+                        mq.cmd("/attack on")
+                    end
+                end
+                mq.cmd("/attack off")
+                BL.info("Mez debuff faded, recasting")
+            end
+            
+            -- Cast mez (either initially or after it faded)
+            BL.info("Casting mez on messenger")
             BL.cmd.pauseAutomation()
             isMezPaused = true
             mq.cmd("/stopsong")
@@ -263,7 +339,7 @@ local function handleMez()
         end
         
         if hadMessengersLastCheck then -- Only log if we previously had messengers
-            BL.info("No messengers in range (max 500 units)")
+            BL.info("No messengers in range (max 350 units)")
         end
         hadMessengersLastCheck = false
     end
@@ -312,5 +388,5 @@ while true do
     end
     BL.checkChestSpawn("a_golden_chest")
     mq.doevents() -- Process any events last
-    mq.delay(250)
+    mq.delay(200)
 end
