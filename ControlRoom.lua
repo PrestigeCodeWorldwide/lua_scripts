@@ -3,12 +3,15 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("ControlRoom Script v1.44 Started")
+BL.info("ControlRoom Script v1.45 Started")
 BL.info("Type /crstop to stop the script and connect Dannet/BCS")
 
+local classShortName = mq.TLO.Me.Class.ShortName()
 mq.cmd("/bccmd quit")
 mq.cmd("/plugin dannet unload")
 mq.cmd("/plugin boxr load")
+mq.cmdf("/%s raidmode off", classShortName)
+mq.cmdf("/%s mode manual", classShortName)
 
 --Strategy Info
 mq.cmd("/rs Callouts at: 70%, 63%, 56%, 49%, 35%, 28%, 21%, 7%")
@@ -23,6 +26,8 @@ local queuedFunction = nil  -- Track function waiting to be executed
 local function StopControlRoom()
     mq.cmd("/plugin dannet load")
     mq.cmd("/bccmd connect")
+    mq.cmdf("/%s raidmode on", classShortName)
+    mq.cmdf("/%s mode chase", classShortName)
     BL.info("Control Room script stopped by command")
     return true
 end
@@ -147,6 +152,8 @@ while not shouldExit do
     -- Check if a gilded chest has spawned and end script
     local chest = mq.TLO.Spawn("a_gilded_chest")
     if chest() and chest.ID() > 0 then
+        BL.info("Gilded chest found, turning raidmode on. Class: " .. classShortName)
+        mq.delay(1000) -- Add delay to ensure command processes
         shouldExit = StopControlRoom()
     end
 
