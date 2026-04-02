@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.18 loaded")
+BL.info("Offtank v1.20 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -125,8 +125,8 @@ end
 
 local function TargetAssignedMob()
 	---@type spawn
-	local mob = State.current_mob_being_tanked
-	if mob and mob() and mq.TLO.Target.ID() ~= mob.ID() then
+	local mob = State.current_mob_being_tanked()
+	if mob and mq.TLO.Target.ID() ~= mob.ID() then
 		--mq.cmdf("/target %s", State.selected_xtar_to_tank)
 		--BL.info("Changing target to currently assigned, which is:")
 		--BL.dump(State.current_mob_being_tanked.ID())
@@ -162,6 +162,13 @@ local function checkGroupTankRoleIsEmpty()
 	end
 end
 
+local function IsValidWaypoint(waypoint)
+	if not waypoint or type(waypoint) ~= "table" then
+		return false
+	end
+	return type(waypoint.x) == "number" and type(waypoint.y) == "number"
+end
+
 local function SaveWaypoint()
 	-- Save current position as a waypoint
 	local loc = mq.TLO.Me.Loc()
@@ -189,19 +196,26 @@ local function GetWaypointNames()
 end
 
 local function MoveToWaypoint(waypoint)
-	if not waypoint or waypoint.name == "NONE" then
+	if not waypoint then
+		print("\arNo waypoint provided to MoveToWaypoint\ax")
+		return false
+	end
+	
+	-- Validate waypoint structure
+	if not waypoint.x or not waypoint.y or not waypoint.z or not waypoint.zone then
+		print("\arWaypoint is missing required coordinates or zone information\ax")
 		return false
 	end
 	
 	-- Check if we're in the right zone
 	if waypoint.zone ~= mq.TLO.Zone.ShortName() then
-		print("\arWaypoint " .. waypoint.name .. " is in zone " .. waypoint.zone .. ", but you're in " .. mq.TLO.Zone.ShortName() .. "\ax")
+		print("\arWaypoint " .. (waypoint.name or "Unknown") .. " is in zone " .. waypoint.zone .. ", but you're in " .. mq.TLO.Zone.ShortName() .. "\ax")
 		return false
 	end
 	
 	-- Navigate to waypoint location
 	mq.cmdf("/nav loc %f %f %f", waypoint.y, waypoint.x, waypoint.z)
-	print("\arMoving to waypoint " .. waypoint.name .. "\ax")
+	print("\arMoving to waypoint " .. (waypoint.name or "Unknown") .. "\ax")
 	return true
 end
 
@@ -225,6 +239,14 @@ local function ParseMobNames(mobNameInput)
 	cwtnCHOSEN()
 end
 
+local function GetSafeCleanName(spawn)
+	if not spawn or not spawn() then
+		return "Unknown"
+	end
+	local spawnObj = spawn()
+	return spawnObj.CleanName and spawnObj.CleanName() or "Unknown"
+end
+
 local function IsNotIgnored(targetName)
 	-- check if targetName is in State.ignored_mobs (case insensitive)
 	if not targetName or targetName == "" then
@@ -244,27 +266,32 @@ local function FindMobByName()
 		return nil
 	end
 	
-	-- Search for mobs by exact name match, prioritize closest
+	-- Search for mobs by partial name match, prioritize closest
 	local closestMob = nil
 	local closestDistance = 999999
 	
 	-- Check each mob name in our list
 	for _, mobName in ipairs(State.mob_names) do
-		-- Try both the full name and search for partial matches
-		local spawn = mq.TLO.Spawn(mobName)
-		if not spawn() then
-			-- If exact match fails, try searching for spawns that contain the mob name
-			local searchSpawn = mq.TLO.Spawn("npc " .. mobName)
-			if searchSpawn() then
-				spawn = searchSpawn
+		-- Try partial matching first (more reliable)
+		local searchSpawn = mq.TLO.Spawn("npc " .. mobName)
+		if searchSpawn() then
+			local spawn = searchSpawn
+			if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance and IsNotIgnored(spawn.CleanName()) then
+				local distance = spawn.Distance()
+				if distance < closestDistance then
+					closestDistance = distance
+					closestMob = spawn
+				end
 			end
-		end
-		
-		if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance and IsNotIgnored(spawn.CleanName()) then
-			local distance = spawn.Distance()
-			if distance < closestDistance then
-				closestDistance = distance
-				closestMob = spawn
+		else
+			-- If partial match fails, try exact match as fallback
+			local exactSpawn = mq.TLO.Spawn(mobName)
+			if exactSpawn() and not exactSpawn.Dead() and exactSpawn.Distance() and exactSpawn.Distance() < State.distance and IsNotIgnored(exactSpawn.CleanName()) then
+				local distance = exactSpawn.Distance()
+				if distance < closestDistance then
+					closestDistance = distance
+					closestMob = exactSpawn
+				end
 			end
 		end
 	end
@@ -293,10 +320,10 @@ local function MoveToNavTarget()
 	end
 	
 	-- Use the same navigation logic as MoveToWaypoint
-	local spawn = State.nav_target_spawn
-	if spawn() and spawn.Y() and spawn.X() and spawn.Z() then
+	local spawn = State.nav_target_spawn()
+	if spawn and spawn.Y() and spawn.X() and spawn.Z() then
 		mq.cmdf("/nav loc %f %f %f", spawn.Y(), spawn.X(), spawn.Z())
-		print(string.format("\arMoving to %s at (%.1f, %.1f, %.1f)\ax", spawn.CleanName() or "Unknown", spawn.Y(), spawn.X(), spawn.Z()))
+		print(string.format("\arMoving to %s at (%.1f, %.1f, %.1f)\ax", GetSafeCleanName(spawn), spawn.Y(), spawn.X(), spawn.Z()))
 		return true
 	else
 		print("\arNavigation target is no longer valid\ax")
@@ -339,10 +366,16 @@ local function UpdateAggroState()
 		end
 		
 		-- Get target from xtar list
-		local xtar = State.filtered_xtar_list[State.selected_xtar_to_tank]
+		local xtarIndex = tonumber(State.selected_xtar_to_tank)
+		local xtar = State.filtered_xtar_list[xtarIndex]
 		if xtar ~= nil and not xtar.Dead() then
-			local xtarSpawn = mq.TLO.Spawn(xtar.ID())
-			State.current_mob_being_tanked = xtarSpawn
+			local spawnName = xtar.CleanName()
+			if spawnName then
+				local spawnObj = mq.TLO.Spawn("npc " .. spawnName)
+				if spawnObj and spawnObj() then
+					State.current_mob_being_tanked = function() return spawnObj end
+				end
+			end
 		elseif xtar ~= nil and xtar.Dead() then
 			-- XTarget is dead, clear current target and stop tanking
 			State.current_mob_being_tanked = nil
@@ -377,7 +410,7 @@ local function UpdateAggroState()
 		-- Find target by mob name
 		local targetMob = FindMobByName()
 		if targetMob then
-			State.current_mob_being_tanked = targetMob
+			State.current_mob_being_tanked = function() return targetMob end
 		else
 			-- Only stop tanking if we were actively tanking and the mob is actually dead/gone
 			-- Don't stop just because it's beyond engage distance
@@ -421,7 +454,19 @@ local function DoTanking()
 		end
 		return
 	end
-	local spawn_to_tank = mq.TLO.Spawn(assigned_mob.ID())
+	-- Check if assigned_mob is a function (for mobname mode) or spawn object (for xtar mode)
+	if type(assigned_mob) == "function" then
+		assigned_mob = assigned_mob()
+		if not assigned_mob then
+			BL.info("Early out from DoTanking because assigned_mob function returned nil")
+			if State.IAmTanking then
+				cwtnCHOSEN()
+				State.IAmTanking = false
+			end
+			return
+		end
+	end
+	local spawn_to_tank = assigned_mob
 	if BL.IsNil(spawn_to_tank) then
 		BL.info("Early out from DoTanking because spawn_to_tank is nil")
 		if State.IAmTanking then
@@ -445,7 +490,7 @@ local function DoTanking()
 		elseif spawn_los then
 			-- Gained LOS during navigation, switch to tank mode
 			cwtnTANK()
-			BL.info("Gained LOS to %s, switching to tank mode", spawn_to_tank.CleanName())
+			BL.info("Gained LOS to %s, switching to tank mode", GetSafeCleanName(spawn_to_tank))
 		else
 			-- Still navigating, continue
 			return
@@ -455,7 +500,7 @@ local function DoTanking()
 	if
 	BL.NotNil(spawn_to_tank) and BL.NotNil(spawn_distance)
 		and spawn_distance < State.distance
-		and (mq.TLO.Target.ID() ~= State.current_mob_being_tanked.ID() or not mq.TLO.Me.Combat())
+		and (not State.current_mob_being_tanked or not State.current_mob_being_tanked() or mq.TLO.Target.ID() ~= State.current_mob_being_tanked().ID() or not mq.TLO.Me.Combat())
 	--and (not State.IAmTanking or State.UserChangedSelectionFlag)
 	then
 		-- Check if we have line of sight, if not, navigate manually
@@ -463,7 +508,7 @@ local function DoTanking()
 			-- Switch to manual mode and navigate to target location
 			mq.cmdf("/%s mode 0", State.my_class)
 			mq.cmdf("/nav loc %f %f %f", spawn_to_tank.Y(), spawn_to_tank.X(), spawn_to_tank.Z())
-			BL.info("No LOS to %s, navigating to location", spawn_to_tank.CleanName())
+			BL.info("No LOS to %s, navigating to location", GetSafeCleanName(spawn_to_tank))
 			return
 		end
 		
@@ -477,9 +522,9 @@ local function DoTanking()
 		end
 		if BL.NotNil(State.current_mob_being_tanked) and State.current_mob_being_tanked() then
 			if State.targeting_mode == "xtar" then
-				BL.info("Tanking %s (ID %s) (xtar %d)", State.current_mob_being_tanked.CleanName(), State.current_mob_being_tanked.ID(), State.selected_xtar_to_tank)
+				BL.info("Tanking %s (ID %s) (xtar %s)", GetSafeCleanName(State.current_mob_being_tanked), State.current_mob_being_tanked().ID() or 0, State.selected_xtar_to_tank)
 			else
-				BL.info("Tanking %s (ID %s)", State.current_mob_being_tanked.CleanName(), State.current_mob_being_tanked.ID())
+				BL.info("Tanking %s (ID %s)", GetSafeCleanName(State.current_mob_being_tanked), State.current_mob_being_tanked().ID() or 0)
 			end
 		else
 			BL.info("Trying to tank a NULL mob, something went wrong!")
@@ -491,11 +536,21 @@ local function DoTanking()
 	
 	-- Move to waypoint if we have 100% aggro and a waypoint is selected
 	if State.IAmTanking and State.use_waypoint and State.current_waypoint then
+		-- Validate waypoint structure before accessing fields
+		if not IsValidWaypoint(State.current_waypoint) then
+			print("\arWaypoint has invalid structure, clearing waypoint selection\ax")
+			State.current_waypoint = nil
+			State.use_waypoint = false
+			return
+		end
+		
+		local wp = State.current_waypoint
+		
 		local target = mq.TLO.Target
 		local current_time = mq.gettime()
 		local my_x = mq.TLO.Me.X()
 		local my_y = mq.TLO.Me.Y()
-		local wp_distance = math.sqrt((my_x - State.current_waypoint.x)^2 + (my_y - State.current_waypoint.y)^2)
+		local wp_distance = (wp and math.sqrt((my_x - wp.x)^2 + (my_y - wp.y)^2)) or 0
 		
 		-- Always check aggro and switch back to tank mode if not 100%
 		if target() and target.PctAggro() < 100 then
@@ -526,26 +581,28 @@ local function DoTanking()
 		local my_x = mq.TLO.Me.X()
 		local my_y = mq.TLO.Me.Y()
 		local nav_spawn = State.nav_target_spawn
-		local nav_distance = math.sqrt((my_x - nav_spawn.X())^2 + (my_y - nav_spawn.Y())^2)
-		
-		-- Always check aggro and switch back to tank mode if not 100%
-		if target() and target.PctAggro() < 100 then
-			cwtnTANK()
-			mq.cmd("/squelch /nav stop")
-			return
-		end
-		
-		-- Only move to nav target every 3 seconds when at 100% aggro and not already at target
-		if target() and target.PctAggro() == 100 and (current_time - State.last_waypoint_time) > 3000 then
-			if nav_distance > State.chase_distance then  -- Only nav if more than chase distance away
-				-- Switch to manual mode to prevent fighting with navigation
-				mq.cmdf("/%s mode 0", State.my_class)
-				MoveToNavTarget()
-				State.last_waypoint_time = current_time
-			else
-				-- Stop navigation and switch back to tank mode when at nav target
-				mq.cmd("/squelch /nav stop")
+		if nav_spawn and nav_spawn.X() and nav_spawn.Y() then
+			local nav_distance = math.sqrt((my_x - nav_spawn.X())^2 + (my_y - nav_spawn.Y())^2)
+			
+			-- Always check aggro and switch back to tank mode if not 100%
+			if target() and target.PctAggro() < 100 then
 				cwtnTANK()
+				mq.cmd("/squelch /nav stop")
+				return
+			end
+			
+			-- Only move to nav target every 3 seconds when at 100% aggro and not already at target
+			if target() and target.PctAggro() == 100 and (current_time - State.last_waypoint_time) > 3000 then
+				if nav_distance > State.chase_distance then  -- Only nav if more than chase distance away
+					-- Switch to manual mode to prevent fighting with navigation
+					mq.cmdf("/%s mode 0", State.my_class)
+					MoveToNavTarget()
+					State.last_waypoint_time = current_time
+				else
+					-- Stop navigation and switch back to tank mode when at nav target
+					mq.cmd("/squelch /nav stop")
+					cwtnTANK()
+				end
 			end
 		end
 	end
@@ -634,6 +691,7 @@ local DrawUI = function()
 	ImGui.SameLine()
 	local xtar_selected = (State.targeting_mode == "xtar")
 	local mobname_selected = (State.targeting_mode == "mobname")
+	local changed
 	
 	xtar_selected, changed = ImGui.Checkbox("XTar", xtar_selected)
 	if ImGui.IsItemHovered() then
@@ -729,7 +787,7 @@ local DrawUI = function()
 				if State.last_selected_xtar ~= tostring(selectionNum) then
 					BL.info("Sel xtar num is " .. tostring(selectionNum))
 				end
-				State.selected_xtar_to_tank = selectionNum
+				State.selected_xtar_to_tank = tostring(selectionNum)
 			end
 			
 			-- Update last selection tracker
@@ -737,13 +795,6 @@ local DrawUI = function()
 		end
 	else -- mobname mode
 		ImGui.Text("NPC's to tank (one per line):")
-		local mobNameInput = State.mob_name_input or ""
-		local changed = false
-		ImGui.SetNextItemWidth(200)  -- Set width for mob name input
-		mobNameInput, changed = ImGui.InputTextMultiline("##mobnames", mobNameInput, 200, 80, 0)
-		if changed then
-			ParseMobNames(mobNameInput)
-		end
 		
 		-- Add Current Target button
 		if ImGui.Button("Add Target") then
@@ -771,6 +822,14 @@ local DrawUI = function()
 				print("No valid target selected (or targeting a PC)")
 			end
 		end
+		
+		local mobNameInput = State.mob_name_input or ""
+		local changed = false
+		ImGui.SetNextItemWidth(200)  -- Set width for mob name input
+		mobNameInput, changed = ImGui.InputTextMultiline("##mobnames", mobNameInput, 200, 80, 0)
+		if changed then
+			ParseMobNames(mobNameInput)
+		end
 	end
 	
 	-- Waypoint controls
@@ -786,45 +845,76 @@ local DrawUI = function()
 	end
 	ImGui.SameLine()
 	if ImGui.Button("Nav to Selected WP") then
-		MoveToWaypoint(State.current_waypoint)
+		if State.current_waypoint and IsValidWaypoint(State.current_waypoint) then
+			MoveToWaypoint(State.current_waypoint)
+		else
+			print("\arNo valid waypoint selected for navigation\ax")
+		end
 	end
 	
 	-- Waypoint checkboxes
 	ImGui.Text("Select Waypoint:")
 	
 	for i, wp in ipairs(State.waypoints) do
-		local is_checked = (State.current_waypoint and State.current_waypoint.name == wp.name)
+		-- Ensure waypoint has a name field
+		if not wp.name then
+			wp.name = "WP" .. i  -- Assign a default name if missing
+		end
+		
+		-- Safe comparison with explicit field access checks
+		local current_name = nil
+		if State.current_waypoint and IsValidWaypoint(State.current_waypoint) then
+			-- Double-check name field exists before accessing
+			current_name = State.current_waypoint.name or "Unknown"
+		end
+		local wp_name = wp.name
+		local is_checked = (current_name and wp_name and current_name == wp_name) or false
 		local changed = false
 		
-		is_checked, changed = ImGui.Checkbox(wp.name .. " (" .. string.format("%.1f, %.1f", wp.y, wp.x) .. ")", is_checked)
+		-- Validate waypoint coordinates before displaying
+		local coord_display = " (invalid coordinates)"
+		if wp.x and wp.y then
+			coord_display = " (" .. string.format("%.1f, %.1f", wp.y, wp.x) .. ")"
+		end
+		
+		is_checked, changed = ImGui.Checkbox(wp.name .. coord_display, is_checked)
 		
 		if changed then
 			if is_checked then
-				-- Uncheck all other waypoints by setting this as the only selected one
-				State.current_waypoint = wp
-				State.use_waypoint = true
-				print("\arSelected waypoint: " .. wp.name .. "\ax")
+				-- Validate waypoint structure before setting as current
+				if IsValidWaypoint(wp) then
+					-- Uncheck all other waypoints by setting this as the only selected one
+					State.current_waypoint = wp
+					State.use_waypoint = true
+					print("\arSelected waypoint: " .. wp.name .. "\ax")
+				else
+					print("\arCannot select waypoint: missing required fields (name, x, or y)\ax")
+				end
 			else
 				-- Uncheck this waypoint
 				State.current_waypoint = nil
 				State.use_waypoint = false
-				print("\arDeselected waypoint: " .. wp.name .. "\ax")
+				print("\arDeselected waypoint: " .. (wp.name or "Unknown") .. "\ax")
 			end
 		end
 		
 		-- Delete button for this waypoint
 		ImGui.SameLine()
-		if ImGui.Button("Delete##" .. wp.name) then
+		if ImGui.Button("Delete##" .. (wp.name or ("Unknown" .. i))) then
+			-- Check if this is the current waypoint before removing
+			local is_current_waypoint = State.current_waypoint == wp
+			
 			-- Remove waypoint from table
 			for j, check_wp in ipairs(State.waypoints) do
-				if check_wp.name == wp.name then
+				if (check_wp.name or ("Unknown" .. j)) == (wp.name or ("Unknown" .. i)) then
 					table.remove(State.waypoints, j)
+					
 					-- If this was the selected waypoint, clear selection
-					if State.current_waypoint and State.current_waypoint.name == wp.name then
+					if is_current_waypoint then
 						State.current_waypoint = nil
 						State.use_waypoint = false
 					end
-					print("\arDeleted waypoint: " .. wp.name .. "\ax")
+					print("\arDeleted waypoint: " .. (wp.name or "Unknown") .. "\ax")
 					break
 				end
 			end
@@ -843,7 +933,7 @@ local DrawUI = function()
 		local currentTarget = mq.TLO.Target
 		if currentTarget() then
 			State.nav_target_name = currentTarget.CleanName()
-			State.nav_target_spawn = currentTarget
+			State.nav_target_spawn = function() return currentTarget end
 			State.use_nav_target = true  -- Enable auto-navigation when using current target
 			print("\arNavigation target auto-nav enabled for: " .. currentTarget.CleanName() .. "\ax")
 		else
@@ -858,9 +948,9 @@ local DrawUI = function()
 	
 	-- Show current navigation target status
 	if State.nav_target_spawn and State.nav_target_spawn() then
-		local spawn = State.nav_target_spawn
+		local spawn = State.nav_target_spawn()
 		ImGui.Text(" %s (%.1f, %.1f, %.1f) - %s", 
-			spawn.CleanName() or "Unknown", 
+			GetSafeCleanName(spawn), 
 			spawn.Y() or 0, spawn.X() or 0, spawn.Z() or 0,
 			spawn.Type() or "Unknown")
 	else
@@ -875,7 +965,7 @@ local DrawUI = function()
 	if changed then
 		State.nav_target_name = navTargetInput
 		-- Update spawn reference when name changes
-		State.nav_target_spawn = FindNavTargetByName(navTargetInput)
+		State.nav_target_spawn = function() return FindNavTargetByName(navTargetInput) end
 		State.last_nav_update = mq.gettime()
 		-- Auto-enable/disable navigation based on whether name is provided
 		if navTargetInput and navTargetInput ~= "" then
@@ -956,7 +1046,7 @@ local function UpdateNavTarget()
 		if (current_time - State.last_nav_update) > 2000 then
 			local updatedSpawn = FindNavTargetByName(State.nav_target_name)
 			if updatedSpawn then
-				State.nav_target_spawn = updatedSpawn
+				State.nav_target_spawn = function() return updatedSpawn end
 			else
 				-- Target disappeared
 				State.nav_target_spawn = nil
