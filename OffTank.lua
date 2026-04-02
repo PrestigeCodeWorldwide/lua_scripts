@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.20 loaded")
+BL.info("Offtank v1.21 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -239,12 +239,31 @@ local function ParseMobNames(mobNameInput)
 	cwtnCHOSEN()
 end
 
-local function GetSafeCleanName(spawn)
-	if not spawn or not spawn() then
+local function GetSafeCleanName(spawnOrFunction)
+	if not spawnOrFunction then
 		return "Unknown"
 	end
-	local spawnObj = spawn()
-	return spawnObj.CleanName and spawnObj.CleanName() or "Unknown"
+	
+	local spawnObj
+	if type(spawnOrFunction) == "function" then
+		spawnObj = spawnOrFunction()
+		if not spawnObj then
+			return "Unknown"
+		end
+	else
+		spawnObj = spawnOrFunction
+	end
+	
+	-- Try multiple name methods in order of preference
+	if spawnObj.Name and spawnObj.Name() then
+		return spawnObj.Name()
+	elseif spawnObj.CleanName and spawnObj.CleanName() then
+		return spawnObj.CleanName()
+	elseif spawnObj.DisplayName and spawnObj.DisplayName() then
+		return spawnObj.DisplayName()
+	else
+		return "Unknown"
+	end
 end
 
 local function IsNotIgnored(targetName)
@@ -304,10 +323,16 @@ local function FindNavTargetByName(targetName)
 		return nil
 	end
 	
-	-- Search for spawn by exact name match (PC or NPC)
-	local spawn = mq.TLO.Spawn(targetName)
-	if spawn() and not spawn.Dead() then
-		return spawn
+	-- Try partial matching first (more reliable for PC/NPC names)
+	local searchSpawn = mq.TLO.Spawn(targetName)
+	if searchSpawn() and not searchSpawn.Dead() then
+		return searchSpawn
+	end
+	
+	-- If that doesn't work, try with "npc " prefix for partial matching
+	local npcSpawn = mq.TLO.Spawn("npc " .. targetName)
+	if npcSpawn() and not npcSpawn.Dead() then
+		return npcSpawn
 	end
 	
 	return nil
@@ -412,21 +437,29 @@ local function UpdateAggroState()
 		if targetMob then
 			State.current_mob_being_tanked = function() return targetMob end
 		else
-			-- Only stop tanking if we were actively tanking and the mob is actually dead/gone
-			-- Don't stop just because it's beyond engage distance
-			if State.IAmTanking and State.current_mob_being_tanked then
+			-- No target found by name or all targets are dead/out of range
+			-- Check if we were actively tanking and need to stop
+			if State.IAmTanking then
+				-- Check our current target to see if it's dead
 				local currentTarget = mq.TLO.Target
-				if currentTarget() and not currentTarget.Dead() then
-					-- We have a target and it's not dead, keep tanking even if beyond engage distance
+				if currentTarget() and currentTarget.Dead() then
+					-- Current target is dead, stop tanking
+					BL.info("Target is dead, stopping tank mode")
+					State.current_mob_being_tanked = nil
+					cwtnCHOSEN()
+					State.IAmTanking = false
+				elseif currentTarget() and not currentTarget.Dead() then
+					-- We have a live target, keep tanking even if beyond engage distance
 					-- Don't clear current_mob_being_tanked or call cwtnCHOSEN()
 				else
-					-- No target or target is dead, stop tanking
+					-- No target at all, stop tanking
+					BL.info("No target found, stopping tank mode")
 					State.current_mob_being_tanked = nil
 					cwtnCHOSEN()
 					State.IAmTanking = false
 				end
 			else
-				-- Not actively tanking or target is nil, update normally
+				-- Not actively tanking, update normally
 				State.current_mob_being_tanked = nil
 				cwtnCHOSEN()
 				State.IAmTanking = false
@@ -475,6 +508,18 @@ local function DoTanking()
 		end
 		return
 	end
+	
+	-- Additional death check - if spawn is dead, stop tanking immediately
+	if spawn_to_tank.Dead() then
+		BL.info("Spawn is dead, stopping tank mode")
+		if State.IAmTanking then
+			cwtnCHOSEN()
+			State.IAmTanking = false
+		end
+		State.current_mob_being_tanked = nil
+		return
+	end
+	
 	local spawn_distance = spawn_to_tank.Distance()
 	local spawn_los = spawn_to_tank.LineOfSight()
 	-- Check if CWTN is available before accessing it
@@ -580,7 +625,7 @@ local function DoTanking()
 		local current_time = mq.gettime()
 		local my_x = mq.TLO.Me.X()
 		local my_y = mq.TLO.Me.Y()
-		local nav_spawn = State.nav_target_spawn
+		local nav_spawn = State.nav_target_spawn()  -- Call the function to get the spawn object
 		if nav_spawn and nav_spawn.X() and nav_spawn.Y() then
 			local nav_distance = math.sqrt((my_x - nav_spawn.X())^2 + (my_y - nav_spawn.Y())^2)
 			
@@ -932,10 +977,12 @@ local DrawUI = function()
 	if ImGui.Button("Use Current Target") then
 		local currentTarget = mq.TLO.Target
 		if currentTarget() then
-			State.nav_target_name = currentTarget.CleanName()
-			State.nav_target_spawn = function() return currentTarget end
+			local targetName = currentTarget.CleanName()
+			State.nav_target_name = targetName
+			-- Store the actual spawn reference, not a function that returns current target
+			State.nav_target_spawn = function() return FindNavTargetByName(targetName) end
 			State.use_nav_target = true  -- Enable auto-navigation when using current target
-			print("\arNavigation target auto-nav enabled for: " .. currentTarget.CleanName() .. "\ax")
+			print("\arNavigation target auto-nav enabled for: " .. targetName .. "\ax")
 		else
 			print("\arNo current target\ax")
 		end
