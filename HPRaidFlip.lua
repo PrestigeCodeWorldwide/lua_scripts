@@ -37,7 +37,7 @@ local function StickBehind(line, arg1)
     mq.delay(500)
     -- Check distance to High Priest Yaran and navigate if too far
     local targetDistance = mq.TLO.Target.Distance()
-    if targetDistance and targetDistance > 11 then
+    if targetDistance and targetDistance > 15 then
         BL.info("High Priest is too far (" .. targetDistance .. "), navigating closer")
         mq.cmd("/nav spawn npc Yaran |dist=11")
         BL.WaitForNav()
