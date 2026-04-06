@@ -2,11 +2,11 @@
 local mq = require('mq')
 local BL = require('biggerlib')
 
-BL.info("ShadowsMove v1.1 Started")
+BL.info("ShadowsMove v1.12 Started")
 
 Luas = {
 	'offtankmanual',
-	'offtank',
+	--'offtank',
 	'offtanking',
 }
 -- HUGE NOTE: THIS WILL TURN OFF THE OFFTANKING LUA
@@ -24,7 +24,7 @@ end
 local function init()
 	print('Starting ShadowsMove Raid Lua')
 	if mq.TLO.Plugin('mq2boxr')() then
-		print('\apMQ2Boxr Already Loaded\ap') -- plugin is loaded.. we are good to go
+		print('\apMQ2Boxr Already Loaded\ap')
 	else
 		print('\apLoading MQ2BOXR!\ap')
 		mq.cmd('/plugin mq2boxr')
@@ -83,7 +83,7 @@ init()
 -- if healer, get the Dusk is confused for a moment emote, spam heals on Dusk
 
 while true do
-	BL.cmd.checkChestSpawn("Shaded_Chest")
+	BL.checkChestSpawn("Shaded_Chest")
 	handleEvents()
 	mq.delay(100)
 end
