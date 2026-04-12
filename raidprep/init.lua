@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.846 Started")
+BL.info("RaidPrep v1.847 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -198,7 +198,7 @@ local expansions = {
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast","epiclaziness", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN", "Trophies" },
+    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast", "Eval", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN", "Trophies" },
     ["Shattering of Ro"] = { "Colossus","Xanaxbar", "Spitetangle", "TheEgg" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
@@ -215,6 +215,7 @@ local scriptTooltips = {
     ["BoxHUD"] = "Heads-up display for boxed characters",
     ["ButtonMaster"] = "Customizable button interface for common commands",
     ["Chaincast"] = "Chain casts selected spells/AA's with conifguration",
+    ["Eval"] = "lua epxression evaluator",
     ["GoldenPickPL"] = "Uses the Golden Pick to hit each mob once during PL'ing",
     ["GuildClicky"] = "Manages guild hall zone port clickies",
     ["Hemicfam"] = "Casts Scrykin then Personal Hemic familiar",
