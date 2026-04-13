@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.848 Started")
+BL.info("RaidPrep v1.850 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -1138,6 +1138,26 @@ local function drawCWTNTab()
     imgui.PopID()
     imgui.PopStyleColor()
 
+    imgui.SameLine()
+    imgui.SetCursorPosX(imgui.GetCursorPosX() + 5)
+    -- Store the current state
+    local newState = applytoallChecked
+    -- Update the checkbox and get the new state
+    newState = imgui.Checkbox("Self##cwtnall", newState)
+
+    -- Only update and print if the state changed
+    if newState ~= applytoallChecked then
+        applytoallChecked = newState
+        print(applytoallChecked and "Including current character in CWTN commands" or
+            "Excluding current character from CWTN commands")
+    end
+
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Check to include yourself in CWTN commands")
+        imgui.EndTooltip()
+    end
+
     -- Collapsible section for quick actions at the bottom
     imgui.Separator()
     local arrowText = topSectionCollapsed and "+" or "-"
@@ -1209,25 +1229,6 @@ local function drawCWTNTab()
         imgui.EndTooltip()
     end
 
-    imgui.SameLine()
-    imgui.SetCursorPosX(imgui.GetCursorPosX() + 5)
-    -- Store the current state
-    local newState = applytoallChecked
-    -- Update the checkbox and get the new state
-    newState = imgui.Checkbox("All##cwtnall", newState)
-
-    -- Only update and print if the state changed
-    if newState ~= applytoallChecked then
-        applytoallChecked = newState
-        print(applytoallChecked and "Including current character in CWTN commands" or
-            "Excluding current character from CWTN commands")
-    end
-
-    if imgui.IsItemHovered() then
-        imgui.BeginTooltip()
-        imgui.Text("Check to include current character in CWTN commands")
-        imgui.EndTooltip()
-    end
     end
 
     -- Reset to single-column layout
@@ -1369,7 +1370,7 @@ local function drawGUI()
                 imgui.Separator()
                 imgui.BulletText("Burn On/Off and AE On/Off uses /dga : All characters")
                 imgui.BulletText("All other commands uses /dge : All characters except you")
-                imgui.BulletText("Click the All button to use /dga for all commands.")
+                imgui.BulletText("Click the Self button to use /dga for all commands.")
                 imgui.EndTooltip()
                 imgui.PopStyleVar()
             end
