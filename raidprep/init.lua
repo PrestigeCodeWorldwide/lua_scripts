@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.850 Started")
+BL.info("RaidPrep v1.851 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -388,11 +388,11 @@ end
 --Class Tab UI
 local function drawClassTab()
     imgui.Separator()
-    imgui.Columns(2)
+    imgui.Columns(2, "##class_columns")
     imgui.SetColumnWidth(0, 75) -- fixed width for left column
 
     -- Global settings section
-    imgui.Columns(1) -- Use single column for Global section
+    imgui.Columns(1, "##global_section") -- Use single column for Global section
     
     -- Center the "Global" text
     local globalTextWidth = imgui.CalcTextSize("Global")
@@ -449,7 +449,7 @@ local function drawClassTab()
     imgui.Separator()
     imgui.PopStyleColor()
     
-    imgui.Columns(2)
+    imgui.Columns(2, "##class_abilities_columns")
     imgui.SetColumnWidth(0, 75) -- fixed width for left column
 
     -- Column headers in lime green
