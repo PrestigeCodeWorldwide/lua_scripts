@@ -1,4 +1,4 @@
--- v1.05
+-- v1.06
 ---@type Mq
 local mq = require("mq")
 ---@type ImGui
@@ -16,7 +16,7 @@ local sectionData = {
         { name = "Venenium", displayName = "Venenium", state = 0 },
         { name = "Cleansing Rod", displayName = "Cleansing Rod", state = 0 },
         { name = "Distillate of Antidote XV", displayName = "Distillate of Antidote XV", state = 0 },
-        { name = "Shield of Immaculate", displayName = "Shield of Immaculate", state = 0 },
+        { name = "Shield of The Immaculate", displayName = "Shield of The Immaculate", state = 0 },
         { name = "Shield of Immaculate Light", displayName = "Shield of Immaculate Light", state = 0 }
     },
     Burn = {
