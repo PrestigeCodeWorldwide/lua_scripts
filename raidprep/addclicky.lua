@@ -1,4 +1,4 @@
--- v1.04
+-- v1.05
 ---@type Mq
 local mq = require("mq")
 ---@type ImGui
@@ -69,7 +69,7 @@ local function applyAddclickySettings(applytoallChecked, AllIncludingSelfBind, A
                 if item.state == 1 then
                     mq.cmdf("%s activate burn \"%s\"", AllIncludingSelfBind, item.name)
                 else
-                    mq.cmdf("%s deactivate burn", AllIncludingSelfBind)
+                    mq.cmdf("%s deactivate burn \"%s\"", AllIncludingSelfBind, item.name)
                 end
             end
         elseif sectionName == "Offensive" then
@@ -229,7 +229,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     if selectedSection == "Cures" then
                         mq.cmdf("%s deactivate cure \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Burn" then
-                        mq.cmdf("%s deactivate burn", AllIncludingSelfBind)
+                        mq.cmdf("%s deactivate burn \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
@@ -294,7 +294,7 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
                     if selectedSection == "Cures" then
                         mq.cmdf("%s deactivate cure \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Burn" then
-                        mq.cmdf("%s deactivate burn", AllIncludingSelfBind)
+                        mq.cmdf("%s deactivate burn \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Offensive" then
                         mq.cmdf("%s deactivate offensive \"%s\"", AllIncludingSelfBind, item.name)
                     elseif selectedSection == "Downtime" then
