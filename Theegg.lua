@@ -2,9 +2,8 @@
 local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
-
-BL.info("TheEgg Script v1.15 started")
-BL.info("/eggloc to change the run away loc on the fly. /eggstop to stop script and reset plugin settings")
+BL.info("TheEgg Script v1.16 started")
+BL.info("/eggloc to change the run away loc on the fly. /stopegg to stop script and reset plugin settings")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
@@ -18,7 +17,7 @@ local runLocationX = -2256 -- Default X coordinate
 local runLocationSet = false
 
 -- Command bind for manual stop
-mq.bind('/eggstop', function()
+mq.bind('/stopegg', function()
     BL.info("Manual stop triggered - will exit after cleanup...")
     shouldExit = true
 end)
@@ -132,8 +131,8 @@ end
 
 -- Check for chest spawn
 local function checkChestSpawn()
-    local chestName = "a_floating_chest"
-    if BL.checkChestSpawn(chestName) then
+    local chest = mq.TLO.Spawn("a_floating_chest")
+    if chest() and chest.ID() > 0 then
         BL.info("Chest spawned! Encounter complete - ending script...")
         return true
     end
