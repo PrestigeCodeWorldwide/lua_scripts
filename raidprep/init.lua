@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
 
-BL.info("RaidPrep v1.851 Started")
+BL.info("RaidPrep v1.852 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -324,6 +324,27 @@ local function drawluaTab()
                 if imgui.IsItemHovered() then
                     imgui.BeginTooltip()
                     imgui.Text("Toggle /gc show")
+                    imgui.EndTooltip()
+                end
+            end
+            
+            -- Additional command for Trophies - execute /lua run trophieson
+            if script == "Trophies" then
+                imgui.SameLine()
+                if imgui.Button("Upgrade", 57, 18) then
+                    print("Executing trophies upgrade: " .. script)
+                    mq.cmdf("/dga /lua run trophieson")
+                end
+                -- Check for right-click
+                if imgui.IsItemClicked(1) then
+                    print("Executing tribute and trophy commands: " .. script)
+                    mq.cmdf("/dga /tribute personal on")
+                    mq.cmdf("/dga /trophy personal on")
+                end
+                if imgui.IsItemHovered() then
+                    imgui.BeginTooltip()
+                    imgui.Text("Left-Click: 'Upgrades' the top 8 trophies if not already activated")
+                    imgui.Text("Right-Click: Enable tribute and trophy personal")
                     imgui.EndTooltip()
                 end
             end
