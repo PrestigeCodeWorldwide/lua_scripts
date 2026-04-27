@@ -10,8 +10,7 @@ local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 
-
-BL.info("RaidPrep v1.852 Started")
+BL.info("RaidPrep v1.853 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -31,6 +30,7 @@ local UseAlliance = 0
 local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
 local UseCures = 0 -- 0=SET, 1=ON, 2=OFF
 local UseAEHeals = 0 -- 0=SET, 1=ON, 2=OFF
+local RezState = 0 -- 0=SET, 1=ON, 2=OFF
 --local BYOS = 0
 --local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
 --local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
@@ -198,7 +198,7 @@ local expansions = {
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast", "EpicLaziness", "Eval", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "TankBandoSwap", "TCN", "Trophies" },
+    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast", "EpicLaziness", "Eval", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "Rez", "TankBandoSwap", "TCN", "Trophies" },
     ["Shattering of Ro"] = { "Colossus","Xanaxbar", "Spitetangle", "TheEgg" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
@@ -226,6 +226,7 @@ local scriptTooltips = {
     ["Magellan"] = "/travelto zones with UI",
     ["Moblist"] = "Tracks spawns in a zone with UI",
     ["Offtank"] = "Allows selecting specific mobs or Xtargets to offtank automatically",
+    ["Rez"] = "Handles rez acceptance and respawn",
     ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
     ["TCN"] = "Tradeskill Consturction Next",
     ["Trophies"] = "Checks and snitches in /g and /rs if trophies are not on",
@@ -324,6 +325,40 @@ local function drawluaTab()
                 if imgui.IsItemHovered() then
                     imgui.BeginTooltip()
                     imgui.Text("Toggle /gc show")
+                    imgui.EndTooltip()
+                end
+            end
+            
+            -- Rez toggle button
+            if script == "Rez" then
+                imgui.SameLine()
+                local stateText = { "SET", "ON", "OFF" }
+                local buttonState = RezState + 1
+                local stateColor
+                if RezState == 0 then
+                    stateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+                elseif RezState == 1 then
+                    stateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+                else
+                    stateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+                end
+                
+                imgui.PushStyleColor(ImGuiCol.Text, unpack(stateColor))
+                if imgui.Button(stateText[buttonState], 50, 18) then
+                    RezState = (RezState + 1) % 3
+                    if RezState == 1 then
+                        mq.cmd("/dga /rez accept on")
+                        print("Rez accept set to ON")
+                    elseif RezState == 2 then
+                        mq.cmd("/dga /rez accept off")
+                        print("Rez accept set to OFF")
+                    end
+                end
+                imgui.PopStyleColor()
+                if imgui.IsItemHovered() then
+                    imgui.BeginTooltip()
+                    imgui.Text("Toggle the rez plugin accept ON/OFF")
+                    imgui.Text("Set to OFF if using the Rez lua")
                     imgui.EndTooltip()
                 end
             end
