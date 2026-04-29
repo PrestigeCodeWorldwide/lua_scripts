@@ -3,13 +3,13 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Rez script v1.0 loaded.")
+BL.info("Rez script v1.02 loaded.")
 --mq.cmd("/dga /rez accept off")
 
 -- State tracking
 local rezAccepted = false
 local lastCheckTime = 0
-local rezAcceptTime = 0 -- Track when Yes was clicked
+local rezAcceptTime = 0
 
 -- Main function to handle rez logic
 local function checkRezWindow()
@@ -25,7 +25,7 @@ local function checkRezWindow()
     if mq.TLO.Window("ConfirmationDialogBox").Open() then
         -- Check if this is a rez confirmation by looking at the dialog text
         local dialogText = mq.TLO.Window("ConfirmationDialogBox").Child("CD_TextOutput").Text()
-        if dialogText and (string.find(dialogText:lower(), "resurrect") or string.find(dialogText:lower(), "rejuvenation") or string.find(dialogText:lower(), "rez") ) then
+        if dialogText and (string.find(dialogText:lower(), "resurrect") or string.find(dialogText:lower(), "rejuvenation") or string.find(dialogText:lower(), "Reviviscence") ) then
             local yesButton = mq.TLO.Window("ConfirmationDialogBox").Child("Yes_Button")
             if yesButton() and yesButton.Enabled() then
                 -- Click Yes to accept rez
@@ -38,13 +38,10 @@ local function checkRezWindow()
     end
     
     -- Step 2: Check if rez was accepted and we need to click Respawn
-    -- Only proceed if we (or MQ plugin) clicked Yes on the confirmation
-    -- Add 1 second delay to handle lag in raid environments
     if rezAccepted and (currentTime - rezAcceptTime) >= 1000 then
         -- Check if the respawn window is open
         if mq.TLO.Window("RespawnWnd").Open() then
             -- Check if resurrect option is selected (should be auto-selected after clicking Yes)
-            -- Try multiple methods to detect resurrect selection
             local optionsList = mq.TLO.Window("RespawnWnd").Child("RW_OptionsList")
             local respawnButton = mq.TLO.Window("RespawnWnd").Child("RW_SelectButton")
             
@@ -72,10 +69,9 @@ end
 local function main()
     while true do
         checkRezWindow()
-        mq.delay(100) -- Small delay to prevent CPU usage
+        mq.delay(100)
     end
 end
 
--- Start the script
 main()
 
