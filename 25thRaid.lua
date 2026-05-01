@@ -1,7 +1,7 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 
-BL.info("25th Anni Raid Script v1.03 Started")
+BL.info("25th Anni Raid Script v1.05 Started")
 
 local my_name = mq.TLO.Me.CleanName()
 local my_class = mq.TLO.Me.Class.ShortName()
@@ -9,6 +9,10 @@ local my_class = mq.TLO.Me.Class.ShortName()
 local function duck_handler(line, target)
     print("Duck emote detected!")
     print("My class:", my_class)
+    
+    -- Wait 4 seconds before processing
+    print("Waiting 5 seconds before ducking...")
+    mq.delay(5000)
     
     -- Classes that should NOT duck
     local exempt_classes = {"CLR", "DRU", "SHM", "SHD", "PAL", "WAR"}
@@ -23,11 +27,13 @@ local function duck_handler(line, target)
     end
     
     if should_duck then
-        BL.info("Ducking for 8 seconds...")
+        BL.info("Ducking for 12 seconds...")
         BL.cmd.pauseAutomation()
         -- Stop any casting/songs
         mq.cmd("/stopcast")
         mq.cmd("/stopsong")
+        mq.cmd("/target clear")
+        mq.cmd("/attack off")
         mq.delay(300)
         -- Make sure we're standing before ducking
         local my_state = mq.TLO.Me.State()
@@ -39,8 +45,19 @@ local function duck_handler(line, target)
         if not mq.TLO.Me.Ducking() then
             mq.cmd("/keypress DUCK")
         end
-        -- Wait 8 seconds while ducked
-        mq.delay(10000)
+        -- Wait 12 seconds while ensuring we stay ducked
+        local duck_duration = 12000
+        local start_time = os.clock()
+        local check_interval = 500  -- Check every 500ms
+        
+        while (os.clock() - start_time) * 1000 < duck_duration do
+            -- Check if we're still ducked, if not re-press duck
+            if not mq.TLO.Me.Ducking() then
+                BL.info("Lost duck state - re-ducking...")
+                mq.cmd("/keypress DUCK")
+            end
+            mq.delay(check_interval)
+        end
         mq.cmd("/stand")
         BL.cmd.resumeAutomation()
         BL.info("Duck complete - resuming automation")
