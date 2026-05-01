@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEggCure Script v1.1 started")
+BL.info("TheEggCure Script v1.12 started")
 
 -- Configuration
 local DEBUFF_NAME = "Incipient Poison" -- Incipient Poison
@@ -13,6 +13,81 @@ local EMOTE_PATTERN = "#*#Tallongast injects incipient poison into #1#, #2#, and
 -- State variables
 local cureTargets = {}
 local isProcessing = false
+local shouldExit = false
+local myClass = mq.TLO.Me.Class.ShortName()
+
+-- Function to check if cure spell is loaded and load it if not
+local function ensureCureSpellLoaded()
+    -- Check if the cure spell is already loaded in any gem
+    for i = 1, 13 do -- Check gems 1-13 (we'll use 14 as backup)
+        if mq.TLO.Me.Gem(i).Name() == CURE_SPELL then
+            BL.info(CURE_SPELL .. " already loaded in gem " .. i)
+            return true
+        end
+    end
+    
+    -- Check if it's in gem 14
+    if mq.TLO.Me.Gem(14).Name() == CURE_SPELL then
+        BL.info(CURE_SPELL .. " already loaded in gem 14")
+        return true
+    end
+    
+    -- Spell not found, check if we have it in spellbook
+    local spellFound = false
+    for i = 1, 500 do -- Check spellbook
+        if mq.TLO.Me.Book(i).Name() == CURE_SPELL then
+            spellFound = true
+            break
+        end
+    end
+    
+    if not spellFound then
+        BL.warn("ERROR: " .. CURE_SPELL .. " not found in spellbook!")
+        return false
+    end
+    
+    -- Pause automation and stop any casting before memorizing
+    BL.cmd.pauseAutomation()
+    
+    -- Stop any current casting
+    if mq.TLO.Me.Casting() then
+        mq.cmd("/stopcast")
+        -- Wait for cast to stop
+        local castStopTimeout = 0
+        while mq.TLO.Me.Casting() and castStopTimeout < 20 do -- Max 2 seconds
+            mq.delay(100)
+            castStopTimeout = castStopTimeout + 1
+        end
+    end
+    
+    -- Wait a moment for everything to settle
+    mq.delay(500)
+    
+    -- Load the spell into gem 14
+    mq.cmdf('/mem "%s" 14', CURE_SPELL)
+    
+    -- Wait for memorization to complete
+    local memTimeout = 0
+    while memTimeout < 60 do -- Max 6 seconds for memorization
+        mq.delay(100)
+        if mq.TLO.Me.Gem(14).Name() == CURE_SPELL then
+            BL.info(CURE_SPELL .. " loaded into gem 14")
+            BL.cmd.resumeAutomation()
+            return true
+        end
+        memTimeout = memTimeout + 1
+    end
+    
+    BL.warn("Failed to load " .. CURE_SPELL .. " into gem 14")
+    BL.cmd.resumeAutomation()
+    return false
+end
+
+-- Command bind for manual stop
+mq.bind('/stoptheeggcure', function()
+    BL.info("Manual stop triggered - will exit after cleanup...")
+    shouldExit = true
+end)
 
 -- Function to extract toon names from emote
 local function parseEmote(emoteText)
@@ -92,6 +167,12 @@ end
 -- Function to cast cure until debuff is gone
 local function cureTarget(targetName)
     BL.info("Curing " .. targetName .. " until debuff is gone")
+    
+    -- Ensure cure spell is loaded before attempting to cast
+    if not ensureCureSpellLoaded() then
+        BL.warn("Cannot cure " .. targetName .. " - cure spell not available!")
+        return
+    end
     
     local maxAttempts = 3 -- Safety limit to prevent infinite loop
     local attempts = 0
@@ -213,8 +294,50 @@ BL.info("Waiting for emote: 'Tallongast injects incipient poison into...'")
 BL.info("Debuff to check: " .. DEBUFF_NAME)
 BL.info("Cure spell: " .. CURE_SPELL)
 
+-- Ensure cure spell is loaded before starting main loop
+BL.info("Performing initial spell check...")
+if not ensureCureSpellLoaded() then
+    BL.error("Failed to load cure spell! Script may not function properly.")
+end
+
+-- Check for chest spawn
+local function checkChestSpawn()
+    local chest1 = mq.TLO.Spawn("A_floating_chest")
+    local chest2 = mq.TLO.Spawn("A_hovering_chest")
+    if (chest1() and chest1.ID() > 0) or (chest2() and chest2.ID() > 0) then
+        BL.info("Chest spawned! Encounter complete - ending script...")
+        return true
+    end
+    return false
+end
+
 -- Main loop
-while true do
+while not shouldExit do
     mq.doevents()
+    
+    -- Check for chest spawn
+    if checkChestSpawn() then
+        break
+    end
+    
     mq.delay(500)
+end
+
+-- Exit cleanup and reload
+if shouldExit then
+    BL.info("Manual stop detected - reloading and exiting...")
+    -- Check if CWTN TLO exists and any CWTN plugin is loaded
+    if mq.TLO.CWTN and mq.TLO.CWTN() then
+        mq.cmdf("/%s reload", myClass)
+    else
+        BL.info("No CWTN plugin loaded, skipping reload")
+    end
+else
+    BL.info("Chest spawned - reloading and exiting...")
+    -- Check if CWTN TLO exists and any CWTN plugin is loaded
+    if mq.TLO.CWTN and mq.TLO.CWTN() then
+        mq.cmdf("/%s reload", myClass)
+    else
+        BL.info("No CWTN plugin loaded, skipping reload")
+    end
 end
