@@ -1,4 +1,4 @@
--- v1.06
+-- v1.07
 ---@type Mq
 local mq = require("mq")
 ---@type ImGui
@@ -307,12 +307,24 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
             
             imgui.SameLine()
             
-            -- Item name (on right)
-            imgui.Text(item.displayName)
+            -- Item name as clickable button (on right)
+            local leftClicked = imgui.Button(item.displayName, -1, 20)
+            
+            -- Check for right-click on the button
+            local rightClicked = imgui.IsItemClicked(1)
+            
+            if leftClicked then
+                -- Left click - use the item
+                mq.cmdf('/useitem "%s"', item.name)
+            elseif rightClicked then
+                -- Right click - use the item with /dga prefix
+                mq.cmdf('/dga /useitem "%s"', item.name)
+            end
             
             if imgui.IsItemHovered() then
                 imgui.BeginTooltip()
-                imgui.Text("Toggle " .. item.displayName .. " individually")
+                imgui.Text("Left click: /useitem \"" .. item.name .. "\"")
+                imgui.Text("Right click: /dga /useitem \"" .. item.name .. "\"")
                 imgui.EndTooltip()
             end
             
