@@ -2,7 +2,7 @@
 local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
-BL.info("TheEgg Script v1.16 started")
+BL.info("TheEgg Script v1.17 started")
 BL.info("/eggloc to change the run away loc on the fly. /stopegg to stop script and reset plugin settings")
 
 local myClass = mq.TLO.Me.Class.ShortName()
@@ -131,8 +131,9 @@ end
 
 -- Check for chest spawn
 local function checkChestSpawn()
-    local chest = mq.TLO.Spawn("a_floating_chest")
-    if chest() and chest.ID() > 0 then
+    local chest1 = mq.TLO.Spawn("A_floating_chest") -- a_floating_chest
+    local chest2 = mq.TLO.Spawn("A_hovering_chest") -- a_hovering_chest
+    if (chest1() and chest1.ID() > 0) or (chest2() and chest2.ID() > 0) then
         BL.info("Chest spawned! Encounter complete - ending script...")
         return true
     end
