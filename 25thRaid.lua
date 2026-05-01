@@ -1,10 +1,19 @@
 local mq = require("mq")
 local BL = require("biggerlib")
 
-BL.info("25th Anni Raid Script v1.05 Started")
+BL.info("25th Anni Raid Script v1.06 Started")
+
 
 local my_name = mq.TLO.Me.CleanName()
 local my_class = mq.TLO.Me.Class.ShortName()
+mq.cmdf ("/%s autostandonduck off nosave", my_class)
+local shouldExit = false
+
+-- Command bind for manual stop
+mq.bind('/stop25th', function()
+    BL.info("Manual stop triggered - will exit after cleanup...")
+    shouldExit = true
+end)
 
 local function duck_handler(line, target)
     print("Duck emote detected!")
@@ -213,7 +222,34 @@ mq.event('duck_event', '#*#Everyone feels a compulsion to duck#*', duck_handler)
 --mq.event('trees_event', '#*#Everyone feels a compulsion to touch trees#*', trees_handler)
 mq.event('trash_event', '#*#Everyone feels a compulsion to pick up the trash#*', trash_handler)
 
-while true do
+-- Loop until chest spawns or manual stop
+BL.info("Waiting for chest to spawn...")
+while not shouldExit do
     mq.doevents()
+    
+    -- Check for chest spawn
+    local chest = mq.TLO.Spawn("a_wavering_chest") -- a_wavering_chest
+    if chest() and chest.ID() > 0 then
+        BL.info("a wavering chest has spawned! Reloading CWTN plugins and ending script")
+        break
+    end
     mq.delay(100)
+end
+
+if shouldExit then
+    BL.info("Manual stop detected - reloading and exiting...")
+    -- Check if CWTN TLO exists and any CWTN plugin is loaded
+    if mq.TLO.CWTN and mq.TLO.CWTN() then
+        mq.cmdf("/%s reload", my_class)
+    else
+        BL.info("No CWTN plugin loaded, skipping reload")
+    end
+else
+    BL.info("Chest spawned - reloading and exiting...")
+    -- Check if CWTN TLO exists and any CWTN plugin is loaded
+    if mq.TLO.CWTN and mq.TLO.CWTN() then
+        mq.cmdf("/%s reload", my_class)
+    else
+        BL.info("No CWTN plugin loaded, skipping reload")
+    end
 end
