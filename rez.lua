@@ -3,10 +3,9 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Rez script v1.02 loaded.")
+BL.info("Rez script v1.03 loaded.")
 --mq.cmd("/dga /rez accept off")
 
--- State tracking
 local rezAccepted = false
 local lastCheckTime = 0
 local rezAcceptTime = 0
@@ -25,7 +24,7 @@ local function checkRezWindow()
     if mq.TLO.Window("ConfirmationDialogBox").Open() then
         -- Check if this is a rez confirmation by looking at the dialog text
         local dialogText = mq.TLO.Window("ConfirmationDialogBox").Child("CD_TextOutput").Text()
-        if dialogText and (string.find(dialogText:lower(), "resurrect") or string.find(dialogText:lower(), "rejuvenation") or string.find(dialogText:lower(), "Reviviscence") ) then
+        if dialogText and (string.find(dialogText:lower(), "resurrect") or string.find(dialogText:lower(), "rejuvenation") or string.find(dialogText:lower(), "reviviscence") ) then
             local yesButton = mq.TLO.Window("ConfirmationDialogBox").Child("Yes_Button")
             if yesButton() and yesButton.Enabled() then
                 -- Click Yes to accept rez
@@ -45,8 +44,14 @@ local function checkRezWindow()
             local optionsList = mq.TLO.Window("RespawnWnd").Child("RW_OptionsList")
             local respawnButton = mq.TLO.Window("RespawnWnd").Child("RW_SelectButton")
             
-            -- Since the window is open and we clicked Yes, assume resurrect is selected
-            local resurrectSelected = true
+            -- Try using the correct notify syntax for listbox selection
+            local resurrectSelected = false
+            if optionsList() then
+                -- Use listselect notification to select index 2 (resurrect)
+                mq.cmd("/notify RespawnWnd RW_OptionsList listselect 2")
+                resurrectSelected = true
+                --BL.info("Used listselect notify to select resurrect option (index 2)")
+            end
             
             if resurrectSelected then
                 if respawnButton() and respawnButton.Enabled() then
