@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Spitetangle Script v1.13 started")
+BL.info("Spitetangle Script v1.14 started")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 --local myName = mq.TLO.Me.Name()
@@ -45,6 +45,15 @@ if myClass ~= "ROG" then
             BL.info("Chest spawned! Encounter complete - ending script...")
             shouldExit = true
             break
+        end
+        
+        -- POISON CURE LOGIC - COMMENT OUT LATER
+        -- Check for Poisonous Explosion debuff and use Distillate of Antidote
+        local poisonBuff = mq.TLO.Me.Buff("Poisonous Explosion")  -- Poisonous Explosion
+        if poisonBuff() then
+            BL.info("Detected Poisonous Explosion debuff - using Distillate of Antidote...")
+            mq.cmd("/useitem \"Distillate of Antidote XV\"")
+            mq.delay(500)
         end
         
         mq.delay(1000) -- Check every second
@@ -121,6 +130,7 @@ local function processStickyWeb()
         BL.info("Waiting on wad of spider silk...")
         mq.cmd("/autoinventory")
         mq.delay(300)
+        --[[ RUSHER TARGETING LOGIC COMMENTED OUT
         -- Target npc rusher
         BL.info("Targeting npc rusher...")
         mq.cmd("/target npc rusher")  --rusher
@@ -163,6 +173,7 @@ local function processStickyWeb()
             BL.cmd.resumeAutomation()
             return false
         end
+        --]]
     end
     
     -- Resume automation
@@ -182,6 +193,16 @@ while not shouldExit do
     if processStickyWeb() then
         BL.info("Sticky web cycle completed. Checking for another...")
     end
+    
+    -- POISON CURE LOGIC -  COMMENT OUT LATER
+    -- Check for Poisonous Explosion debuff and use Distillate of Antidote
+    local poisonBuff = mq.TLO.Me.Buff("Poisonous Explosion")  -- Poisonous Explosion
+    if poisonBuff() then
+        BL.info("Detected Poisonous Explosion debuff - using Distillate of Antidote...")
+        mq.cmd("/useitem \"Distillate of Antidote XV\"")
+        mq.delay(500)
+    end
+
     mq.delay(100)
 end
 
