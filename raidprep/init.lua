@@ -9,8 +9,9 @@ local ActorsLib = require("actors")
 local buffUI = require("raidprep.buffactors")
 local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
+local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.853 Started")
+BL.info("RaidPrep v1.860 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -115,6 +116,9 @@ local function loadSettings()
             -- Load addclicky settings
             addclickyUI.loadAddclickySettings(settings)
             
+            -- Load epics settings
+            epicsUI.loadEpicsSettings(settings)
+            
             applySettings()
             forceRefresh = 2 -- <-- trigger the UI to update
             print("Settings loaded successfully")
@@ -154,6 +158,9 @@ local function saveSettings()
     
     -- Save addclicky settings
     addclickyUI.saveAddclickySettings(settings)
+    
+    -- Save epics settings
+    epicsUI.saveEpicsSettings(settings)
 
     -- Create a Lua table definition
     local content = "return {\n"
@@ -1412,6 +1419,15 @@ local function drawGUI()
                 imgui.EndTabItem()
             end
 
+            -- Epics tab
+            if imgui.BeginTabItem("Epics") then
+                local success, err = pcall(epicsUI.drawEpicsTab)
+                if not success then
+                    print("[ERROR] In Epics tab: " .. tostring(err))
+                end
+                imgui.EndTabItem()
+            end
+
             -- Add help button after the last tab
             imgui.SameLine()
             imgui.SetCursorPosX(imgui.GetCursorPosX() + imgui.GetContentRegionAvail() - 20) -- Position at far right
@@ -1483,6 +1499,9 @@ while true do
         end
         lastProcessCleanups = now
     end
+
+    -- Update epics auto-use functionality
+    epicsUI.updateEpics()
 
     -- Every 10 seconds, announce buffs
     if now - lastAnnounce >= 10 then
