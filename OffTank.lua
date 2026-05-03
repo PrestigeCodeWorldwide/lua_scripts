@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.23 loaded")
+BL.info("Offtank v1.24 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -380,24 +380,23 @@ local function UpdateAggroState()
 			return
 		end
 		
-		-- Get entire xtar list so we can filter out the ignored ones
-		local xtarCount = mq.TLO.Me.XTarget()
-		State.filtered_xtar_list = {}
-		State.no_xtar_warning_shown = false  -- Reset warning flag when we have targets
-		for i = 1, xtarCount do
-			local currtar = mq.TLO.Me.XTarget(i)
-			if not BL.IsNil(currtar) and currtar.CleanName() and IsNotIgnored(currtar.CleanName()) then
-				table.insert(State.filtered_xtar_list, currtar)
-			end
-		end
-		
-		-- Get target from xtar list
+		-- Get target from specific xtar slot first, then check if it's ignored
 		local xtarIndex = tonumber(State.selected_xtar_to_tank)
-		local xtar = State.filtered_xtar_list[xtarIndex]
-		if xtar ~= nil and not xtar.Dead() and xtar.Type() == "NPC" then
+		if not xtarIndex then
+			-- Invalid xtar selection, clear state
+			State.current_mob_being_tanked = nil
+			if State.IAmTanking then
+				cwtnCHOSEN()
+				State.IAmTanking = false
+			end
+			return
+		end
+		local xtar = mq.TLO.Me.XTarget(xtarIndex)
+		State.no_xtar_warning_shown = false  -- Reset warning flag when we have targets
+		if xtar ~= nil and not xtar.Dead() and xtar.Type() == "NPC" and IsNotIgnored(xtar.CleanName()) then
         -- Use the xtar spawn object directly instead of searching by name
         -- This prevents targeting the wrong mob when multiple mobs have the same name
-        -- Also verify it's an NPC, not a PC
+        -- Also verify it's an NPC and not ignored
         State.current_mob_being_tanked = function() return xtar end
 		elseif xtar ~= nil and xtar.Dead() then
 			-- XTarget is dead, clear current target and stop tanking
