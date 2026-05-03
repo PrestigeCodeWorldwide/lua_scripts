@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("DockOfTheBay Script v1.11 Started")
+BL.info("DockOfTheBay Script v1.12 Started")
 mq.cmd("/plugin boxr load")
 
 local MitesDebuff = "Clinging Mites"
@@ -49,7 +49,7 @@ local function EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, name
         BL.cmd.StandIfFeigned()
 	    --mq.cmd("/docommand /${Me.Class.ShortName} mode 2") 
         BL.cmd.ChangeAutomationModeToChase()
-        mq.cmd("/rs Done running from mechanic emote")
+        --mq.cmd("/rs Done running from mechanic emote")
     end
 end
 
