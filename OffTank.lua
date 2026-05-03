@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.21 loaded")
+BL.info("Offtank v1.22 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -267,17 +267,18 @@ local function GetSafeCleanName(spawnOrFunction)
 end
 
 local function IsNotIgnored(targetName)
-	-- check if targetName is in State.ignored_mobs (case insensitive)
+	-- check if targetName is in State.ignored_mobs (case insensitive, partial matching)
 	if not targetName or targetName == "" then
 		return false  -- Can't ignore a nil/empty name
 	end
 	local targetNameLower = string.lower(targetName)
 	for _, ignored in ipairs(State.ignored_mobs) do
-		if targetNameLower == string.lower(ignored) then
-			return false
+		local ignoredLower = string.lower(ignored)
+		if targetNameLower == ignoredLower or string.find(targetNameLower, ignoredLower, 1, true) then
+			return false  -- Found exact or partial match, this target should be ignored
 		end
 	end
-	return true
+	return true  -- No matches found, target is not ignored
 end
 
 local function FindMobByName()
@@ -394,13 +395,18 @@ local function UpdateAggroState()
 		local xtarIndex = tonumber(State.selected_xtar_to_tank)
 		local xtar = State.filtered_xtar_list[xtarIndex]
 		if xtar ~= nil and not xtar.Dead() then
-			local spawnName = xtar.CleanName()
-			if spawnName then
-				local spawnObj = mq.TLO.Spawn("npc " .. spawnName)
-				if spawnObj and spawnObj() then
-					State.current_mob_being_tanked = function() return spawnObj end
-				end
-			end
+    local spawnName = xtar.CleanName()
+    if spawnName then
+        local spawnObj = mq.TLO.Spawn("npc " .. spawnName)
+        if spawnObj and spawnObj() and not spawnObj.Dead() then  -- Add spawnObj.Dead() check
+            State.current_mob_being_tanked = function() return spawnObj end
+        else
+            -- Spawn object is dead/invalid, clear state
+            State.current_mob_being_tanked = nil
+            cwtnCHOSEN()
+            State.IAmTanking = false
+        end
+    end
 		elseif xtar ~= nil and xtar.Dead() then
 			-- XTarget is dead, clear current target and stop tanking
 			State.current_mob_being_tanked = nil
@@ -449,8 +455,30 @@ local function UpdateAggroState()
 					cwtnCHOSEN()
 					State.IAmTanking = false
 				elseif currentTarget() and not currentTarget.Dead() then
-					-- We have a live target, keep tanking even if beyond engage distance
-					-- Don't clear current_mob_being_tanked or call cwtnCHOSEN()
+					-- We have a live target, check if it matches our configured mob names
+					local targetName = currentTarget.CleanName()
+					local targetMatches = false
+					for _, mobName in ipairs(State.mob_names) do
+						if targetName == mobName then
+							targetMatches = true
+							break
+						end
+					end
+					
+					-- Also check if target is in ignore list
+					local targetIsIgnored = not IsNotIgnored(targetName)
+					
+					if not targetMatches or targetIsIgnored then
+						-- Current target doesn't match our mob list or is ignored, stop tanking
+						local reason = not targetMatches and "doesn't match mob list" or "is in ignore list"
+						BL.info("Current target '%s' %s, stopping tank mode", targetName, reason)
+						State.current_mob_being_tanked = nil
+						cwtnCHOSEN()
+						State.IAmTanking = false
+					else
+						-- Target matches our mob list and is not ignored, keep tanking even if beyond engage distance
+						-- Don't clear current_mob_being_tanked or call cwtnCHOSEN()
+					end
 				else
 					-- No target at all, stop tanking
 					BL.info("No target found, stopping tank mode")
