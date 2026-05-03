@@ -21,6 +21,13 @@ local epics = {
         class = "Shaman", 
         enabled = true, -- Auto-enabled on startup
         lastUsed = 0
+    },
+    {
+        id = 52348, -- Nightshade, Blade of Entropy
+        name = "Nightshade, Blade of Entropy",
+        class = "Rogue",
+        enabled = true, -- Auto-enabled on startup
+        lastUsed = 0
     }
 }
 
@@ -145,22 +152,22 @@ local function drawEpicsTab()
     imgui.SameLine()
     if imgui.Button("Start") then
         -- Access the sendToClasses function from raidprep/init.lua
-        -- This will send /lua run raidprep to all shamans and bards
-        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]}) /lua run raidprep")
+        -- This will send /lua run raidprep to all shamans, bards, and rogues
+        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]} || ${Me.Class.ShortName.Equal[ROG]}) /lua run raidprep")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
-        imgui.Text("Starts raidprep on all Bards and Shamans")
+        imgui.Text("Starts raidprep on all Bards, Shamans, and Rogues")
         imgui.EndTooltip()
     end
     imgui.SameLine()
     if imgui.Button("Stop") then
-        -- Send /lua stop raidprep to all shamans and bards
-        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]}) /lua stop raidprep")
+        -- Send /lua stop raidprep to all shamans, bards, and rogues
+        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]} || ${Me.Class.ShortName.Equal[ROG]}) /lua stop raidprep")
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
-        imgui.Text("Stops raidprep on all Bards and Shamans")
+        imgui.Text("Stops raidprep on all Bards, Shamans, and Rogues")
         imgui.EndTooltip()
     end
     imgui.Separator()
