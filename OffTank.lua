@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.22 loaded")
+BL.info("Offtank v1.23 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -394,19 +394,11 @@ local function UpdateAggroState()
 		-- Get target from xtar list
 		local xtarIndex = tonumber(State.selected_xtar_to_tank)
 		local xtar = State.filtered_xtar_list[xtarIndex]
-		if xtar ~= nil and not xtar.Dead() then
-    local spawnName = xtar.CleanName()
-    if spawnName then
-        local spawnObj = mq.TLO.Spawn("npc " .. spawnName)
-        if spawnObj and spawnObj() and not spawnObj.Dead() then  -- Add spawnObj.Dead() check
-            State.current_mob_being_tanked = function() return spawnObj end
-        else
-            -- Spawn object is dead/invalid, clear state
-            State.current_mob_being_tanked = nil
-            cwtnCHOSEN()
-            State.IAmTanking = false
-        end
-    end
+		if xtar ~= nil and not xtar.Dead() and xtar.Type() == "NPC" then
+        -- Use the xtar spawn object directly instead of searching by name
+        -- This prevents targeting the wrong mob when multiple mobs have the same name
+        -- Also verify it's an NPC, not a PC
+        State.current_mob_being_tanked = function() return xtar end
 		elseif xtar ~= nil and xtar.Dead() then
 			-- XTarget is dead, clear current target and stop tanking
 			State.current_mob_being_tanked = nil
