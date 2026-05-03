@@ -3,7 +3,7 @@ local mq = require('mq')
 ---@type BL
 local BL = require('biggerlib')
 
-BL.info("FreeTheGoranga Script v1.12 Started")
+BL.info("FreeTheGoranga Script v1.13 Started")
 mq.cmd("/plugin boxr load")
 
 local my_name = mq.TLO.Me.CleanName()
@@ -13,7 +13,7 @@ local function SingleChains(line, target)
     if target ~= my_name then return end -- Only run if it's MY name
 
     BL.info("SingleChains triggered for: " .. target)
-    mq.cmd("/rs I am running from chains1")
+    --mq.cmd("/rs I am running from chains1")
     --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
     --BL.cmd.pauseAutomation()
     BL.cmd.ChangeAutomationModeToManual()
@@ -38,7 +38,7 @@ local function DoubleChains(line, target1, target2)
     if target1 ~= my_name and target2 ~= my_name then return end
 
     BL.info("DoubleChains triggered for: " .. target1 .. " and " .. target2)
-    mq.cmd("/rs I am running from chains2")
+    --mq.cmd("/rs I am running from chains2")
     --mq.cmd("/docommand /${Me.Class.ShortName} mode 0")
     --BL.cmd.pauseAutomation()
     BL.cmd.ChangeAutomationModeToManual()
