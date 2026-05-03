@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("SilenceTheCannons Script v1.11 Started")
+BL.info("SilenceTheCannons Script v1.12 Started")
 BL.info("REMINDER 70 and 51(skyguard) INACTIVE - target yourself")
 mq.cmd("/plugin boxr load")
 
