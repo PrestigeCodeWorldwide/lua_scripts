@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.860 Started")
+BL.info("RaidPrep v1.861 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -38,6 +38,7 @@ local RezState = 0 -- 0=SET, 1=ON, 2=OFF
 local selectedRaidAssist = "Select RA"
 local AllButSelfBind = "/noparse /dge /docommand /${Me.Class.ShortName}"
 local AllIncludingSelfBind = "/noparse /dga /docommand /${Me.Class.ShortName}"
+
 local applytoallChecked = false -- Controls whether to include self in CWTN commands
 local scriptDir = debug.getinfo(1, "S").source:match("@(.*[\\/])") or ""
 local settingsFile = scriptDir .. "raidprep_settings.lua"
@@ -83,6 +84,21 @@ local function applySettings()
     end
 
     print("Settings applied to all toons.")
+end
+
+-- Helper functions for class-specific commands
+local function sendToClasses(classes, command)
+    -- classes: table of class short names like {"SHM", "BRD"}
+    -- command: string like "use_epic_on"
+    local classCondition = table.concat(classes, " || ${Me.Class.ShortName.Equal[")
+    classCondition = "${Me.Class.ShortName.Equal[" .. classCondition .. "]"
+    mq.cmd("/noparse /dga /if (" .. classCondition .. ") /docommand /${Me.Class.ShortName} " .. command)
+end
+
+local function sendToClass(class, command)
+    -- class: string like "SHM" or "BRD"
+    -- command: string like "use_epic_on"
+    mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[" .. class .. "]) /docommand /${Me.Class.ShortName} " .. command)
 end
 
 -- Load settings from file

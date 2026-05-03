@@ -1,4 +1,4 @@
---v1.0
+--v1.1
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -141,7 +141,28 @@ local function drawEpicsTab()
     -- Update cached status periodically
     updateCachedStatus()
     
-    imgui.Text("Epic Items Auto-Use Manager")
+    imgui.Text("Epic Manager: ")
+    imgui.SameLine()
+    if imgui.Button("Start") then
+        -- Access the sendToClasses function from raidprep/init.lua
+        -- This will send /lua run raidprep to all shamans and bards
+        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]}) /lua run raidprep")
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Starts raidprep on all Bards and Shamans")
+        imgui.EndTooltip()
+    end
+    imgui.SameLine()
+    if imgui.Button("Stop") then
+        -- Send /lua stop raidprep to all shamans and bards
+        mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]}) /lua stop raidprep")
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Stops raidprep on all Bards and Shamans")
+        imgui.EndTooltip()
+    end
     imgui.Separator()
     
     for i, epic in ipairs(epics) do
@@ -167,23 +188,34 @@ local function drawEpicsTab()
         
         -- Use button
         if imgui.Button("Use##use") then
-            useEpicItem(epic.id, epic.name)
+            mq.cmd("/dga /useitem \"" .. epic.name .. "\"")
+        end
+        if imgui.IsItemHovered() then
+            imgui.BeginTooltip()
+            imgui.Text("Clicks " .. epic.name .. " on all " .. epic.class:lower() .. "s")
+            imgui.EndTooltip()
         end
         
-        -- Status indicator with timer
+        -- Status indicator with timer (only show for matching classes)
         imgui.SameLine()
-        -- Use cached status instead of expensive checks
-        local available, ready = getCachedStatus(epic.id)
-        
-        if available and ready then
-            imgui.TextColored(0, 1, 0, 1, "Ready")
-        elseif available then
-            -- Get current timer for display
-            local find = mq.TLO.FindItem(epic.id)
-            local timer = find and find.TimerReady() or 0
-            imgui.TextColored(1, 1, 0, 1, string.format("Cooldown (%ds)", timer))
+        -- Only show status for characters who can actually use this epic
+        if mq.TLO.Me.Class.Name() == epic.class then
+            -- Use cached status instead of expensive checks
+            local available, ready = getCachedStatus(epic.id)
+            
+            if available and ready then
+                imgui.TextColored(0, 1, 0, 1, "Ready")
+            elseif available then
+                -- Get current timer for display
+                local find = mq.TLO.FindItem(epic.id)
+                local timer = find and find.TimerReady() or 0
+                imgui.TextColored(1, 1, 0, 1, string.format("Cooldown (%ds)", timer))
+            else
+                imgui.TextColored(1, 0, 0, 1, "Not Found")
+            end
         else
-            imgui.TextColored(1, 0, 0, 1, "Not Found")
+            -- Show simple text for non-matching classes
+            imgui.TextColored(0.5, 0.5, 0.5, 1, "N/A")
         end
         
         imgui.PopID()
