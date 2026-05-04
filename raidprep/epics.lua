@@ -1,4 +1,4 @@
---v1.1
+--v1.11
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -36,6 +36,72 @@ local autoCheckTimer = 0
 local debugTimer = 0
 local statusUpdateTimer = 0
 local cachedStatus = {}
+
+-- Command binding for /rpepic
+local function rpepicCommand(...)
+    local args = {...}
+    if #args < 2 then
+        BL.info("Usage: /rpepic <class> <on|off>")
+        BL.info("Classes: bard, shaman, rogue")
+        return
+    end
+    
+    local class = args[1]:lower()
+    local action = args[2]:lower()
+    
+    -- Validate class
+    local validClasses = {bard = true, shaman = true, rogue = true}
+    if not validClasses[class] then
+        BL.info("Invalid class. Use: bard, shaman, or rogue")
+        return
+    end
+    
+    -- Validate action
+    if action ~= "on" and action ~= "off" then
+        BL.info("Invalid action. Use: on or off")
+        return
+    end
+    
+    -- Map class names to short names for MQ commands
+    local classShortNames = {
+        bard = "BRD",
+        shaman = "SHM", 
+        rogue = "ROG"
+    }
+    
+    local shortName = classShortNames[class]
+    local state = action == "on" and "1" or "0"
+    
+    -- Send command to all toons of the specified class
+    local cmd = string.format("/dga /if (${Me.Class.ShortName.Equal[%s]}) /lua run raidprep rpepic %s", shortName, state)
+    mq.cmd(cmd)
+    
+    BL.info(string.format("Sent epic %s command to all %ss", action, class))
+end
+
+-- Function to handle rpepic command on target toon
+local function handleRpepicCommand(class, state)
+    -- Find the epic for this class
+    local targetEpic = nil
+    for _, epic in ipairs(epics) do
+        if epic.class:lower() == class then
+            targetEpic = epic
+            break
+        end
+    end
+    
+    if not targetEpic then
+        BL.info("No epic found for class: " .. class)
+        return
+    end
+    
+    -- Set the enabled state
+    local enabled = (state == "1")
+    targetEpic.enabled = enabled
+    _G["epic_" .. targetEpic.id] = enabled
+    
+    BL.info(string.format("Epic auto-use for %s: %s", targetEpic.name, enabled and "ON" or "OFF"))
+end
 
 -- Helper functions
 local function useEpicItem(itemID, itemName)
@@ -184,6 +250,12 @@ local function drawEpicsTab()
         if changed then
             epic.enabled = checked
             BL.info(string.format("Auto-use for %s: %s", epic.name, checked and "ON" or "OFF"))
+            
+            -- Send /rpepic command to all toons of this class
+            local classLower = epic.class:lower()
+            local action = checked and "on" or "off"
+            local cmd = string.format("/rpepic %s %s", classLower, action)
+            mq.cmd(cmd)
         end
         
         -- Same line positioning
@@ -259,6 +331,7 @@ end
 return {
     drawEpicsTab = drawEpicsTab,
     updateEpics = updateEpics,
+    handleRpepicCommand = handleRpepicCommand,
     saveEpicsSettings = function(settings)
         -- Save epic enabled states
         for _, epic in ipairs(epics) do

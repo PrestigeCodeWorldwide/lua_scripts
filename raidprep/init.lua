@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.861 Started")
+BL.info("RaidPrep v1.862 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -53,6 +53,64 @@ local Global_DIS = false
 local Global_ILS = false
 local Global_DCK = false
 local Global_FEI = false
+
+-- Bind /rpepic command
+mq.bind("/rpepic", function(...)
+    local cmdArgs = {...}
+    if #cmdArgs < 2 then
+        BL.info("Usage: /rpepic <class> <on|off>")
+        BL.info("Classes: bard, shaman, rogue")
+        return
+    end
+    
+    local class = cmdArgs[1]:lower()
+    local action = cmdArgs[2]:lower()
+    
+    -- Validate class
+    local validClasses = {bard = true, shaman = true, rogue = true}
+    if not validClasses[class] then
+        BL.info("Invalid class. Use: bard, shaman, or rogue")
+        return
+    end
+    
+    -- Validate action
+    if action ~= "on" and action ~= "off" then
+        BL.info("Invalid action. Use: on or off")
+        return
+    end
+    
+    -- Map class names to short names for MQ commands (same as Start/Stop buttons)
+    local classShortNames = {
+        bard = "BRD",
+        shaman = "SHM", 
+        rogue = "ROG"
+    }
+    
+    local shortName = classShortNames[class]
+    local state = action == "on" and "1" or "0"
+    
+    -- Send direct epic toggle command to all toons of specified class (same format as Start/Stop)
+    local cmd = string.format("/noparse /dga /if (${Me.Class.ShortName.Equal[%s]}) /rpepic_internal %s %s", shortName, class, state)
+    mq.cmd(cmd)
+    
+    BL.info(string.format("Sent epic %s command to all %ss", action, class))
+end)
+
+-- Bind internal command that actually toggles the epic settings
+mq.bind("/rpepic_internal", function(...)
+    local cmdArgs = {...}
+    if #cmdArgs < 2 then
+        return
+    end
+    
+    local class = cmdArgs[1]:lower()
+    local state = cmdArgs[2]
+    
+    -- Call the epics handler function
+    if epicsUI.handleRpepicCommand then
+        epicsUI.handleRpepicCommand(class, state)
+    end
+end)
 
 -- Helper function to get the appropriate bind based on applytoallChecked
 local function getCWTNBind()
