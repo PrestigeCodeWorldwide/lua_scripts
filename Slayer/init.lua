@@ -7,7 +7,7 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.04 loaded")
+BL.info("Slayer script 1.05 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
@@ -130,8 +130,8 @@ local function renderOverviewTab()
     -- Update connected toons first
     updateConnectedToons()
     
-    -- Get all achievement IDs first
-    local allAchievementIDs = ids.getAllAchievementIDs()
+    -- Get all achievement IDs in custom order (first 4 fixed, rest alphabetical)
+    local allAchievementIDs = ids.getAchievementIDsCustomOrder()
     
     imgui.Text("Slayer Achievement Overview (" .. #connectedToons .. " connected)")
     imgui.SameLine()
@@ -214,8 +214,8 @@ local function renderDetailsTab()
     imgui.Text("Select an achievement to view details:")
     imgui.Separator()
     
-    -- Create dropdown with all achievements
-    local allAchievementIDs = ids.getAllAchievementIDs()
+    -- Create dropdown with all achievements in custom order
+    local allAchievementIDs = ids.getAchievementIDsCustomOrder()
     local achievementNames = {}
     for _, id in ipairs(allAchievementIDs) do
         table.insert(achievementNames, ids.getAchievementName(id))

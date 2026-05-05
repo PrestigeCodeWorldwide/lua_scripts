@@ -1,3 +1,4 @@
+--v1.1
 ---@type Mq
 local mq = require("mq")
 
@@ -200,9 +201,38 @@ local function getAllAchievementIDs()
     return ids
 end
 
+-- Helper function to get achievement IDs with first 4 fixed and rest sorted alphabetically
+local function getAchievementIDsCustomOrder()
+    local allIDs = getAllAchievementIDs()
+    local result = {}
+    
+    -- Keep first 4 achievements in their original order
+    for i = 1, math.min(4, #allIDs) do
+        table.insert(result, allIDs[i])
+    end
+    
+    -- Sort remaining achievements alphabetically by name
+    local remaining = {}
+    for i = 5, #allIDs do
+        table.insert(remaining, allIDs[i])
+    end
+    
+    table.sort(remaining, function(a, b)
+        return ACHIEVEMENT_IDS[a] < ACHIEVEMENT_IDS[b]
+    end)
+    
+    -- Add sorted remaining achievements
+    for _, id in ipairs(remaining) do
+        table.insert(result, id)
+    end
+    
+    return result
+end
+
 -- Export the achievement data
 return {
     ACHIEVEMENT_IDS = ACHIEVEMENT_IDS,
     getAchievementName = getAchievementName,
-    getAllAchievementIDs = getAllAchievementIDs
+    getAllAchievementIDs = getAllAchievementIDs,
+    getAchievementIDsCustomOrder = getAchievementIDsCustomOrder
 }
