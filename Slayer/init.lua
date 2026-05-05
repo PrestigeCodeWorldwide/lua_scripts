@@ -7,11 +7,12 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.02 loaded")
+BL.info("Slayer script 1.03 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
 local selectedTab = 0 -- 0 = Overview, 1 = Details
+local selectedAchievement = 1 -- Default to first achievement in dropdown
 
 -- Multi-toon setup using Actors (like itrack)
 local myName = mq.TLO.Me.CleanName()
@@ -129,11 +130,28 @@ local function renderOverviewTab()
     -- Update connected toons first
     updateConnectedToons()
     
+    -- Get all achievement IDs first
+    local allAchievementIDs = ids.getAllAchievementIDs()
+    
     imgui.Text("Slayer Achievement Overview (" .. #connectedToons .. " connected)")
+    imgui.SameLine()
+    
+    -- Add achievement dropdown for quick filtering/selection
+    local achievementNames = {}
+    for _, id in ipairs(allAchievementIDs) do
+        table.insert(achievementNames, ids.getAchievementName(id))
+    end
+    
+    imgui.SetNextItemWidth(300) -- Set dropdown width to 200 pixels
+    local currentIndex = selectedAchievement - 1
+    local changed = imgui.Combo("Achievement", currentIndex, achievementNames, #achievementNames)
+    if changed then
+        selectedAchievement = currentIndex + 1
+    end
+    
     imgui.Separator()
     
     -- Create horizontally scrollable table
-    local allAchievementIDs = ids.getAllAchievementIDs()
     local tableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.ScrollX, ImGuiTableFlags.ScrollY, ImGuiTableFlags.Resizable)
     
     -- Calculate table height based on number of toons (min 100px, max 500px)
@@ -196,33 +214,32 @@ local function renderDetailsTab()
     imgui.Text("Select an achievement to view details:")
     imgui.Separator()
     
-    -- Achievement buttons
-    if imgui.Button("Megadeath") then
-        selectedTab = 1
-        -- Could add detailed view here later
+    -- Create dropdown with all achievements
+    local allAchievementIDs = ids.getAllAchievementIDs()
+    local achievementNames = {}
+    for _, id in ipairs(allAchievementIDs) do
+        table.insert(achievementNames, ids.getAchievementName(id))
     end
-    imgui.SameLine()
     
-    if imgui.Button("Force of Nature") then
-        selectedTab = 1
-        -- Could add detailed view here later
-    end
-    imgui.SameLine()
-    
-    if imgui.Button("Highly Decorated") then
-        selectedTab = 1
-        -- Could add detailed view here later
-    end
-    imgui.SameLine()
-    
-    if imgui.Button("Progressive") then
-        selectedTab = 1
-        -- Could add detailed view here later
+    imgui.SetNextItemWidth(200) -- Set dropdown width to 200 pixels
+    local currentIndex = selectedAchievement - 1
+    local changed = imgui.Combo("Achievement", currentIndex, achievementNames, #achievementNames)
+    if changed then
+        selectedAchievement = currentIndex + 1
     end
     
     imgui.Separator()
-    imgui.Text("Detailed achievement view coming soon...")
-    imgui.Text("For now, use the Overview tab to see all achievement status.")
+    
+    -- Display info about selected achievement
+    if selectedAchievement > 0 and selectedAchievement <= #allAchievementIDs then
+        local achievementID = allAchievementIDs[selectedAchievement]
+        local achievementName = ids.getAchievementName(achievementID)
+        
+        imgui.Text("Selected: " .. achievementName)
+        imgui.Text("ID: " .. achievementID)
+        imgui.Text("This dropdown displays all " .. #achievementNames .. " Slayer achievements.")
+        imgui.Text("Functionality coming soon...")
+    end
 end
 
 -- Main GUI render function
