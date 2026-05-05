@@ -7,7 +7,7 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.05 loaded")
+BL.info("Slayer script 1.06 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
@@ -167,14 +167,26 @@ local function renderOverviewTab()
         end
         imgui.TableHeadersRow()
 
-        -- Tooltip on header hover
+        -- Handle clickable achievement headers
         local hoveredCol = imgui.TableGetHoveredColumn()
         if hoveredCol ~= nil and hoveredCol > 0 and hoveredCol <= #allAchievementIDs then
             local achievementID = allAchievementIDs[hoveredCol]
             if achievementID then
                 imgui.BeginTooltip()
                 imgui.Text(ids.getAchievementName(achievementID))
+                imgui.Text("Click to open in-game achievement")
                 imgui.EndTooltip()
+                
+                -- Check if clicked on achievement header
+                if imgui.IsMouseClicked(0) then -- Left click
+                    local achievement = mq.TLO.Achievement(achievementID)
+                    if achievement and achievement() then
+                        local link = achievement.Link()
+                        if link then
+                            mq.cmdf("/g %s", link)
+                        end
+                    end
+                end
             end
         end
         
