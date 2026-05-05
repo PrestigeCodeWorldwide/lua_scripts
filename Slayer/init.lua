@@ -7,10 +7,10 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.0 loaded")
+BL.info("Slayer script 1.01 loaded")
 
 -- GUI state
-local showGUI = true
+local showGUI = true -- Always true to prevent window from being closed permanently
 local selectedTab = 0 -- 0 = Overview, 1 = Details
 
 -- Multi-toon setup using Actors (like itrack)
@@ -112,15 +112,28 @@ local function renderOverviewTab()
     
     -- Create horizontally scrollable table
     local allAchievementIDs = ids.getAllAchievementIDs()
-    local tableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.ScrollX, ImGuiTableFlags.Resizable)
+    local tableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.ScrollX, ImGuiTableFlags.ScrollY, ImGuiTableFlags.Resizable)
     
-    if imgui.BeginTable("OverviewTable", #allAchievementIDs + 1, tableFlags) then
+    if imgui.BeginTable("OverviewTable", #allAchievementIDs + 1, tableFlags, ImVec2(0, 400)) then
+        imgui.TableSetupScrollFreeze(1, 1)
+
         -- Table headers
         imgui.TableSetupColumn("Character", 0, 120)
         for _, achievementID in ipairs(allAchievementIDs) do
             imgui.TableSetupColumn(ids.getAchievementName(achievementID), 0, 60)
         end
         imgui.TableHeadersRow()
+
+        -- Tooltip on header hover
+        local hoveredCol = imgui.TableGetHoveredColumn()
+        if hoveredCol ~= nil and hoveredCol > 0 and hoveredCol <= #allAchievementIDs then
+            local achievementID = allAchievementIDs[hoveredCol]
+            if achievementID then
+                imgui.BeginTooltip()
+                imgui.Text(ids.getAchievementName(achievementID))
+                imgui.EndTooltip()
+            end
+        end
         
         -- Show achievement status for each toon
         for _, toonName in ipairs(connectedToons) do
@@ -190,10 +203,8 @@ end
 
 -- Main GUI render function
 local function renderGUI()
-    if not showGUI then return end
-    
-    local shouldDraw, open = imgui.Begin("Slayer Achievements", showGUI)
-    showGUI = open
+    -- Always show window, no close button (pass nil instead of showGUI)
+    local shouldDraw, open = imgui.Begin("Slayer Achievements", nil)
     
     if shouldDraw then
         -- Tab system
