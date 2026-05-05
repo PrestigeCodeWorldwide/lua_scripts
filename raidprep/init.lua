@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.862 Started")
+BL.info("RaidPrep v1.863 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -279,7 +279,7 @@ local expansions = {
 }
 
 local expansionScripts = {
-    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast", "EpicLaziness", "Eval", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "Rez", "TankBandoSwap", "TCN", "Trophies" },
+    ["--Misc Scripts--"] = { "BannerBack","BoxHUD", "ButtonMaster", "Chaincast", "EpicLaziness", "Eval", "GoldenPickPL", "GuildClicky", "Hemicfam","HunterHUD", "HunterHood", "LEM", "Magellan", "Moblist", "Offtank", "Rez", "Slayer", "TankBandoSwap", "TCN", "Trophies" },
     ["Shattering of Ro"] = { "Colossus","Xanaxbar", "Spitetangle", "TheEgg" },
     ["The Outer Brood"] = { "BroodRaid", "ControlRoom", "DockoftheBay", "HHbearer","HPRaid", "LHeartRaid", "SilenceTheCannons", "ToECannons", "ToERitual" },
     ["Laurion's Song"] = { "AK", "FFBandoSwap", "HFRaid", "Moors", "PoMTato", "TFRaid" },
@@ -308,6 +308,7 @@ local scriptTooltips = {
     ["Moblist"] = "Tracks spawns in a zone with UI",
     ["Offtank"] = "Allows selecting specific mobs or Xtargets to offtank automatically",
     ["Rez"] = "Handles rez acceptance and respawn",
+    ["Slayer"] = "Tracks Slayer achievements across multiple toons",
     ["TankBandoSwap"] = "Will auto swap from 2H/DW to 1H/SH based on selected # of xtargets you have",
     ["TCN"] = "Tradeskill Consturction Next",
     ["Trophies"] = "Checks and snitches in /g and /rs if trophies are not on",
