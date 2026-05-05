@@ -7,7 +7,7 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.01 loaded")
+BL.info("Slayer script 1.02 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
@@ -19,6 +19,7 @@ local mailboxName = "SlayerTracker"
 local actor
 local slayerData = {}
 local connectedToons = {}
+local lastSeenTime = {} -- Track when each toon was last seen
 
 -- UI colors
 local colGreen = ImVec4(0.409, 1.000, 0.409, 1.000)
@@ -77,6 +78,9 @@ local function RegisterActors()
         local who = received_message.Sender or "Unknown"
         local achievements = received_message.Achievements or {}
 
+        -- Update last seen time for this toon
+        lastSeenTime[who] = os.time()
+
         -- Handle achievement data
         if achievements and next(achievements) then
             if slayerData[who] == nil then slayerData[who] = {} end
@@ -87,8 +91,30 @@ local function RegisterActors()
     end)
 end
 
+-- Clean up disconnected toons (timeout after 10 seconds)
+local function cleanupDisconnectedToons()
+    local currentTime = os.time()
+    local toonsToRemove = {}
+    
+    for toonName, lastTime in pairs(lastSeenTime) do
+        if currentTime - lastTime > 10 then
+            table.insert(toonsToRemove, toonName)
+        end
+    end
+    
+    -- Remove disconnected toons
+    for _, toonName in ipairs(toonsToRemove) do
+        slayerData[toonName] = nil
+        lastSeenTime[toonName] = nil
+        BL.info("Removed disconnected toon: " .. toonName)
+    end
+end
+
 -- Update connected toons list
 local function updateConnectedToons()
+    -- Clean up disconnected toons first
+    cleanupDisconnectedToons()
+    
     connectedToons = {}
     for toonName, _ in pairs(slayerData) do
         table.insert(connectedToons, toonName)
@@ -100,21 +126,20 @@ end
 
 -- Render Overview tab - shows all toons and all achievements
 local function renderOverviewTab()
-    imgui.Text("Slayer Achievement Overview")
-    imgui.Separator()
-    
-    -- Update connected toons
+    -- Update connected toons first
     updateConnectedToons()
     
-    -- Show connected toons count
-    imgui.Text("Toons Running Script: " .. #connectedToons)
+    imgui.Text("Slayer Achievement Overview (" .. #connectedToons .. " connected)")
     imgui.Separator()
     
     -- Create horizontally scrollable table
     local allAchievementIDs = ids.getAllAchievementIDs()
     local tableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.ScrollX, ImGuiTableFlags.ScrollY, ImGuiTableFlags.Resizable)
     
-    if imgui.BeginTable("OverviewTable", #allAchievementIDs + 1, tableFlags, ImVec2(0, 400)) then
+    -- Calculate table height based on number of toons (min 100px, max 500px)
+    local tableHeight = math.max(100, math.min(500, #connectedToons * 18 + 50))
+    
+    if imgui.BeginTable("OverviewTable", #allAchievementIDs + 1, tableFlags, ImVec2(0, tableHeight)) then
         imgui.TableSetupScrollFreeze(1, 1)
 
         -- Table headers
@@ -161,7 +186,6 @@ local function renderOverviewTab()
     end
     
     imgui.Text("")
-    imgui.TextColored(ImVec4(0.7, 0.7, 0.7, 1), "Scroll horizontally to see all achievements | Legend: \agYes Complete\ax | \ayNo Incomplete\ax | \aw? Unknown\ax")
 end
 
 -- Render Details tab - shows detailed info for selected achievement
