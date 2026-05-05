@@ -1,0 +1,281 @@
+---@type Mq
+local mq = require("mq")
+---@type BL
+local BL = require("biggerlib")
+--- @type ImGui
+local imgui = require("ImGui")
+local Actors = require("actors")
+local ids = require("slayer.ids")
+
+BL.info("Slayer script 1.0 loaded")
+
+-- GUI state
+local showGUI = true
+local selectedTab = 0 -- 0 = Overview, 1 = Details
+
+-- Multi-toon setup using Actors (like itrack)
+local myName = mq.TLO.Me.CleanName()
+local mailboxName = "SlayerTracker"
+local actor
+local slayerData = {}
+local connectedToons = {}
+
+-- UI colors
+local colGreen = ImVec4(0.409, 1.000, 0.409, 1.000)
+local colWhite = ImVec4(1, 1, 1, 1)
+local colYellow = ImVec4(1, 1, 0, 1)
+
+-- Get achievement data by ID
+local function getAchievementData(achievementID)
+    local myAch = mq.TLO.Achievement
+    local ach = myAch(achievementID)
+    
+    if not ach or not ach() then
+        return nil
+    end
+    
+    local completed = ach.Completed() or false
+    
+    return {
+        id = achievementID,
+        name = ids.getAchievementName(achievementID),
+        completed = completed,
+        points = ach.Points() or 0
+    }
+end
+
+-- Function to check Slayer achievements
+local function checkAchievements()
+    local achievements = {}
+    
+    -- Check ALL achievements from ids.lua
+    local allAchievementIDs = ids.getAllAchievementIDs()
+    for _, achievementID in ipairs(allAchievementIDs) do
+        local data = getAchievementData(achievementID)
+        if data then
+            achievements[achievementID] = {
+                id = data.id,
+                name = data.name,
+                completed = data.completed,
+                points = data.points
+            }
+        end
+    end
+    
+    -- Store locally
+    slayerData[myName] = achievements
+    
+    -- Share with other toons using Actors
+    actor:send({ mailbox = mailboxName, }, { Achievements = achievements, Sender = myName, })
+end
+
+-- Register Actor for multi-toon communication
+local function RegisterActors()
+    actor = Actors.register(mailboxName, function(message)
+        if not message() then return end
+        local received_message = message()
+        local who = received_message.Sender or "Unknown"
+        local achievements = received_message.Achievements or {}
+
+        -- Handle achievement data
+        if achievements and next(achievements) then
+            if slayerData[who] == nil then slayerData[who] = {} end
+            for achievementID, data in pairs(achievements) do
+                slayerData[who][achievementID] = data
+            end
+        end
+    end)
+end
+
+-- Update connected toons list
+local function updateConnectedToons()
+    connectedToons = {}
+    for toonName, _ in pairs(slayerData) do
+        table.insert(connectedToons, toonName)
+    end
+    
+    -- Sort toons alphabetically
+    table.sort(connectedToons)
+end
+
+-- Render Overview tab - shows all toons and all achievements
+local function renderOverviewTab()
+    imgui.Text("Slayer Achievement Overview")
+    imgui.Separator()
+    
+    -- Update connected toons
+    updateConnectedToons()
+    
+    -- Show connected toons count
+    imgui.Text("Toons Running Script: " .. #connectedToons)
+    imgui.Separator()
+    
+    -- Create horizontally scrollable table
+    local allAchievementIDs = ids.getAllAchievementIDs()
+    local tableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.ScrollX, ImGuiTableFlags.Resizable)
+    
+    if imgui.BeginTable("OverviewTable", #allAchievementIDs + 1, tableFlags) then
+        -- Table headers
+        imgui.TableSetupColumn("Character", 0, 120)
+        for _, achievementID in ipairs(allAchievementIDs) do
+            imgui.TableSetupColumn(ids.getAchievementName(achievementID), 0, 60)
+        end
+        imgui.TableHeadersRow()
+        
+        -- Show achievement status for each toon
+        for _, toonName in ipairs(connectedToons) do
+            imgui.TableNextRow()
+            imgui.TableSetColumnIndex(0)
+            imgui.Text(toonName)
+            
+            -- Show status for each achievement
+            for colIndex, achievementID in ipairs(allAchievementIDs) do
+                imgui.TableSetColumnIndex(colIndex)
+                local achievementData = slayerData[toonName] and slayerData[toonName][achievementID]
+                if achievementData then
+                    if achievementData.completed then
+                        imgui.TextColored(colGreen, "Yes")
+                    else
+                        imgui.TextColored(ImVec4(0.5, 0.5, 0.5, 1), "No")
+                    end
+                else
+                    imgui.TextColored(ImVec4(0.5, 0.5, 0.5, 1), "?")
+                end
+            end
+        end
+        
+        imgui.EndTable()
+    end
+    
+    imgui.Text("")
+    imgui.TextColored(ImVec4(0.7, 0.7, 0.7, 1), "Scroll horizontally to see all achievements | Legend: \agYes Complete\ax | \ayNo Incomplete\ax | \aw? Unknown\ax")
+end
+
+-- Render Details tab - shows detailed info for selected achievement
+local function renderDetailsTab()
+    imgui.Text("Slayer Achievement Details")
+    imgui.Separator()
+    
+    imgui.Text("Select an achievement to view details:")
+    imgui.Separator()
+    
+    -- Achievement buttons
+    if imgui.Button("Megadeath") then
+        selectedTab = 1
+        -- Could add detailed view here later
+    end
+    imgui.SameLine()
+    
+    if imgui.Button("Force of Nature") then
+        selectedTab = 1
+        -- Could add detailed view here later
+    end
+    imgui.SameLine()
+    
+    if imgui.Button("Highly Decorated") then
+        selectedTab = 1
+        -- Could add detailed view here later
+    end
+    imgui.SameLine()
+    
+    if imgui.Button("Progressive") then
+        selectedTab = 1
+        -- Could add detailed view here later
+    end
+    
+    imgui.Separator()
+    imgui.Text("Detailed achievement view coming soon...")
+    imgui.Text("For now, use the Overview tab to see all achievement status.")
+end
+
+-- Main GUI render function
+local function renderGUI()
+    if not showGUI then return end
+    
+    local shouldDraw, open = imgui.Begin("Slayer Achievements", showGUI)
+    showGUI = open
+    
+    if shouldDraw then
+        -- Tab system
+        if imgui.BeginTabBar("SlayerTabBar", ImGuiTabBarFlags.None) then
+            -- Overview Tab
+            if imgui.BeginTabItem("Overview") then
+                renderOverviewTab()
+                imgui.EndTabItem()
+            end
+            
+            -- Details Tab
+            if imgui.BeginTabItem("Details") then
+                renderDetailsTab()
+                imgui.EndTabItem()
+            end
+            
+            imgui.EndTabBar()
+        end
+    end
+    
+    imgui.End()
+end
+
+-- Command handler
+local function slayerCommand(...)
+    local args = {...}
+    local cmd = args[1] and args[1]:lower() or ""
+    
+    if cmd == "hide" then
+        showGUI = false
+        BL.info("Slayer GUI hidden")
+    elseif cmd == "show" then
+        showGUI = true
+        BL.info("Slayer GUI shown")
+    elseif cmd == "debug" then
+        BL.info("=== Slayer Debug ===")
+        BL.info("My name: " .. myName)
+        
+        local connectedList = {}
+        for toonName, _ in pairs(slayerData) do
+            table.insert(connectedList, toonName)
+        end
+        BL.info("Connected toons: " .. table.concat(connectedList, ", "))
+        BL.info("=== End Debug ===")
+    else
+        showGUI = not showGUI
+        BL.info("Slayer GUI toggled: " .. (showGUI and "shown" or "hidden"))
+    end
+end
+
+-- Initialize system
+local function initSystem()
+    BL.info("Initializing Slayer system...")
+    
+    -- Register Actors for multi-toon communication
+    RegisterActors()
+    
+    -- Initial achievement check
+    checkAchievements()
+    
+    BL.info("Slayer system initialization complete")
+end
+
+-- Bind the GUI render function to the ImGui event
+mq.imgui.init('SlayerGUI', renderGUI)
+
+-- Register command
+mq.bind('/slayer', slayerCommand)
+
+-- Initialize system
+initSystem()
+
+BL.info("Slayer loaded - /slayer to toggle | /slayer debug")
+
+-- Main loop to keep script running
+local refreshTimer = os.clock()
+while true do
+    -- Check achievements every 3 seconds
+    if os.difftime(os.clock(), refreshTimer) > 3 then
+        checkAchievements()
+        refreshTimer = os.clock()
+    end
+    
+    mq.delay(100) -- Short delay to prevent excessive CPU usage
+end
