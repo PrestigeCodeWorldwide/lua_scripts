@@ -7,7 +7,7 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.03 loaded")
+BL.info("Slayer script 1.04 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
@@ -155,7 +155,7 @@ local function renderOverviewTab()
     local tableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.ScrollX, ImGuiTableFlags.ScrollY, ImGuiTableFlags.Resizable)
     
     -- Calculate table height based on number of toons (min 100px, max 500px)
-    local tableHeight = math.max(100, math.min(500, #connectedToons * 18 + 50))
+    local tableHeight = math.max(100, math.min(500, #connectedToons * 19.2 + 50))
     
     if imgui.BeginTable("OverviewTable", #allAchievementIDs + 1, tableFlags, ImVec2(0, tableHeight)) then
         imgui.TableSetupScrollFreeze(1, 1)
