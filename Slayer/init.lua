@@ -174,11 +174,11 @@ local function renderOverviewTab()
             if achievementID then
                 imgui.BeginTooltip()
                 imgui.Text(ids.getAchievementName(achievementID))
-                imgui.Text("Click to open in-game achievement")
+                imgui.Text("Right-click to open in-game achievement")
                 imgui.EndTooltip()
                 
-                -- Check if clicked on achievement header
-                if imgui.IsMouseClicked(0) then -- Left click
+                -- Check if right-clicked on achievement header
+                if imgui.IsMouseClicked(1) then -- Right click
                     local achievement = mq.TLO.Achievement(achievementID)
                     if achievement and achievement() then
                         local link = achievement.Link()
