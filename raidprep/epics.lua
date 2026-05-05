@@ -1,4 +1,4 @@
---v1.11
+--v1.12
 ---@type Mq
 local mq = require("mq")
 ---@type BL
@@ -36,6 +36,7 @@ local autoCheckTimer = 0
 local debugTimer = 0
 local statusUpdateTimer = 0
 local cachedStatus = {}
+local startButtonClicked = false
 
 -- Command binding for /rpepic
 local function rpepicCommand(...)
@@ -216,10 +217,24 @@ local function drawEpicsTab()
     
     imgui.Text("Epic Manager: ")
     imgui.SameLine()
+    
+    -- Apply green color if button has been clicked
+    if startButtonClicked then
+        imgui.PushStyleColor(ImGuiCol.Button, 0, 0.5, 0, 1)
+        imgui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 0.7, 0, 1)
+        imgui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0.9, 0, 1)
+    end
+    
     if imgui.Button("Start") then
         -- Access the sendToClasses function from raidprep/init.lua
         -- This will send /lua run raidprep to all shamans, bards, and rogues
         mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]} || ${Me.Class.ShortName.Equal[ROG]}) /lua run raidprep")
+        startButtonClicked = true
+    end
+    
+    -- Pop the color if we pushed it
+    if startButtonClicked then
+        imgui.PopStyleColor(3)
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -230,6 +245,7 @@ local function drawEpicsTab()
     if imgui.Button("Stop") then
         -- Send /lua stop raidprep to all shamans, bards, and rogues
         mq.cmd("/noparse /dga /if (${Me.Class.ShortName.Equal[SHM]} || ${Me.Class.ShortName.Equal[BRD]} || ${Me.Class.ShortName.Equal[ROG]}) /lua stop raidprep")
+        startButtonClicked = false
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
