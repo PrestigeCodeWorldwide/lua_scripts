@@ -7,7 +7,7 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.06 loaded")
+BL.info("Slayer script 1.07 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
@@ -36,7 +36,10 @@ local function getAchievementData(achievementID)
         return nil
     end
     
-    local completed = ach.Completed() or false
+    local completed = false
+    if ach and ach() then
+        completed = ach.Completed()
+    end
     
     return {
         id = achievementID,
@@ -252,6 +255,60 @@ local function renderDetailsTab()
         imgui.Text("This dropdown displays all " .. #achievementNames .. " Slayer achievements.")
         imgui.Text("Functionality coming soon...")
     end
+    
+    -- Add summary row showing total completed counts per achievement
+    imgui.Text("")
+    imgui.Text("Summary (Total Characters Completed per Achievement):")
+    imgui.Separator()
+    
+    -- Create simplified summary table for first 4 achievements (vertically resizable)
+    local summaryTableFlags = bit32.bor(ImGuiTableFlags.Borders, ImGuiTableFlags.RowBg, ImGuiTableFlags.Resizable)
+    if imgui.BeginTable("SummaryTable", 5, summaryTableFlags, ImVec2(0, 120)) then
+        imgui.TableSetupScrollFreeze(1, 1)
+        
+        -- Table headers
+        imgui.TableSetupColumn("Achievement", 0, 200)
+        imgui.TableSetupColumn("Total", 0, 80)
+        imgui.TableSetupColumn("Completed", 0, 80)
+        imgui.TableSetupColumn("Percentage", 0, 100)
+        imgui.TableHeadersRow()
+        
+        -- Summary row for all achievements
+        for colIndex, achievementID in ipairs(allAchievementIDs) do
+            imgui.TableNextRow()
+            imgui.TableSetColumnIndex(0)
+            imgui.Text(ids.getAchievementName(achievementID))
+            
+            -- Calculate totals across all toons
+            local totalCount = 0
+            local completedCount = 0
+            for _, toonName in ipairs(connectedToons) do
+                -- Check if this toon has data for this achievement
+                if slayerData[toonName] and slayerData[toonName][achievementID] then
+                    totalCount = totalCount + 1
+                    if slayerData[toonName][achievementID].completed then
+                        completedCount = completedCount + 1
+                    end
+                end
+            end
+            
+            -- Debug output to verify calculations
+            if selectedTab == 1 then -- Details tab
+                BL.info(string.format("Summary Debug - Total: %d, Completed: %d", totalCount, completedCount))
+            end
+            imgui.TableSetColumnIndex(1)
+            imgui.Text(tostring(totalCount))
+            
+            imgui.TableSetColumnIndex(2)
+            imgui.Text(tostring(completedCount))
+            
+            imgui.TableSetColumnIndex(3)
+            local percentage = totalCount > 0 and math.floor((completedCount / totalCount) * 100) or 0
+            imgui.Text(string.format("%.1f%%", percentage))
+        end
+        
+        imgui.EndTable()
+    end
 end
 
 -- Main GUI render function
@@ -275,6 +332,22 @@ local function renderGUI()
             end
             
             imgui.EndTabBar()
+        end
+        
+        -- Add red button to end script
+        imgui.SameLine()
+        if imgui.Button("[X] End Script", ImVec2(80, 0)) then
+            BL.info("Slayer script terminated by user")
+            -- End script
+            mq.exit()
+        elseif imgui.IsMouseClicked(1) then -- Right click - end for all toons
+            BL.info("Slayer script terminated for all toons by user")
+            BL.info("Sending DGA command: /dga /lua stop slayer")
+            mq.cmdf("/dga /lua stop slayer")
+            mq.exit()
+        end
+        if imgui.IsItemHovered() then
+            imgui.SetTooltip("Left Click: End script for this toon only\nRight Click: End script for all toons")
         end
     end
     
