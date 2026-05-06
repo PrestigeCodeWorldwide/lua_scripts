@@ -7,7 +7,7 @@ local imgui = require("ImGui")
 local Actors = require("actors")
 local ids = require("slayer.ids")
 
-BL.info("Slayer script 1.07 loaded")
+BL.info("Slayer script 1.08 loaded")
 
 -- GUI state
 local showGUI = true -- Always true to prevent window from being closed permanently
@@ -340,7 +340,7 @@ local function renderGUI()
             BL.info("Slayer script terminated by user")
             -- End script
             mq.exit()
-        elseif imgui.IsMouseClicked(1) then -- Right click - end for all toons
+        elseif imgui.IsMouseClicked(1) and imgui.IsItemHovered() then -- Right click on button - end for all toons
             BL.info("Slayer script terminated for all toons by user")
             BL.info("Sending DGA command: /dga /lua stop slayer")
             mq.cmdf("/dga /lua stop slayer")
