@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.26 loaded")
+BL.info("Offtank v1.27 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -605,8 +605,8 @@ local function DoTanking()
 		-- Check if we have line of sight, if not, navigate manually
 		if not spawn_los then
 			local current_time = mq.gettime()
-			-- Only issue navigation command every 3 seconds and if not already navigating
-			if (current_time - State.last_nav_command_time) > 3000 and not mq.TLO.Navigation.Active() then
+			-- Only issue navigation command every 1 seconds and if not already navigating
+			if (current_time - State.last_nav_command_time) > 1000 and not mq.TLO.Navigation.Active() then
 				-- Check if this target has already failed navigation
 				if not IsTargetNavFailed(spawn_to_tank.ID()) then
 					-- Switch to manual mode and navigate to target location
