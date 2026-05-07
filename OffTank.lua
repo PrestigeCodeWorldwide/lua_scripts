@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.25 loaded")
+BL.info("Offtank v1.26 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -74,6 +74,9 @@ local State = {
 	last_nav_update = 0,  -- Track last navigation target update
 	chase_distance = 20,  -- Distance to get within when using waypoint/nav target
 	last_nav_command_time = 0,  -- Track last /nav command time to prevent spam
+	nav_failed_targets = {},  -- Track targets that failed navigation to avoid retrying
+	last_nav_failure_time = 0,  -- Track last navigation failure time
+	nav_failure_cooldown = 30000,  -- Cooldown before retrying failed targets (30 seconds)
 }
 
 local function initMQBindings()
@@ -282,6 +285,37 @@ local function IsNotIgnored(targetName)
 	return true  -- No matches found, target is not ignored
 end
 
+local function IsTargetNavFailed(targetID)
+	-- Check if this target has failed navigation recently
+	local current_time = mq.gettime()
+	for _, failed in ipairs(State.nav_failed_targets) do
+		if failed.id == targetID and (current_time - failed.time) < State.nav_failure_cooldown then
+			return true
+		end
+	end
+	return false
+end
+
+local function MarkTargetNavFailed(targetID)
+	-- Mark this target as failed for navigation
+	local current_time = mq.gettime()
+	table.insert(State.nav_failed_targets, {id = targetID, time = current_time})
+	State.last_nav_failure_time = current_time
+	BL.info("Marked target %s as navigation failed, will retry in 30 seconds", targetID)
+end
+
+local function CleanupFailedNavTargets()
+	-- Clean up old failed target entries
+	local current_time = mq.gettime()
+	local cleaned_targets = {}
+	for _, failed in ipairs(State.nav_failed_targets) do
+		if (current_time - failed.time) < State.nav_failure_cooldown then
+			table.insert(cleaned_targets, failed)
+		end
+	end
+	State.nav_failed_targets = cleaned_targets
+end
+
 local function FindMobByName()
 	if #State.mob_names == 0 then
 		return nil
@@ -297,7 +331,7 @@ local function FindMobByName()
 		local searchSpawn = mq.TLO.Spawn("npc " .. mobName)
 		if searchSpawn() then
 			local spawn = searchSpawn
-			if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance and IsNotIgnored(spawn.CleanName()) then
+			if spawn() and not spawn.Dead() and spawn.Distance() and spawn.Distance() < State.distance and IsNotIgnored(spawn.CleanName()) and not IsTargetNavFailed(spawn.ID()) then
 				local distance = spawn.Distance()
 				if distance < closestDistance then
 					closestDistance = distance
@@ -307,7 +341,7 @@ local function FindMobByName()
 		else
 			-- If partial match fails, try exact match as fallback
 			local exactSpawn = mq.TLO.Spawn(mobName)
-			if exactSpawn() and not exactSpawn.Dead() and exactSpawn.Distance() and exactSpawn.Distance() < State.distance and IsNotIgnored(exactSpawn.CleanName()) then
+			if exactSpawn() and not exactSpawn.Dead() and exactSpawn.Distance() and exactSpawn.Distance() < State.distance and IsNotIgnored(exactSpawn.CleanName()) and not IsTargetNavFailed(exactSpawn.ID()) then
 				local distance = exactSpawn.Distance()
 				if distance < closestDistance then
 					closestDistance = distance
@@ -394,10 +428,10 @@ local function UpdateAggroState()
 		end
 		local xtar = mq.TLO.Me.XTarget(xtarIndex)
 		State.no_xtar_warning_shown = false  -- Reset warning flag when we have targets
-		if xtar ~= nil and not xtar.Dead() and xtar.Type() == "NPC" and IsNotIgnored(xtar.CleanName()) then
+		if xtar ~= nil and not xtar.Dead() and xtar.Type() == "NPC" and IsNotIgnored(xtar.CleanName()) and not IsTargetNavFailed(xtar.ID()) then
         -- Use the xtar spawn object directly instead of searching by name
         -- This prevents targeting the wrong mob when multiple mobs have the same name
-        -- Also verify it's an NPC and not ignored
+        -- Also verify it's an NPC and not ignored and hasn't failed navigation
         State.current_mob_being_tanked = function() return xtar end
 		elseif xtar ~= nil and xtar.Dead() then
 			-- XTarget is dead, clear current target and stop tanking
@@ -573,11 +607,36 @@ local function DoTanking()
 			local current_time = mq.gettime()
 			-- Only issue navigation command every 3 seconds and if not already navigating
 			if (current_time - State.last_nav_command_time) > 3000 and not mq.TLO.Navigation.Active() then
-				-- Switch to manual mode and navigate to target location
-				mq.cmdf("/%s mode 0", State.my_class)
-				mq.cmdf("/nav loc %f %f %f", spawn_to_tank.Y(), spawn_to_tank.X(), spawn_to_tank.Z())
-				State.last_nav_command_time = current_time
-				BL.info("No LOS to %s, navigating to location", GetSafeCleanName(spawn_to_tank))
+				-- Check if this target has already failed navigation
+				if not IsTargetNavFailed(spawn_to_tank.ID()) then
+					-- Switch to manual mode and navigate to target location
+					mq.cmdf("/%s mode 0", State.my_class)
+					mq.cmdf("/nav loc %f %f %f", spawn_to_tank.Y(), spawn_to_tank.X(), spawn_to_tank.Z())
+					State.last_nav_command_time = current_time
+					BL.info("No LOS to %s, navigating to location", GetSafeCleanName(spawn_to_tank))
+					
+					-- Check for navigation failure after a short delay
+					mq.delay(1000)
+					if mq.TLO.Navigation.Active() == false then
+						-- Navigation failed to start (no valid path)
+						BL.info("No valid navigation path to %s, marking as failed", GetSafeCleanName(spawn_to_tank))
+						MarkTargetNavFailed(spawn_to_tank.ID())
+						-- Clear current target so we can find a new one immediately
+						State.current_mob_being_tanked = nil
+						cwtnCHOSEN()
+						State.IAmTanking = false
+						-- Immediately update aggro state to find next target
+						UpdateAggroState()
+					end
+				else
+					BL.info("Target %s previously failed navigation, skipping", GetSafeCleanName(spawn_to_tank))
+					-- Clear current target so we can find a new one immediately
+					State.current_mob_being_tanked = nil
+					cwtnCHOSEN()
+					State.IAmTanking = false
+					-- Immediately update aggro state to find next target
+					UpdateAggroState()
+				end
 			end
 			return
 		end
@@ -1134,6 +1193,8 @@ local function main()
 	end
 	-- Make sure group MT role didn't get switched back on
 	checkGroupTankRoleIsEmpty()
+	-- Clean up old failed navigation targets periodically
+	CleanupFailedNavTargets()
 	-- Update navigation target for moving PCs/NPCs
 	UpdateNavTarget()
 	-- update from xtar
