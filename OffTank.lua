@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.24 loaded")
+BL.info("Offtank v1.25 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -73,6 +73,7 @@ local State = {
 	nav_target_spawn = nil,  -- Current spawn object for navigation target
 	last_nav_update = 0,  -- Track last navigation target update
 	chase_distance = 20,  -- Distance to get within when using waypoint/nav target
+	last_nav_command_time = 0,  -- Track last /nav command time to prevent spam
 }
 
 local function initMQBindings()
@@ -569,10 +570,15 @@ local function DoTanking()
 	then
 		-- Check if we have line of sight, if not, navigate manually
 		if not spawn_los then
-			-- Switch to manual mode and navigate to target location
-			mq.cmdf("/%s mode 0", State.my_class)
-			mq.cmdf("/nav loc %f %f %f", spawn_to_tank.Y(), spawn_to_tank.X(), spawn_to_tank.Z())
-			BL.info("No LOS to %s, navigating to location", GetSafeCleanName(spawn_to_tank))
+			local current_time = mq.gettime()
+			-- Only issue navigation command every 3 seconds and if not already navigating
+			if (current_time - State.last_nav_command_time) > 3000 and not mq.TLO.Navigation.Active() then
+				-- Switch to manual mode and navigate to target location
+				mq.cmdf("/%s mode 0", State.my_class)
+				mq.cmdf("/nav loc %f %f %f", spawn_to_tank.Y(), spawn_to_tank.X(), spawn_to_tank.Z())
+				State.last_nav_command_time = current_time
+				BL.info("No LOS to %s, navigating to location", GetSafeCleanName(spawn_to_tank))
+			end
 			return
 		end
 		
