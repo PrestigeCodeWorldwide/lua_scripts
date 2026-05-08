@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.51')
+print('   v1.511')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -1106,6 +1106,7 @@ local function hunt_ui()
             else
                 if ImGui.Button('Hide the Bodies') then
                     HIDECORPSES = true
+                    mq.cmd("/hidec all")
                 end
             end
 
