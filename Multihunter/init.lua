@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.511')
+print('   v1.512')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -990,7 +990,6 @@ local function Init()
     stored_zonecount = mq.TLO.SpawnCount('pc')()
     if zonecount > raidcount and NOTIFY_POPULATION then 
         mq.cmd('/popup Someone Else is in Zone. Are you sure you want to Hunt it?')
-        playSound('panic.wav')
     end
 
 end
