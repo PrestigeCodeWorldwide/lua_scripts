@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.513')
+print('   v1.514')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -1092,10 +1092,22 @@ local function hunt_ui()
                     else print('Set camp first.')
                     end
                 end
+                if ImGui.IsItemClicked(1) then
+                    mq.cmd('/dga /docommand /hunt start')
+                end
+                if ImGui.IsItemHovered() then
+                    ImGui.SetTooltip('Left Click: Start on self only\nRight Click: Start on all toons running script')
+                end
             else
                 if ImGui.Button('Pause') then
 					mq.cmd('/nav pause')
                     PAUSED = true
+                end
+                if ImGui.IsItemClicked(1) then
+                    mq.cmd('/dga /docommand /hunt pause')
+                end
+                if ImGui.IsItemHovered() then
+                    ImGui.SetTooltip('Left Click: Pause on self only\nRight Click: Pause on all toons running script')
                 end
             end
             ImGui.SameLine()
