@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.512')
+print('   v1.513')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -950,6 +950,8 @@ local function bind_hunt(...)
         end
     elseif key =='addignore' then
         add_type(ignores, 'ignores', zone_short_name, value)
+    elseif key =='removeignore' then
+        remove_type(ignores, 'ignores', zone_short_name, value)
     elseif key =='load' then
         load_set(ignores, 'ignores')
     elseif key == 'ban' then
@@ -1129,6 +1131,16 @@ local function hunt_ui()
                 else
                     print('Target a mob first.')
                 end
+            end
+            if ImGui.IsItemClicked(1) then
+                if mq.TLO.Target() then
+                    mq.cmd('/dga /docommand /hunt addignore ' .. mq.TLO.Target.CleanName())
+                else
+                    print('Target a mob first.')
+                end
+            end
+            if ImGui.IsItemHovered() then
+                ImGui.SetTooltip('Left Click: Ignore on this toon only\nRight Click: Ignore on all toons running script')
             end
             ImGui.SameLine()
             if ImGui.Button('All: Reload Ignores') then
@@ -1340,6 +1352,16 @@ local function hunt_ui()
                 else
                     print('Select a list item to remove') -- index='..item_current_idx)
                 end
+            end
+            if ImGui.IsItemClicked(1) then
+                if item_current_idx > 0 then
+                    mq.cmd('/dga /docommand /hunt removeignore ' .. ignores[zone_short_name][item_current_idx])
+                else
+                    print('Select a list item to remove')
+                end
+            end
+            if ImGui.IsItemHovered() then
+                ImGui.SetTooltip('Left Click: Remove on this toon only\nRight Click: Remove on all toons running script')
             end
             ImGui.SameLine() 
             if ImGui.Button('Ignore Target') then
