@@ -1,4 +1,4 @@
--- v1.07
+-- v1.08
 ---@type Mq
 local mq = require("mq")
 ---@type ImGui
@@ -37,7 +37,8 @@ local sectionData = {
     },
     Downtime = {
         { name = "ActiveDownTime", displayName = "Active Downtime", state = 0 },
-        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", state = 0 }
+        { name = "Amulet of Necropotence", displayName = "Amulet of Necropotence", state = 0 },
+        { name = "Stat Mount", displayName = "Stat Mount", state = 0 }
     }
 }
 
@@ -315,16 +316,40 @@ local function drawClickiesTab(applytoallChecked, AllIncludingSelfBind, AllButSe
             
             if leftClicked then
                 -- Left click - use the item
-                mq.cmdf('/useitem "%s"', item.name)
+                if item.name == "Stat Mount" then
+                    local mountName = mq.TLO.Mount.Stat()
+                    if mountName then
+                        mq.cmdf('/useitem "%s"', mountName)
+                    end
+                else
+                    mq.cmdf('/useitem "%s"', item.name)
+                end
             elseif rightClicked then
                 -- Right click - use the item with /dga prefix
-                mq.cmdf('/dga /useitem "%s"', item.name)
+                if item.name == "Stat Mount" then
+                    local mountName = mq.TLO.Mount.Stat()
+                    if mountName then
+                        mq.cmdf('/dga /useitem "%s"', mountName)
+                    end
+                else
+                    mq.cmdf('/dga /useitem "%s"', item.name)
+                end
             end
             
             if imgui.IsItemHovered() then
                 imgui.BeginTooltip()
-                imgui.Text("Left click: /useitem \"" .. item.name .. "\"")
-                imgui.Text("Right click: /dga /useitem \"" .. item.name .. "\"")
+                if item.name == "Stat Mount" then
+                    local mountName = mq.TLO.Mount.Stat()
+                    if mountName then
+                        imgui.Text("Left click: /useitem \"" .. mountName .. "\"")
+                        imgui.Text("Right click: /dga /useitem \"" .. mountName .. "\"")
+                    else
+                        imgui.Text("No stat mount found!")
+                    end
+                else
+                    imgui.Text("Left click: /useitem \"" .. item.name .. "\"")
+                    imgui.Text("Right click: /dga /useitem \"" .. item.name .. "\"")
+                end
                 imgui.EndTooltip()
             end
             
