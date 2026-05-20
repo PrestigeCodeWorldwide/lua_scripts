@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.864 Started")
+BL.info("RaidPrep v1.865 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -35,7 +35,8 @@ local RezState = 0 -- 0=SET, 1=ON, 2=OFF
 --local BYOS = 0
 --local pwwImg = mq.CreateTexture(mq.TLO.Lua.Dir() .. "/raidprep/PWW.png")
 --local raidAssistOptions = { "${Raid.MainAssist[1].Name}", "${Raid.MainAssist[2].Name}", "${Raid.MainAssist[3].Name}" }
-local selectedRaidAssist = "Select RA"
+local selectedRaidAssist = "RA(ALL)"
+local selectedRaidAssistCaster = "RA(Caster)"
 local AllButSelfBind = "/noparse /dge /docommand /${Me.Class.ShortName}"
 local AllIncludingSelfBind = "/noparse /dga /docommand /${Me.Class.ShortName}"
 
@@ -186,7 +187,8 @@ local function loadSettings()
             UseAEHeals = settings.UseAEHeals or UseAEHeals
             --BYOS = settings.BYOS or BYOS
             selectedRaidAssist = settings.selectedRaidAssist or selectedRaidAssist
-            
+            selectedRaidAssistCaster = settings.selectedRaidAssistCaster or selectedRaidAssistCaster
+
             -- Load addclicky settings
             addclickyUI.loadAddclickySettings(settings)
             
@@ -227,7 +229,8 @@ local function saveSettings()
         UseCures = UseCures,
         UseAEHeals = UseAEHeals,
         --BYOS = BYOS,
-        selectedRaidAssist = selectedRaidAssist
+        selectedRaidAssist = selectedRaidAssist,
+        selectedRaidAssistCaster = selectedRaidAssistCaster
     }
     
     -- Save addclicky settings
@@ -901,7 +904,7 @@ local function drawCWTNTab()
 
     -- Raid Assist dropdown
     imgui.SameLine()
-    imgui.Text("RA:")
+    --imgui.Text(":")
     imgui.SameLine()
 
     -- Fetch current assist names
@@ -921,9 +924,9 @@ local function drawCWTNTab()
     imgui.PushItemWidth(100) -- limit width
 
     -- Set text color for the preview
-    local preview = selectedRaidAssist or "Select RA"
-    if preview == "Select RA" then
-        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "Select RA"
+    local preview = selectedRaidAssist or "RA(ALL)"
+    if preview == "RA(ALL)" then
+        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "RA(ALL)"
     else
         imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected RA
     end
@@ -944,6 +947,71 @@ local function drawCWTNTab()
                     selectedRaidAssist = assist
                     mq.cmdf("%s RaidAssist %s", getCWTNBind(), selectedRaidAssist)
                     print("Set RaidAssist to " .. selectedRaidAssist)
+                end
+            end
+
+            if isSelected then
+                imgui.SetItemDefaultFocus()
+                imgui.PopStyleColor() -- Pop the green color
+            end
+        end
+
+        imgui.EndCombo()
+    else
+        imgui.PopStyleColor() -- Pop the green color if combo is not open
+    end
+
+    imgui.PopItemWidth()
+
+    -- Raid Assist Caster dropdown
+    imgui.SameLine()
+
+    -- Fetch current assist names (same options as RA(ALL))
+    local assistOptionsCaster = {}
+    for i = 1, 3 do
+        local name = mq.TLO.Raid.MainAssist(i).Name()
+        if name and name ~= "" then
+            table.insert(assistOptionsCaster, name)
+        end
+    end
+
+    if #assistOptionsCaster == 0 then
+        assistOptionsCaster = { "None" }
+    end
+
+    -- Combo UI
+    imgui.PushItemWidth(100) -- limit width
+
+    -- Set text color for the preview
+    local previewCaster = selectedRaidAssistCaster or "RA(Caster)"
+    if previewCaster == "RA(Caster)" then
+        imgui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1.0) -- Gray text for "RA(Caster)"
+    else
+        imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected RA
+    end
+
+    if imgui.BeginCombo("##RaidAssistCaster", previewCaster) then
+        imgui.PopStyleColor() -- Pop the color for the dropdown items
+
+        for _, assist in ipairs(assistOptionsCaster) do
+            local isSelected = (assist == selectedRaidAssistCaster)
+            -- Set text color for selected item in dropdown
+            if isSelected then
+                imgui.PushStyleColor(ImGuiCol.Text, 0.0, 1.0, 0.0, 1.0) -- Green text for selected item
+            end
+
+            if imgui.Selectable(assist, isSelected) then
+                -- Only send command if the selection is actually changing
+                if not isSelected then
+                    selectedRaidAssistCaster = assist
+                    -- Send raidassist command to caster classes only (enc, nec, wiz, mag, dru)
+                    local bindPrefix = applytoallChecked and "/dga" or "/dge"
+                    mq.cmdf("%s /docommand /enc raidassist %s", bindPrefix, selectedRaidAssistCaster)
+                    mq.cmdf("%s /docommand /nec raidassist %s", bindPrefix, selectedRaidAssistCaster)
+                    mq.cmdf("%s /docommand /wiz raidassist %s", bindPrefix, selectedRaidAssistCaster)
+                    mq.cmdf("%s /docommand /mag raidassist %s", bindPrefix, selectedRaidAssistCaster)
+                    mq.cmdf("%s /docommand /dru raidassist %s", bindPrefix, selectedRaidAssistCaster)
+                    print(string.format("Set RaidAssist(Caster) to %s", selectedRaidAssistCaster))
                 end
             end
 
