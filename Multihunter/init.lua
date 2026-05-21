@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.514')
+print('   v1.515')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -1146,7 +1146,7 @@ local function hunt_ui()
             end
             if ImGui.IsItemClicked(1) then
                 if mq.TLO.Target() then
-                    mq.cmd('/dga /docommand /hunt addignore ' .. mq.TLO.Target.CleanName())
+                    mq.cmd('/dga /docommand /hunt addignore "' .. mq.TLO.Target.CleanName() .. '"')
                 else
                     print('Target a mob first.')
                 end
@@ -1367,7 +1367,7 @@ local function hunt_ui()
             end
             if ImGui.IsItemClicked(1) then
                 if item_current_idx > 0 then
-                    mq.cmd('/dga /docommand /hunt removeignore ' .. ignores[zone_short_name][item_current_idx])
+                    mq.cmd('/dga /docommand /hunt removeignore "' .. ignores[zone_short_name][item_current_idx] .. '"')
                 else
                     print('Select a list item to remove')
                 end
