@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("TrophiesOn Script v1.0 Started")
+BL.info("TrophiesOn Script v1.1 Started")
 
 -- TODO: Specify the 8 trophies you want to upgrade
 -- This should be an array of trophy names exactly as they appear in the Available Trophy Benefits list
@@ -240,7 +240,7 @@ local function main()
         end
     else
         BL.info("All specified trophies are already active, no upgrade needed")
-        mq.cmd("/rs [TrophiesOn] All specified trophies are already active")
+        --mq.cmd("/rs [TrophiesOn] All specified trophies are already active")
     end
     
     -- Ensure trophy window is closed before exiting
