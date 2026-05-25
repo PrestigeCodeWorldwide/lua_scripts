@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.515')
+print('   v1.516')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -73,6 +73,9 @@ local POP_STOP = true
 local CONVERGED = false
 local CONVERGED_TEMP = false
 local DO_CONVERGENCE = true
+blocked_spawn_types = {}
+blocked_body_types = {}
+blocked_races = {}
 
 
 --Arrays
@@ -493,70 +496,6 @@ local function valid_spawn(id)
     else return false end
 end
 
---is this still the spawn we should be hunting?
-local function verify_spawn(id)
-    local checkspawn = mq.TLO.NearestSpawn(1, search_str).ID() or 0
-    local checkdist = mq.TLO.Spawn(id).Distance() or 100
-    local check3d = mq.TLO.Spawn(id).Distance3D() or 0
-    local xtar_count = get_xtar_count()
-    if xtar_count > 0 then radar() end
-    if ( id == nil or mq.TLO.Spawn(id).Dead() or mq.TLO.Spawn(id).ID() == 0 ) then 
-        debug('verify_spawn: Target died - Clearing hunt id= %s',tostring(id))
-        info('Target died - Clearing hunt.')
-        hunt_clear() 
-    elseif ( check_ignore(ignores[zone_short_name], mq.TLO.Spawn(id).CleanName()) and not is_member(xtars,id)) then
-        debug('verify_spawn: Target on ignore list. Clearing Hunt') --this is to catch new ignores
-        info('Target on ignore list - Clearing hunt.')
-        hunt_clear()
-    elseif ( check_ignore(ignores[zone_short_name], mq.TLO.Spawn(id).CleanName()) and is_member(xtars,id)) then
-        debug('verify_spawn: Target on ignore list but aggro. Continuing Hunt')
-    elseif ( is_member(banlist,id) and not is_member(xtars,id)) then
-        debug('verify_spawn: Target on banlist - clearing hunt: %s',id) --catch new bans
-        info('Target on ban list - Clearing hunt.')
-        hunt_clear()
-    elseif ( mq.TLO.Navigation.Paused() and not (checkdist < 50) ) then 
-        debug('nav reactivated')
-        hunt(id) 
-    elseif is_member(xtars,id) then
-        debug('verify_spawn: target on xtars, continuing hunt.')
-    elseif ( not mq.TLO.Navigation.Active() and not mq.TLO.Navigation.PathExists('id '..id)() and check3d > 25 ) then
-        debug('verify_spawn: Path to spawn is lost, resetting')
-        if spawns_lostpath[id] == nil then
-            spawns_lostpath[id] = { count = 1 }
-        else
-            spawns_lostpath[id]['count'] = spawns_lostpath[id]['count']+1
-        end
-        if spawns_lostpath[id]['count'] > 6 then
-            table.insert(banlist, id)
-            table.insert(banlist_disp, string.format('%d  (%s)', id, mq.TLO.Spawn(id).Name() or 'Unknown'))
-        end
-        hunt_clear()
-    elseif ( HUNT_ONLY_PRIORITIES and valid_spawn(checkspawn) and get_priority(mq.TLO.Spawn(checkspawn))<= #mobprioritylist
-    and mq.TLO.Navigation.PathLength('id '..id)() > mq.TLO.Navigation.PathLength('id '..checkspawn)() and not CONVERGED and not HUNT_PRIORITIES_IN_ORDER ) then
-        debug('verify_spawn: Found closer priority mob enroute, switching hunt')
-        hunt_clear()
-        hunted = checkspawn
-        hunt(checkspawn)
-    elseif ( HUNT_PRIORITIES_IN_ORDER and valid_spawn(checkspawn) and get_priority(mq.TLO.Spawn(checkspawn)) <= get_priority(mq.TLO.Spawn(id))
-    and mq.TLO.Navigation.PathLength('id '..id)() > mq.TLO.Navigation.PathLength('id '..checkspawn)() and not CONVERGED ) then
-        debug('verify_spawn: Found closer priority mob of same priority enroute, switching hunt')
-        hunt_clear()
-        hunted = checkspawn
-        hunt(checkspawn)
-    elseif ( priority_count > 0 and is_priority(mq.TLO.Spawn(hunted)) ) then         
-        return true --skip further checks if priority mob is hunted
-    elseif ( valid_spawn(checkspawn) and mq.TLO.Navigation.PathLength('id '..id)() > mq.TLO.Navigation.PathLength('id '..checkspawn)() and not CONVERGED ) then
-        debug_spawns('verify_spawn: path to current: %s id %s checkspawn pathlength: %s',mq.TLO.Navigation.PathLength('id '..id)(),id,mq.TLO.Navigation.PathLength('id '..checkspawn)())
-        debug('verify_spawn: Found closer mob enroute, switching hunt')
-        hunt_clear()
-        hunted = checkspawn
-        hunt(checkspawn)
-    else
-        debug_loop('verify_spawn = valid')
-        return true
-    end
-end
-
 local function engage_check(id)
     local dist = mq.TLO.Spawn(id).Distance() or -1
     if dist > 0 and dist < 100 then
@@ -648,9 +587,14 @@ local function spawnfilter(spawn)
     if not spawn then return false end
     local id = spawn.ID()
     if not id or id == 0 then return false end
+    -- BodyType property returns userdata, convert to string
+    local body_type_name = tostring(spawn.Body)
     if not spawn.Targetable() then return false
     elseif spawn.Dead() then return false
-    elseif spawn.Type() ~= 'NPC' then return false
+    elseif spawn.Type() ~= 'NPC' and spawn.Type() ~= 'Object' then return false
+    elseif blocked_spawn_types[spawn.Type()] then return false
+    elseif blocked_races[spawn.Race()] then return false
+    elseif body_type_name and blocked_body_types[body_type_name] then return false
     elseif check_ignore(ignores[zone_short_name], spawn.CleanName() or '') then return false
     elseif is_member(banlist,id) then return false
     elseif not in_camp(id) then return false
@@ -658,6 +602,70 @@ local function spawnfilter(spawn)
     --lag inducing
     --elseif not mq.TLO.Navigation.PathExists('id '..id)() then return false
     else return true
+    end
+end
+
+--is this still the spawn we should be hunting?
+local function verify_spawn(id)
+    local checkspawn = mq.TLO.NearestSpawn(1, search_str).ID() or 0
+    local checkdist = mq.TLO.Spawn(id).Distance() or 100
+    local check3d = mq.TLO.Spawn(id).Distance3D() or 0
+    local xtar_count = get_xtar_count()
+    if xtar_count > 0 then radar() end
+    if ( id == nil or mq.TLO.Spawn(id).Dead() or mq.TLO.Spawn(id).ID() == 0 ) then 
+        debug('verify_spawn: Target died - Clearing hunt id= %s',tostring(id))
+        info('Target died - Clearing hunt.')
+        hunt_clear() 
+    elseif ( check_ignore(ignores[zone_short_name], mq.TLO.Spawn(id).CleanName()) and not is_member(xtars,id)) then
+        debug('verify_spawn: Target on ignore list. Clearing Hunt') --this is to catch new ignores
+        info('Target on ignore list - Clearing hunt.')
+        hunt_clear()
+    elseif ( check_ignore(ignores[zone_short_name], mq.TLO.Spawn(id).CleanName()) and is_member(xtars,id)) then
+        debug('verify_spawn: Target on ignore list but aggro. Continuing Hunt')
+    elseif ( is_member(banlist,id) and not is_member(xtars,id)) then
+        debug('verify_spawn: Target on banlist - clearing hunt: %s',id) --catch new bans
+        info('Target on ban list - Clearing hunt.')
+        hunt_clear()
+    elseif ( mq.TLO.Navigation.Paused() and not (checkdist < 50) ) then 
+        debug('nav reactivated')
+        hunt(id) 
+    elseif is_member(xtars,id) then
+        debug('verify_spawn: target on xtars, continuing hunt.')
+    elseif ( not mq.TLO.Navigation.Active() and not mq.TLO.Navigation.PathExists('id '..id)() and check3d > 25 ) then
+        debug('verify_spawn: Path to spawn is lost, resetting')
+        if spawns_lostpath[id] == nil then
+            spawns_lostpath[id] = { count = 1 }
+        else
+            spawns_lostpath[id]['count'] = spawns_lostpath[id]['count']+1
+        end
+        if spawns_lostpath[id]['count'] > 6 then
+            table.insert(banlist, id)
+            table.insert(banlist_disp, string.format('%d  (%s)', id, mq.TLO.Spawn(id).Name() or 'Unknown'))
+        end
+        hunt_clear()
+    elseif ( HUNT_ONLY_PRIORITIES and valid_spawn(checkspawn) and spawnfilter(mq.TLO.Spawn(checkspawn)) and get_priority(mq.TLO.Spawn(checkspawn))<= #mobprioritylist
+    and mq.TLO.Navigation.PathLength('id '..id)() > mq.TLO.Navigation.PathLength('id '..checkspawn)() and not CONVERGED and not HUNT_PRIORITIES_IN_ORDER ) then
+        debug('verify_spawn: Found closer priority mob enroute, switching hunt')
+        hunt_clear()
+        hunted = checkspawn
+        hunt(checkspawn)
+    elseif ( HUNT_PRIORITIES_IN_ORDER and valid_spawn(checkspawn) and spawnfilter(mq.TLO.Spawn(checkspawn)) and get_priority(mq.TLO.Spawn(checkspawn)) <= get_priority(mq.TLO.Spawn(id))
+    and mq.TLO.Navigation.PathLength('id '..id)() > mq.TLO.Navigation.PathLength('id '..checkspawn)() and not CONVERGED ) then
+        debug('verify_spawn: Found closer priority mob of same priority enroute, switching hunt')
+        hunt_clear()
+        hunted = checkspawn
+        hunt(checkspawn)
+    elseif ( priority_count > 0 and is_priority(mq.TLO.Spawn(hunted)) ) then         
+        return true --skip further checks if priority mob is hunted
+    elseif ( valid_spawn(checkspawn) and spawnfilter(mq.TLO.Spawn(checkspawn)) and mq.TLO.Navigation.PathLength('id '..id)() > mq.TLO.Navigation.PathLength('id '..checkspawn)() and not CONVERGED ) then
+        debug_spawns('verify_spawn: path to current: %s id %s checkspawn pathlength: %s',mq.TLO.Navigation.PathLength('id '..id)(),id,mq.TLO.Navigation.PathLength('id '..checkspawn)())
+        debug('verify_spawn: Found closer mob enroute, switching hunt')
+        hunt_clear()
+        hunted = checkspawn
+        hunt(checkspawn)
+    else
+        debug_loop('verify_spawn = valid')
+        return true
     end
 end
 
@@ -1161,7 +1169,7 @@ local function hunt_ui()
             --camp_radius = ImGui.SliderInt("Camp Radius", camp_radius, 250,6000)
             --camp_Z = ImGui.SliderInt("Camp Z Radius", camp_Z, 10,3000)
             
-            camp_radius = ImGui.DragInt("Camp Radius", camp_radius, 25,250,9999)
+            camp_radius = ImGui.DragInt("Camp Radius", camp_radius, 25,50,9999)
             HelpMarker("Drag or Ctrl-Click to change then click Update") 
 
             ImGui.PushItemWidth(80) 
@@ -1456,7 +1464,100 @@ local function hunt_ui()
             DEBUG_STUCK = ImGui.Checkbox('DEBUG_STUCK',DEBUG_STUCK)
             ImGui.SameLine()  
             DEBUG_LOOP = ImGui.Checkbox('DEBUG_LOOP',DEBUG_LOOP)
-            ImGui.EndTabItem() 
+            ImGui.EndTabItem()
+        end
+
+        if ImGui.BeginTabItem("More") then
+            ImGui.Columns(2, "MoreColumns", false)
+            ImGui.Text("Spawn Type")
+            -- Spawn types (Type attribute)
+            local hunt_object = not blocked_spawn_types['Object']
+            local new_hunt_object = ImGui.Checkbox('Object', hunt_object)
+            if new_hunt_object ~= hunt_object then
+                if new_hunt_object then blocked_spawn_types['Object'] = nil else blocked_spawn_types['Object'] = true end
+            end
+            HelpMarker("Include Object spawn types in hunt targets")
+            -- Body types (BodyType attribute)
+            local body_types = {
+                {id=1, name='Humanoid'},
+                {id=2, name='Lycanthrope'},
+                {id=3, name='Undead'},
+                {id=4, name='Giant'},
+                {id=5, name='Construct'},
+                {id=6, name='Extraplanar'},
+                {id=7, name='Magical'},
+                {id=8, name='Undead Pet'},
+                {id=9, name='Bane Giant'},
+                {id=10, name='Dain'},
+                {id=11, name='Untargetable'},
+                {id=12, name='Vampyre'},
+                {id=13, name='Atenha Ra'},
+                {id=14, name='Greater Akheva'},
+                {id=15, name='Khati Sha'},
+                {id=16, name='Seru'},
+                {id=17, name='Greig'},
+                {id=18, name='Draz Nurakk'},
+                {id=19, name='Zek'},
+                {id=20, name='Luggald'},
+                {id=21, name='Animal'},
+                {id=22, name='Insect'},
+                {id=23, name='Monster'},
+                {id=24, name='Elemental'},
+                {id=25, name='Plant'},
+                {id=26, name='Dragon'},
+                {id=28, name='Summoned Creature'},
+                {id=29, name='Puff Dragon'},
+                {id=30, name='Bane Dragon'},
+                {id=31, name='Familiar'},
+                {id=32, name='Proc Pet'},
+                {id=33, name='Cursed'},
+                {id=34, name='Muramite'},
+                {id=63, name='Swarm Pet'},
+                {id=64, name='Monster Summoning'},
+                {id=65, name='Trap'},
+                {id=66, name='Timer'},
+                {id=67, name='Trigger'},
+                {id=101, name='Property Trap'},
+                {id=102, name='Property Companion'},
+                {id=103, name='Property Suicide'}
+            }
+            for _, bt in ipairs(body_types) do
+                local hunt_type = not blocked_body_types[bt.name]
+                local new_hunt_type = ImGui.Checkbox(bt.name, hunt_type)
+                if new_hunt_type ~= hunt_type then
+                    if new_hunt_type then blocked_body_types[bt.name] = nil else blocked_body_types[bt.name] = true end
+                end
+            end
+            ImGui.NextColumn()
+            ImGui.Text("Spawn Race")
+            local races = {
+                {id=1, name='Human'},
+                {id=2, name='Barbarian'},
+                {id=3, name='Erudite'},
+                {id=4, name='Wood Elf'},
+                {id=5, name='High Elf'},
+                {id=6, name='Dark Elf'},
+                {id=7, name='Half Elf'},
+                {id=8, name='Dwarf'},
+                {id=9, name='Troll'},
+                {id=10, name='Ogre'},
+                {id=11, name='Halfling'},
+                {id=12, name='Gnome'},
+                {id=128, name='Iksar'},
+                {id=130, name='Vah Shir'},
+                {id=227, name='Froglok'},
+                {id=511, name='Drakkin'}
+            }
+            for _, race in ipairs(races) do
+                local hunt_race = not blocked_races[race.name]
+                local new_hunt_race = ImGui.Checkbox(race.name, hunt_race)
+                if new_hunt_race ~= hunt_race then
+                    if new_hunt_race then blocked_races[race.name] = nil else blocked_races[race.name] = true end
+                end
+            end
+            HelpMarker("Include race in hunt targets")
+            ImGui.Columns(1)
+            ImGui.EndTabItem()
         end
 
         ImGui.EndTabBar()
