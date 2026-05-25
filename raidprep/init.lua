@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.865 Started")
+BL.info("RaidPrep v1.866 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -1433,6 +1433,75 @@ local function drawCWTNTab()
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
         imgui.Text("Uses Power/DPS Glyph on all characters but the one you are on now.")
+        imgui.EndTooltip()
+    end
+
+    imgui.NewLine()
+
+    imgui.PushStyleColor(ImGuiCol.Text, 0.0, 8.85, 0.0, 1.0) -- Lime green text
+    imgui.Text("Caster Only:")
+    imgui.PopStyleColor()
+    imgui.SameLine()
+
+    if imgui.Button("BON") then
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
+        mq.cmdf("%s /docommand /enc burnalways on", bindPrefix)
+        mq.cmdf("%s /docommand /nec burnalways on", bindPrefix)
+        mq.cmdf("%s /docommand /wiz burnalways on", bindPrefix)
+        mq.cmdf("%s /docommand /mag burnalways on", bindPrefix)
+        mq.cmdf("%s /docommand /dru burnalways on", bindPrefix)
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Turns burnalways ON for casters (enc, nec, wiz, mag, dru)")
+        imgui.EndTooltip()
+    end
+
+    imgui.SameLine()
+
+    if imgui.Button("BOFF") then
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
+        mq.cmdf("%s /docommand /enc burnalways off", bindPrefix)
+        mq.cmdf("%s /docommand /nec burnalways off", bindPrefix)
+        mq.cmdf("%s /docommand /wiz burnalways off", bindPrefix)
+        mq.cmdf("%s /docommand /mag burnalways off", bindPrefix)
+        mq.cmdf("%s /docommand /dru burnalways off", bindPrefix)
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Turns burnalways OFF for casters (enc, nec, wiz, mag, dru)")
+        imgui.EndTooltip()
+    end
+
+    imgui.SameLine()
+
+    if imgui.Button("CHA") then
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
+        mq.cmdf("%s /docommand /enc mode chase", bindPrefix)
+        mq.cmdf("%s /docommand /nec mode chase", bindPrefix)
+        mq.cmdf("%s /docommand /wiz mode chase", bindPrefix)
+        mq.cmdf("%s /docommand /mag mode chase", bindPrefix)
+        mq.cmdf("%s /docommand /dru mode chase", bindPrefix)
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Turns chase ON for casters (enc, nec, wiz, mag, dru)")
+        imgui.EndTooltip()
+    end
+
+    imgui.SameLine()
+
+    if imgui.Button("ASS") then
+        local bindPrefix = applytoallChecked and "/dga" or "/dge"
+        mq.cmdf("%s /docommand /enc mode assist", bindPrefix)
+        mq.cmdf("%s /docommand /nec mode assist", bindPrefix)
+        mq.cmdf("%s /docommand /wiz mode assist", bindPrefix)
+        mq.cmdf("%s /docommand /mag mode assist", bindPrefix)
+        mq.cmdf("%s /docommand /dru mode assist", bindPrefix)
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.Text("Turns assist ON for casters (enc, nec, wiz, mag, dru)")
         imgui.EndTooltip()
     end
 
