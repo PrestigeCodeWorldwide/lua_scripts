@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.516')
+print('   v1.517')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -214,15 +214,84 @@ function load_set(type, name)
     end
 end
 
-function save_set(type, name)
+local save_locks = {}
+
+function save_set(type, name, is_remove)
     local type_file = ('%s/%s'):format(mq.configDir, string.format('multihunter_%s.lua', name))
+    local lock_file = type_file .. ".lock"
+    
+    -- Simple file locking with retry mechanism
+    local max_retries = 10
+    local retry_delay = 50 -- ms
+    
+    for attempt = 1, max_retries do
+        -- Check if lock exists
+        local lock = io.open(lock_file, "r")
+        if not lock then
+            -- Create lock file
+            lock = io.open(lock_file, "w")
+            if lock then
+                lock:write(tostring(mq.gettime()))
+                lock:close()
+                
+                -- For add operations, reload and merge to prevent duplicates from concurrent writes
+                -- For remove operations, just save the in-memory table as-is
+                if not is_remove and file_exists(type_file) then
+                    local current_data = assert(loadfile(type_file))()
+                    -- Merge current data with our changes
+                    for zone, mobs in pairs(type) do
+                        if not current_data[zone] then
+                            current_data[zone] = {}
+                        end
+                        for _, mob in ipairs(mobs) do
+                            local exists = false
+                            for _, existing_mob in ipairs(current_data[zone]) do
+                                if existing_mob == mob then
+                                    exists = true
+                                    break
+                                end
+                            end
+                            if not exists then
+                                table.insert(current_data[zone], mob)
+                            end
+                        end
+                    end
+                    type = current_data
+                end
+                
+                -- Save the data
+                store(type_file, type)
+                
+                -- Remove lock file
+                os.remove(lock_file)
+                return
+            end
+        else
+            lock:close()
+        end
+        
+        -- Wait before retrying with random delay to reduce collision
+        mq.delay(retry_delay + math.random(0, 50))
+    end
+    
+    print("Warning: Failed to acquire file lock after " .. max_retries .. " attempts")
+    -- Force save anyway as fallback
     store(type_file, type)
 end
 
 function add_type(type, name, zone_short_name, mob_name)
-    if type[zone_short_name:lower()] and type[zone_short_name:lower()][get_index(type[zone_short_name:lower()],mob_name)] then return end
-    if not type[zone_short_name:lower()] then type[zone_short_name:lower()] = {} end
-    table.insert(type[zone_short_name:lower()],mob_name)
+    local zone_key = zone_short_name:lower()
+    -- Check if mob already exists in this zone
+    if type[zone_key] then
+        for i, existing_mob in ipairs(type[zone_key]) do
+            if existing_mob == mob_name then
+                return -- Already exists, don't add
+            end
+        end
+    end
+    -- Add the mob
+    if not type[zone_key] then type[zone_key] = {} end
+    table.insert(type[zone_key], mob_name)
     printf('Added %s \ay%s\ax for zone \ar%s\ax', name, mob_name, zone_short_name)
     save_set(type, name)
 end
@@ -231,7 +300,7 @@ function remove_type(type, name, zone_short_name, mob_name)
     if not type[zone_short_name:lower()] or not type[zone_short_name:lower()][get_index(type[zone_short_name:lower()],mob_name)] then print ('...') return end
     table.remove(type[zone_short_name:lower()], get_index(type[zone_short_name:lower()],mob_name))
     printf('Removed %s \ay%s\ax for zone \ar%s\ax', name, mob_name, zone_short_name)
-    save_set(type, name)
+    save_set(type, name, true)
 end
 
 function set_contains(type, zone_short_name, mob_name)
@@ -1152,15 +1221,8 @@ local function hunt_ui()
                     print('Target a mob first.')
                 end
             end
-            if ImGui.IsItemClicked(1) then
-                if mq.TLO.Target() then
-                    mq.cmd('/dga /docommand /hunt addignore "' .. mq.TLO.Target.CleanName() .. '"')
-                else
-                    print('Target a mob first.')
-                end
-            end
             if ImGui.IsItemHovered() then
-                ImGui.SetTooltip('Left Click: Ignore on this toon only\nRight Click: Ignore on all toons running script')
+                ImGui.SetTooltip('Ignore target mob')
             end
             ImGui.SameLine()
             if ImGui.Button('All: Reload Ignores') then
@@ -1373,15 +1435,8 @@ local function hunt_ui()
                     print('Select a list item to remove') -- index='..item_current_idx)
                 end
             end
-            if ImGui.IsItemClicked(1) then
-                if item_current_idx > 0 then
-                    mq.cmd('/dga /docommand /hunt removeignore "' .. ignores[zone_short_name][item_current_idx] .. '"')
-                else
-                    print('Select a list item to remove')
-                end
-            end
             if ImGui.IsItemHovered() then
-                ImGui.SetTooltip('Left Click: Remove on this toon only\nRight Click: Remove on all toons running script')
+                ImGui.SetTooltip('Remove selected list item')
             end
             ImGui.SameLine() 
             if ImGui.Button('Ignore Target') then
