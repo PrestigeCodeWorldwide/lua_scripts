@@ -4,7 +4,7 @@
 
 local mq = require("mq")
 print('--MultiHunter--')
-print('   v1.517')
+print('   v1.518')
 math.randomseed((mq.gettime()-mq.TLO.Me.ID()) / (os.time()+mq.TLO.Me.ID()))
 
 --Vars
@@ -47,6 +47,7 @@ local i, j, k, n, a, b, PL, X, Y, Z, rand
 local convergence_count = 1
 local melee_dist = 10
 local priority_count = 0
+local last_ignore_reload = 0
 
 --Flags
 local HUNTING = false
@@ -200,7 +201,7 @@ end
 ---Load/save type lists
 function load_set(type, name)
     local type_file = ('%s\\%s'):format(mq.configDir, string.format('multihunter_%s.lua', name))
-    print('Loading: '..type_file)
+    --print('Loading: '..type_file)
     if file_exists(type_file) then
         if name == 'ignores' then ignores = assert(loadfile(type_file))()
         elseif name == 'priority' then 
@@ -1103,6 +1104,14 @@ local function Main()
             hunt_clear()
         end
         stored_zonecount = zonecount
+        
+        -- Auto-reload ignores every 10 seconds
+        local now = mq.gettime()
+        if now - last_ignore_reload >= 10000 then
+            load_set(ignores, 'ignores')
+            last_ignore_reload = now
+        end
+        
         mq.doevents()
         mq.delay(cycle_time)
     end
