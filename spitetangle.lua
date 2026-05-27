@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Spitetangle Script v1.14 started")
+BL.info("Spitetangle Script v1.15 started")
 
 local myClass = mq.TLO.Me.Class.ShortName()
 --local myName = mq.TLO.Me.Name()
@@ -47,7 +47,7 @@ if myClass ~= "ROG" then
             break
         end
         
-        -- POISON CURE LOGIC - COMMENT OUT LATER
+        --[[ POISON CURE LOGIC - COMMENTED OUT
         -- Check for Poisonous Explosion debuff and use Distillate of Antidote
         local poisonBuff = mq.TLO.Me.Buff("Poisonous Explosion")  -- Poisonous Explosion
         if poisonBuff() then
@@ -55,6 +55,7 @@ if myClass ~= "ROG" then
             mq.cmd("/useitem \"Distillate of Antidote XV\"")
             mq.delay(500)
         end
+        --]]
         
         mq.delay(1000) -- Check every second
     end
@@ -194,7 +195,7 @@ while not shouldExit do
         BL.info("Sticky web cycle completed. Checking for another...")
     end
     
-    -- POISON CURE LOGIC -  COMMENT OUT LATER
+    --[[ POISON CURE LOGIC - COMMENTED OUT
     -- Check for Poisonous Explosion debuff and use Distillate of Antidote
     local poisonBuff = mq.TLO.Me.Buff("Poisonous Explosion")  -- Poisonous Explosion
     if poisonBuff() then
@@ -202,6 +203,7 @@ while not shouldExit do
         mq.cmd("/useitem \"Distillate of Antidote XV\"")
         mq.delay(500)
     end
+    --]]
 
     mq.delay(100)
 end
