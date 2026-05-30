@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.27 loaded")
+BL.info("Offtank v1.28 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -441,8 +441,9 @@ local function UpdateAggroState()
 		else
 			-- XTarget slot is empty or invalid, clear current target
 			-- This handles the case where a mob died and another moved into this slot
+			-- Always clear to allow detection of new mobs in this slot
+			State.current_mob_being_tanked = nil
 			if State.IAmTanking then
-				State.current_mob_being_tanked = nil
 				cwtnCHOSEN()
 				State.IAmTanking = false
 			end
