@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.28 loaded")
+BL.info("Offtank v1.29 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -76,7 +76,7 @@ local State = {
 	last_nav_command_time = 0,  -- Track last /nav command time to prevent spam
 	nav_failed_targets = {},  -- Track targets that failed navigation to avoid retrying
 	last_nav_failure_time = 0,  -- Track last navigation failure time
-	nav_failure_cooldown = 30000,  -- Cooldown before retrying failed targets (30 seconds)
+	nav_failure_cooldown = 3000,  -- Cooldown before retrying failed targets (3 seconds)
 }
 
 local function initMQBindings()
@@ -301,7 +301,7 @@ local function MarkTargetNavFailed(targetID)
 	local current_time = mq.gettime()
 	table.insert(State.nav_failed_targets, {id = targetID, time = current_time})
 	State.last_nav_failure_time = current_time
-	BL.info("Marked target %s as navigation failed, will retry in 30 seconds", targetID)
+	BL.info("Marked target %s as navigation failed, will retry in 3 seconds", targetID)
 end
 
 local function CleanupFailedNavTargets()
