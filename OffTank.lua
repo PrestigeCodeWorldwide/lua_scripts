@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.29 loaded")
+BL.info("Offtank v1.30 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -432,7 +432,8 @@ local function UpdateAggroState()
         -- Use the xtar spawn object directly instead of searching by name
         -- This prevents targeting the wrong mob when multiple mobs have the same name
         -- Also verify it's an NPC and not ignored and hasn't failed navigation
-        State.current_mob_being_tanked = function() return xtar end
+        -- Store the xtarIndex to dynamically fetch current xtar each time
+        State.current_mob_being_tanked = function() return mq.TLO.Me.XTarget(xtarIndex) end
 		elseif xtar ~= nil and xtar.Dead() then
 			-- XTarget is dead, clear current target and stop tanking
 			State.current_mob_being_tanked = nil
