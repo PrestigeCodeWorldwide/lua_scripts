@@ -3,7 +3,7 @@ local mq = require("mq")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Hemicfam v1.0 loaded")
+BL.info("Hemicfam v1.1 loaded")
 
 local function hasBuff(buffName)
     return mq.TLO.Me.Buff(buffName)() ~= nil
@@ -13,8 +13,15 @@ local function ensureFamiliar()
     if not hasBuff("Familiar: Hooded Scrykin") then
         BL.info("Casting Familiar: Hooded Scrykin")
         mq.cmd("/useitem \"familiar of the hooded scrykin\"")
-        mq.delay(5200) -- Wait for cast
-        return false
+        mq.delay(7000) -- Wait for cast
+        -- Check again after casting to see if it landed
+        if hasBuff("Familiar: Hooded Scrykin") then
+            BL.info("Hooded Scrykin familiar successfully cast")
+            return true
+        else
+            BL.info("Hooded Scrykin familiar failed to cast")
+            return false
+        end
     end
     return true
 end
@@ -35,10 +42,13 @@ elseif hasBuff("Familiar: Hooded Scrykin") then
     castHemicSource()
 else
     BL.info("No buffs found, casting Skykrin Familiar then Personal Hemic Source")
-    ensureFamiliar()
-    -- Wait for familiar to land, then cast hemic
-    mq.delay(1000)
-    castHemicSource()
+    if ensureFamiliar() then
+        -- Wait for familiar to land, then cast hemic
+        mq.delay(1000)
+        castHemicSource()
+    else
+        BL.info("Hooded Scrykin familiar not active, skipping Personal Hemic Source")
+    end
 end
 
 
