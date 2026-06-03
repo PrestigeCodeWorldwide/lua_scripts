@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.31 loaded")
+BL.info("Offtank v1.311 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 ---@class ScriptState
@@ -983,9 +983,10 @@ local DrawUI = function()
 	end
 	
 	-- Waypoint checkboxes
-	ImGui.Text("Select Waypoint:")
-	
-	for i, wp in ipairs(State.waypoints) do
+	if #State.waypoints > 0 then
+		ImGui.Text("Select Waypoint:")
+		
+		for i, wp in ipairs(State.waypoints) do
 		-- Ensure waypoint has a name field
 		if not wp.name then
 			wp.name = "WP" .. i  -- Assign a default name if missing
@@ -1049,6 +1050,7 @@ local DrawUI = function()
 				end
 			end
 		end
+		end
 	end
 	
 	-- Navigation to PC/NPC controls
@@ -1090,7 +1092,7 @@ local DrawUI = function()
 	end
 	
 	-- Input field for target name
-	ImGui.SetNextItemWidth(200)
+	ImGui.SetNextItemWidth(150)
 	local navTargetInput = State.nav_target_name or ""
 	local changed = false
 	navTargetInput, changed = ImGui.InputText("Type Name", navTargetInput, 256)
@@ -1114,8 +1116,8 @@ local DrawUI = function()
 	ImGui.Text("Ignored NPC's")
 	local ignoredMobsInput = State.ignored_mobs_input or ""
 	local changed = false
-	ImGui.SetNextItemWidth(300)  -- Set width for ignored mobs input
-	ignoredMobsInput, changed = ImGui.InputTextMultiline("##ignoredmobs", ignoredMobsInput, 265, 100, 0)
+	ImGui.SetNextItemWidth(200)  -- Set width for ignored mobs input
+	ignoredMobsInput, changed = ImGui.InputTextMultiline("##ignoredmobs", ignoredMobsInput, 215, 100, 0)
 	if changed then
 		ParseIgnoredMobs(ignoredMobsInput)
 	end
