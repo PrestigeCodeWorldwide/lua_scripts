@@ -5,9 +5,8 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.30 loaded")
+BL.info("Offtank v1.31 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
-
 
 ---@class ScriptState
 local State = {
@@ -27,7 +26,7 @@ local State = {
 		"SicTank",
 		"Vorpal",
 	},
-	selected_xtar_to_tank = "NONE", -- chosen xtar i should be tanking
+	selected_xtar_to_tank = "NONE", -- chosen xtar we should be tanking
 	xtar_options = {
 		"NONE",
 		"1",
@@ -925,7 +924,7 @@ local DrawUI = function()
 			State.last_selected_xtar = selected
 		end
 	else -- mobname mode
-		ImGui.Text("NPC's to tank (one per line):")
+		ImGui.TextColored(0.0, 1.0, 0.0, 1.0, "NPC's to tank (one per line):")
 		
 		-- Add Current Target button
 		if ImGui.Button("Add Target") then
@@ -996,7 +995,7 @@ local DrawUI = function()
 		local current_name = nil
 		if State.current_waypoint and IsValidWaypoint(State.current_waypoint) then
 			-- Double-check name field exists before accessing
-			current_name = State.current_waypoint.name or "Unknown"
+			current_name = rawget(State.current_waypoint, "name") or "Unknown"
 		end
 		local wp_name = wp.name
 		local is_checked = (current_name and wp_name and current_name == wp_name) or false
