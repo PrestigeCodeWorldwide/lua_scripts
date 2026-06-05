@@ -5,8 +5,9 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.311 loaded")
+BL.info("Offtank v1.30 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
+
 
 ---@class ScriptState
 local State = {
@@ -26,7 +27,7 @@ local State = {
 		"SicTank",
 		"Vorpal",
 	},
-	selected_xtar_to_tank = "NONE", -- chosen xtar we should be tanking
+	selected_xtar_to_tank = "NONE", -- chosen xtar i should be tanking
 	xtar_options = {
 		"NONE",
 		"1",
@@ -924,7 +925,7 @@ local DrawUI = function()
 			State.last_selected_xtar = selected
 		end
 	else -- mobname mode
-		ImGui.TextColored(0.0, 1.0, 0.0, 1.0, "NPC's to tank (one per line):")
+		ImGui.Text("NPC's to tank (one per line):")
 		
 		-- Add Current Target button
 		if ImGui.Button("Add Target") then
@@ -983,10 +984,9 @@ local DrawUI = function()
 	end
 	
 	-- Waypoint checkboxes
-	if #State.waypoints > 0 then
-		ImGui.Text("Select Waypoint:")
-		
-		for i, wp in ipairs(State.waypoints) do
+	ImGui.Text("Select Waypoint:")
+	
+	for i, wp in ipairs(State.waypoints) do
 		-- Ensure waypoint has a name field
 		if not wp.name then
 			wp.name = "WP" .. i  -- Assign a default name if missing
@@ -996,7 +996,7 @@ local DrawUI = function()
 		local current_name = nil
 		if State.current_waypoint and IsValidWaypoint(State.current_waypoint) then
 			-- Double-check name field exists before accessing
-			current_name = rawget(State.current_waypoint, "name") or "Unknown"
+			current_name = State.current_waypoint.name or "Unknown"
 		end
 		local wp_name = wp.name
 		local is_checked = (current_name and wp_name and current_name == wp_name) or false
@@ -1050,7 +1050,6 @@ local DrawUI = function()
 				end
 			end
 		end
-		end
 	end
 	
 	-- Navigation to PC/NPC controls
@@ -1092,7 +1091,7 @@ local DrawUI = function()
 	end
 	
 	-- Input field for target name
-	ImGui.SetNextItemWidth(150)
+	ImGui.SetNextItemWidth(200)
 	local navTargetInput = State.nav_target_name or ""
 	local changed = false
 	navTargetInput, changed = ImGui.InputText("Type Name", navTargetInput, 256)
@@ -1116,8 +1115,8 @@ local DrawUI = function()
 	ImGui.Text("Ignored NPC's")
 	local ignoredMobsInput = State.ignored_mobs_input or ""
 	local changed = false
-	ImGui.SetNextItemWidth(200)  -- Set width for ignored mobs input
-	ignoredMobsInput, changed = ImGui.InputTextMultiline("##ignoredmobs", ignoredMobsInput, 215, 100, 0)
+	ImGui.SetNextItemWidth(300)  -- Set width for ignored mobs input
+	ignoredMobsInput, changed = ImGui.InputTextMultiline("##ignoredmobs", ignoredMobsInput, 265, 100, 0)
 	if changed then
 		ParseIgnoredMobs(ignoredMobsInput)
 	end
