@@ -1,10 +1,20 @@
--- v1.1
+-- v1.2
 ---@type Mq
 local mq = require('mq')
 --- @type ImGui
 require('ImGui')
 --- @type BL
 local BL = require('biggerlib')
+
+-- Get command-line argument (hide or show)
+local args = {...}
+local action = args[1] or 'hide'
+
+-- Validate action
+if action ~= 'hide' and action ~= 'show' then
+    BL.warn("Usage: /lua run chatfilters [hide|show]")
+    return
+end
 
 local OptionsToHide = {
     1, -- AA Ability Reuse
@@ -147,15 +157,18 @@ local OptionsToHide = {
 --local childList = optionsListRoot.List(1, 1)
 -- /notify OptionsWindow ONP_ChatSettingsList listselect 1 -- gets AA Reuse selected
 
+-- 1 IS HIDE, 2 IS SHOW
+local listselectCommand = (action == 'hide') and "/notify OptionsWindow ONP_FilterComboBox listselect 1" or "/notify OptionsWindow ONP_FilterComboBox listselect 2"
+local actionText = (action == 'hide') and 'Hiding' or 'Showing'
+
 for _, chatFilterIndex in ipairs(OptionsToHide) do
     -- Select a filter
     local filterBeingHidden = mq.TLO.Window("OptionsWindow/ONP_ChatSettingsList").List(chatFilterIndex, 1)
-    BL.info("Hiding: %s", filterBeingHidden)
+    BL.info("%s: %s", actionText, filterBeingHidden)
     mq.cmdf("/notify OptionsWindow ONP_ChatSettingsList listselect %d", chatFilterIndex)
     mq.delay(100)
-    -- 1 IS HIDE, 2 IS SHOW
-    -- Set the HIDE option
-    mq.cmdf("/notify OptionsWindow ONP_FilterComboBox listselect 1", chatFilterIndex)
+    -- Set the HIDE or SHOW option
+    mq.cmd(listselectCommand)
     mq.delay(100)
 end
 
