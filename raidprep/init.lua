@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.866 Started")
+BL.info("RaidPrep v1.867.5309 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -1006,11 +1006,7 @@ local function drawCWTNTab()
                     selectedRaidAssistCaster = assist
                     -- Send raidassist command to caster classes only (enc, nec, wiz, mag, dru)
                     local bindPrefix = applytoallChecked and "/dga" or "/dge"
-                    mq.cmdf("%s /docommand /enc raidassist %s", bindPrefix, selectedRaidAssistCaster)
-                    mq.cmdf("%s /docommand /nec raidassist %s", bindPrefix, selectedRaidAssistCaster)
-                    mq.cmdf("%s /docommand /wiz raidassist %s", bindPrefix, selectedRaidAssistCaster)
-                    mq.cmdf("%s /docommand /mag raidassist %s", bindPrefix, selectedRaidAssistCaster)
-                    mq.cmdf("%s /docommand /dru raidassist %s", bindPrefix, selectedRaidAssistCaster)
+                    mq.cmdf("%s /multiline ; /docommand /enc raidassist %s; /docommand /nec raidassist %s; /docommand /wiz raidassist %s; /docommand /mag raidassist %s; /docommand /dru raidassist %s", bindPrefix, selectedRaidAssistCaster, selectedRaidAssistCaster, selectedRaidAssistCaster, selectedRaidAssistCaster, selectedRaidAssistCaster)
                     print(string.format("Set RaidAssist(Caster) to %s", selectedRaidAssistCaster))
                 end
             end
@@ -1445,11 +1441,7 @@ local function drawCWTNTab()
 
     if imgui.Button("BON") then
         local bindPrefix = applytoallChecked and "/dga" or "/dge"
-        mq.cmdf("%s /docommand /enc burnalways on", bindPrefix)
-        mq.cmdf("%s /docommand /nec burnalways on", bindPrefix)
-        mq.cmdf("%s /docommand /wiz burnalways on", bindPrefix)
-        mq.cmdf("%s /docommand /mag burnalways on", bindPrefix)
-        mq.cmdf("%s /docommand /dru burnalways on", bindPrefix)
+        mq.cmdf("%s /multiline ; /docommand /enc burnalways on; /docommand /nec burnalways on; /docommand /wiz burnalways on; /docommand /mag burnalways on; /docommand /dru burnalways on", bindPrefix)
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -1461,11 +1453,7 @@ local function drawCWTNTab()
 
     if imgui.Button("BOFF") then
         local bindPrefix = applytoallChecked and "/dga" or "/dge"
-        mq.cmdf("%s /docommand /enc burnalways off", bindPrefix)
-        mq.cmdf("%s /docommand /nec burnalways off", bindPrefix)
-        mq.cmdf("%s /docommand /wiz burnalways off", bindPrefix)
-        mq.cmdf("%s /docommand /mag burnalways off", bindPrefix)
-        mq.cmdf("%s /docommand /dru burnalways off", bindPrefix)
+        mq.cmdf("%s /multiline ; /docommand /enc burnalways off; /docommand /nec burnalways off; /docommand /wiz burnalways off; /docommand /mag burnalways off; /docommand /dru burnalways off", bindPrefix)
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -1477,11 +1465,7 @@ local function drawCWTNTab()
 
     if imgui.Button("CHA") then
         local bindPrefix = applytoallChecked and "/dga" or "/dge"
-        mq.cmdf("%s /docommand /enc mode chase", bindPrefix)
-        mq.cmdf("%s /docommand /nec mode chase", bindPrefix)
-        mq.cmdf("%s /docommand /wiz mode chase", bindPrefix)
-        mq.cmdf("%s /docommand /mag mode chase", bindPrefix)
-        mq.cmdf("%s /docommand /dru mode chase", bindPrefix)
+        mq.cmdf("%s /multiline ; /docommand /enc mode chase; /docommand /nec mode chase; /docommand /wiz mode chase; /docommand /mag mode chase; /docommand /dru mode chase", bindPrefix)
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -1493,11 +1477,7 @@ local function drawCWTNTab()
 
     if imgui.Button("ASS") then
         local bindPrefix = applytoallChecked and "/dga" or "/dge"
-        mq.cmdf("%s /docommand /enc mode assist", bindPrefix)
-        mq.cmdf("%s /docommand /nec mode assist", bindPrefix)
-        mq.cmdf("%s /docommand /wiz mode assist", bindPrefix)
-        mq.cmdf("%s /docommand /mag mode assist", bindPrefix)
-        mq.cmdf("%s /docommand /dru mode assist", bindPrefix)
+        mq.cmdf("%s /multiline ; /docommand /enc mode assist; /docommand /nec mode assist; /docommand /wiz mode assist; /docommand /mag mode assist; /docommand /dru mode assist", bindPrefix)
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
