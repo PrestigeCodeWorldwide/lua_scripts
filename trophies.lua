@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Trophies Script v1.2 Started")
+BL.info("Trophies Script v1.21 Started")
 
 local function GetActiveTrophyBenefits()
     local benefits = {}
@@ -14,7 +14,7 @@ local function GetActiveTrophyBenefits()
     if not wasOpen then
         BL.info("Opening trophy window...")
         mq.cmd("/windowstate TributeTrophyWnd open")
-        mq.delay(2000)  -- Give it time to open
+        mq.delay(500)  -- Give it time to open
     end
 
     -- Get the benefit list using the correct path
@@ -51,7 +51,7 @@ local function AreTrophiesActivated()
     if not wasOpen then
         BL.info("Opening tribute benefit window...")
         mq.cmd("/windowstate TributeBenefitWnd open")
-        mq.delay(1000)
+        mq.delay(500)
     end
     
     -- Check the activate button text directly
@@ -76,7 +76,7 @@ local function IsPersonalTributeActive()
     if not wasOpen then
         BL.info("Opening tribute benefit window for personal tribute check...")
         mq.cmd("/windowstate TributeBenefitWnd open")
-        mq.delay(1000)
+        mq.delay(500)
     end
     
     local isActive = false
@@ -150,16 +150,16 @@ local function main()
     
     if not isActivated then
         BL.info("Trophies are not activated")
-        mq.cmd("/rs [Trophy] Trophies are NOT activated!")
-        mq.cmd("/g [Trophy] Trophies are NOT activated!")
+        -- mq.cmd("/rs [Trophy] Trophies are NOT activated!")
+        -- mq.cmd("/g [Trophy] Trophies are NOT activated!")
     else
         BL.info("Trophies are activated")
     end
     
     if not isPersonalTributeActive then
         BL.info("Personal tribute is not activated")
-        mq.cmd("/rs [Tribute] Personal tribute is NOT activated!")
-        mq.cmd("/g [Tribute] Personal tribute is NOT activated!")
+        -- mq.cmd("/rs [Tribute] Personal tribute is NOT activated!")
+        -- mq.cmd("/g [Tribute] Personal tribute is NOT activated!")
     else
         BL.info("Personal tribute is activated")
     end

@@ -3,12 +3,10 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("TrophiesOn Script v1.1 Started")
+BL.info("TrophiesOn Script v1.12 Started")
 
--- TODO: Specify the 8 trophies you want to upgrade
 -- This should be an array of trophy names exactly as they appear in the Available Trophy Benefits list
 local TROPHIES_TO_UPGRADE = {
-    -- Add your 8 trophy names here, for example:
     "Brazier of Magic",
     "Banner of the Outer Brood",
     "Crest of Heroism",
@@ -29,7 +27,7 @@ local function GetActiveTrophyBenefits()
     if not wasOpen then
         BL.info("Opening trophy window...")
         mq.cmd("/windowstate TributeTrophyWnd open")
-        mq.delay(2000)  -- Give it time to open
+        mq.delay(500)  -- Give it time to open
     end
 
     -- Get the active benefit list from the right pane
@@ -67,7 +65,7 @@ local function GetAvailableTrophyBenefits()
     if not wasOpen then
         BL.info("Opening trophy window...")
         mq.cmd("/windowstate TributeTrophyWnd open")
-        mq.delay(2000)  -- Give it time to open
+        mq.delay(500)  -- Give it time to open
     end
 
     -- Get the available benefit list from the left pane
@@ -104,11 +102,11 @@ local function ClickUpgradeButton(trophyName)
     if not wasOpen then
         BL.info("Opening trophy window for upgrade...")
         mq.cmd("/windowstate TributeTrophyWnd open")
-        mq.delay(2000)
+        mq.delay(500)
     end
 
     -- Wait a bit more to ensure window is fully loaded
-    mq.delay(1000)
+    mq.delay(500)
     
     -- Get the available benefit list
     local availableList = mq.TLO.Window("TributeTrophyWnd/TTW_AvailableTrophyBenefitList")
@@ -127,14 +125,14 @@ local function ClickUpgradeButton(trophyName)
                     
                     -- Select the trophy in the list
                     availableList.Select(i)
-                    mq.delay(500)
+                    mq.delay(200)
                     
                     -- Look for and click the Upgrade button
                     local upgradeButton = mq.TLO.Window("TributeTrophyWnd/TTW_UpgradeButton")
                     if upgradeButton() then
                         BL.info("Clicking upgrade button for trophy: %s", trophyName)
                         mq.cmd("/notify TributeTrophyWnd TTW_UpgradeButton leftmouseup")
-                        mq.delay(1000)  -- Wait for the upgrade to process
+                        mq.delay(200)  -- Wait for the upgrade to process
                         return true
                     else
                         BL.info("Could not find upgrade button for trophy: %s", trophyName)
@@ -197,7 +195,7 @@ local function UpgradeSpecifiedTrophies(trophiesToUpgrade)
             else
                 BL.info("Failed to upgrade trophy: %s", trophyName)
             end
-            mq.delay(1000)  -- Brief pause between upgrades
+            mq.delay(200)  -- Brief pause between upgrades
         end
     end
     
@@ -227,12 +225,14 @@ local function main()
     
     if #missingTrophies > 0 then
         BL.info("Found %d missing trophies to upgrade: %s", #missingTrophies, table.concat(missingTrophies, ", "))
-        mq.cmd(string.format("/rs [TrophiesOn] Upgrading %d missing trophies...", #missingTrophies))
+        --mq.cmd(string.format("/rs [TrophiesOn] Upgrading %d missing trophies...", #missingTrophies))
         
         local upgradedCount = UpgradeSpecifiedTrophies(missingTrophies)
         
         if upgradedCount > 0 then
             BL.info("Successfully upgraded %d trophies", upgradedCount)
+            mq.cmdf("/dga /tribute personal on")
+            mq.cmdf("/dga /trophy personal on")
             mq.cmd(string.format("/rs [TrophiesOn] Successfully upgraded %d trophies!", upgradedCount))
         else
             BL.info("No trophies were upgraded")
