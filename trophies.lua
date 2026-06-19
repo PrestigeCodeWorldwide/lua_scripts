@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Trophies Script v1.21 Started")
+BL.info("Trophies Script v1.22 Started")
 
 local function GetActiveTrophyBenefits()
     local benefits = {}
@@ -150,16 +150,16 @@ local function main()
     
     if not isActivated then
         BL.info("Trophies are not activated")
-        -- mq.cmd("/rs [Trophy] Trophies are NOT activated!")
-        -- mq.cmd("/g [Trophy] Trophies are NOT activated!")
+        mq.cmd("/rs [Trophy] Trophies are NOT activated!")
+        mq.cmd("/g [Trophy] Trophies are NOT activated!")
     else
         BL.info("Trophies are activated")
     end
     
     if not isPersonalTributeActive then
         BL.info("Personal tribute is not activated")
-        -- mq.cmd("/rs [Tribute] Personal tribute is NOT activated!")
-        -- mq.cmd("/g [Tribute] Personal tribute is NOT activated!")
+        mq.cmd("/rs [Tribute] Personal tribute is NOT activated!")
+        mq.cmd("/g [Tribute] Personal tribute is NOT activated!")
     else
         BL.info("Personal tribute is activated")
     end
