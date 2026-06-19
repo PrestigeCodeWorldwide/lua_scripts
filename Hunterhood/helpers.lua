@@ -747,9 +747,22 @@ end
             return false
         end
         
-        -- Check for any active targets
+        -- Check for any NPC targets on extended target (ignore PCs)
         local xtargetCount = mq.TLO.Me.XTarget() or 0
+        local hasNPCOnXTarget = false
         if xtargetCount > 0 then
+            for i = 1, xtargetCount do
+                local xtarget = mq.TLO.Me.XTarget(i)
+                if xtarget() and xtarget.ID() > 0 then
+                    local spawn = mq.TLO.Spawn(xtarget.ID())
+                    if spawn() and not spawn.Dead() and spawn.Type() ~= "PC" then
+                        hasNPCOnXTarget = true
+                        break
+                    end
+                end
+            end
+        end
+        if hasNPCOnXTarget then
             --printf("\\arCannot check invis - mobs on extended target!")
             return false
         end
