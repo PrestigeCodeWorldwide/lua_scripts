@@ -5,7 +5,7 @@ require("ImGui")
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("Offtank v1.32 loaded")
+BL.info("Offtank v1.33 loaded")
 --local _chosenMode = mq.TLO.CWTN.Mode()
 
 
@@ -805,7 +805,7 @@ local DrawUI = function()
 		else
 			-- Stop tanking
 			State.Paused = true
-			mq.cmd("/" .. State.my_class .. " reload")
+			mq.cmd("/" .. State.my_class .. " aoecount 2 nosave")
 			mq.cmd("/attack off")
 			mq.cmd("/target clear")
 			cwtnCHOSEN()
