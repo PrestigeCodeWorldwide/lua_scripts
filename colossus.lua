@@ -9,7 +9,7 @@ mq.cmdf("/docommand /${Me.Class.ShortName} autostandonfeign on nosave")
 
 --local stoneDebuff = "Hovering Stone"  -- Debuff to check for instead of timer if there is one
 local stoneEmote = "#*#The colossus tosses a large stone into the air and it hovers heavily over #1#.#*"
-local runtoLocation = "/nav locyx -497 1645"
+local runtoLocation = "/nav locyx -497 1645"  --/nav locyx -497 1645 for CoP raids. /nav locyx -765 1680 for ibob
   
 local function EventHandlerstoneEmote(line, nameOne)
     local myName = mq.TLO.Me.CleanName()
