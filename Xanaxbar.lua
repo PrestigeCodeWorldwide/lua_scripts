@@ -3,7 +3,7 @@ local mq = require('mq')
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Xanaxbar Script 1.06 Started")
+BL.info("Xanaxbar Script 1.07 Started")
 BL.info("Type /stopxanax to stop the script rather than wait on chest to spawn")
 local myClass = mq.TLO.Me.Class.ShortName()
 local shouldExit = false
@@ -30,9 +30,13 @@ end
 BL.info("Waiting for chest to spawn...")
 while not shouldExit do
     -- Check for chest spawn directly instead of using BL.checkChestSpawn
-    local chest = mq.TLO.Spawn("A_root-covered_strongbox")
-    if chest() and chest.ID() > 0 then
+    local chest1 = mq.TLO.Spawn("A_root-covered_strongbox") --A_root-covered_strongbox
+    local chest2 = mq.TLO.Spawn("A_root-covered_chest") --A_root-covered_chest
+    if (chest1() and chest1.ID() > 0) then
         BL.info("Chest 'A_root-covered_strongbox' has spawned!")
+        break
+    elseif (chest2() and chest2.ID() > 0) then
+        BL.info("Chest 'A_root-covered_chest' has spawned!")
         break
     end
     mq.delay(1000) -- Wait 1 second before checking again
