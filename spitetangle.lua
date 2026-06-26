@@ -36,13 +36,23 @@ if myClass == "DRU" or myClass == "CLR" or myClass == "SHM" then
     mq.cmdf("/%s usealliance off nosave", myClass)
 end
 
+-- Function to check for chest spawn
+local function checkChestSpawn()
+    local chest1 = mq.TLO.Spawn("a_tangled_chest")
+    local chest2 = mq.TLO.Spawn("a_tangled_strongbox")
+    if (chest1() and chest1.ID() > 0) or (chest2() and chest2.ID() > 0) then
+        BL.info("Chest spawned! Encounter complete - ending script...")
+        return true
+    end
+    return false
+end
+
 -- Non-rogues will loop and monitor for chest spawn or manual stop
 if myClass ~= "ROG" then
     BL.info("Not a rogue - monitoring for chest spawn or manual stop...")
     while not shouldExit do
         -- Check if chest has spawned (encounter complete)
-        if BL.checkChestSpawn("a_tangled_chest") then
-            BL.info("Chest spawned! Encounter complete - ending script...")
+        if checkChestSpawn() then
             shouldExit = true
             break
         end
@@ -185,8 +195,7 @@ end
 -- Main loop
 while not shouldExit do
     -- Check if chest has spawned (encounter complete)
-    if BL.checkChestSpawn("a_tangled_chest") then
-        BL.info("Chest spawned! Encounter complete - ending script...")
+    if checkChestSpawn() then
         shouldExit = true
         break
     end
