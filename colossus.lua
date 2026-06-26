@@ -50,8 +50,19 @@ mq.event(
     EventHandlerstoneEmote
 )
 
+-- Function to check for chest spawn
+local function checkChestSpawn()
+    local chest1 = mq.TLO.Spawn("a_glowing_stone_strongbox")
+    local chest2 = mq.TLO.Spawn("a_glowing_stone_chest")
+    if (chest1() and chest1.ID() > 0) or (chest2() and chest2.ID() > 0) then
+        BL.info("Chest spawned! Encounter complete - ending script...")
+        return true
+    end
+    return false
+end
+
 while true do
-    BL.checkChestSpawn("a_glowing_stone_strongbox")
+    checkChestSpawn()
     mq.doevents()
     mq.delay(123)
 end
