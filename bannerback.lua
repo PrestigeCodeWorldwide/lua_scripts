@@ -4,7 +4,7 @@ local mq = require('mq')
 local BL = require("biggerlib")
 local imgui = require 'ImGui'
 
-BL.info("Bannerback Script v1.27 Started")
+BL.info("Bannerback Script v1.28 Started")
 
 -- UI State
 local ui_open = true
@@ -104,6 +104,30 @@ local function handleGuildHallPortal()
     BL.info("Navigating to portal location in Guild Hall...")
     BL.cmd.pauseAutomation()
     mq.cmd("/nav locxy 162 -5")
+    BL.WaitForNav()
+    mq.delay(1000)
+    
+    -- Countdown before clicking portal
+    current_step = "Clicking Yes in"
+    portal_countdown = 7
+    for i = portal_countdown, 1, -1 do
+        portal_countdown = i
+        mq.delay(1000)
+    end
+    portal_countdown = 0
+    
+    BL.cmd.resumeAutomation()
+    BL.info("Clicking Yes in 7 seconds.")
+    mq.cmd("/yes")
+    
+    return true
+end
+
+local function handleGuildHallPortalibob()
+    current_step = "Nav to GH portal..."
+    BL.info("Navigating to portal location in Guild Hall...")
+    BL.cmd.pauseAutomation()
+    mq.cmd("/nav locxy -502 0")
     BL.WaitForNav()
     mq.delay(1000)
     
@@ -253,7 +277,7 @@ local function zoneToGuildHall()
 
     while not zonedIn and os.clock() - startTime < timeout do
         local currentZoneCheck = mq.TLO.Zone.ShortName()
-        if currentZoneCheck and currentZoneCheck ~= initialZone and currentZoneCheck == 'guildhall3_int' then
+        if currentZoneCheck and currentZoneCheck ~= initialZone and (currentZoneCheck == 'guildhall3_int' or currentZoneCheck == 'guildhalllrg_int') then
             zonedIn = true
             zoneName = currentZoneCheck
             BL.info("Zoned into: " .. zoneName)
@@ -305,6 +329,12 @@ while true do
         end
     elseif currentZone == 'guildhall3_int' then
         local success = handleGuildHallPortal()
+        if success then
+            -- Wait 10 seconds before checking again to avoid spamming
+            mq.delay(10000)
+        end
+    elseif currentZone == 'guildhalllrg_int' then
+        local success = handleGuildHallPortalibob()
         if success then
             -- Wait 10 seconds before checking again to avoid spamming
             mq.delay(10000)
