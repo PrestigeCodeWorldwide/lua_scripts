@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEggCure Script v1.13 started")
+BL.info("TheEggCure Script v1.14 started")
 
 -- Configuration
 local DEBUFF_NAME = "Incipient Poison" -- Incipient Poison
@@ -36,7 +36,7 @@ local function ensureCureSpellLoaded()
     local spellFound = false
     local foundSlot = 0
     
-    for i = 1, 1000 do -- Check spellbook
+    for i = 1, 2000 do -- Check spellbook
         local spellName = mq.TLO.Me.Book(i).Name()
         if spellName then
             -- Check for exact match first
