@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.867.5309 Started")
+BL.info("RaidPrep v1.868 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -872,7 +872,12 @@ local function drawCWTNTab()
             if imgui.Selectable(label, isSelected) then
                 if not isSelected then
                     StickHow = index
-                    mq.cmdf("%s StickHow %d", getCWTNBind(), StickHow)
+                    if StickHow == 9 then
+                        local bindPrefix = applytoallChecked and "/noparse /dga /docommand /rng" or "/noparse /dge /docommand /rng"
+                        mq.cmdf("%s StickHow %d", bindPrefix, StickHow)
+                    else
+                        mq.cmdf("%s StickHow %d", getCWTNBind(), StickHow)
+                    end
                     print("Set StickHow to " .. label)
                 end
             end
