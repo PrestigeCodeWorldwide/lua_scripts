@@ -3,7 +3,7 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("TheEggCure Script v1.12 started")
+BL.info("TheEggCure Script v1.13 started")
 
 -- Configuration
 local DEBUFF_NAME = "Incipient Poison" -- Incipient Poison
@@ -34,10 +34,22 @@ local function ensureCureSpellLoaded()
     
     -- Spell not found, check if we have it in spellbook
     local spellFound = false
-    for i = 1, 500 do -- Check spellbook
-        if mq.TLO.Me.Book(i).Name() == CURE_SPELL then
-            spellFound = true
-            break
+    local foundSlot = 0
+    
+    for i = 1, 1000 do -- Check spellbook
+        local spellName = mq.TLO.Me.Book(i).Name()
+        if spellName then
+            -- Check for exact match first
+            if spellName == CURE_SPELL then
+                spellFound = true
+                foundSlot = i
+                break
+            -- Also check for case-insensitive match
+            elseif string.lower(spellName) == string.lower(CURE_SPELL) then
+                spellFound = true
+                foundSlot = i
+                break
+            end
         end
     end
     
@@ -45,6 +57,8 @@ local function ensureCureSpellLoaded()
         BL.warn("ERROR: " .. CURE_SPELL .. " not found in spellbook!")
         return false
     end
+    
+    BL.info("Found " .. CURE_SPELL .. " in spellbook slot " .. foundSlot)
     
     -- Pause automation and stop any casting before memorizing
     BL.cmd.pauseAutomation()
@@ -297,7 +311,7 @@ BL.info("Cure spell: " .. CURE_SPELL)
 -- Ensure cure spell is loaded before starting main loop
 BL.info("Performing initial spell check...")
 if not ensureCureSpellLoaded() then
-    BL.error("Failed to load cure spell! Script may not function properly.")
+    BL.warn("Failed to load cure spell! Script may not function properly.")
 end
 
 -- Check for chest spawn
