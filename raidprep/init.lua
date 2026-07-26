@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.868 Started")
+BL.info("RaidPrep v1.869 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -29,6 +29,7 @@ local UseAoE = 0 -- 0=SET, 1=ON, 2=OFF
 local RaidMode = false
 local UseAlliance = 0
 local UseMelee = 0 -- 0=SET, 1=All ON, 2=Priests Only, 3=Casters Only, 4=All OFF
+local UseDS = 0 -- 0=SET, 1=ON, 2=OFF
 local UseCures = 0 -- 0=SET, 1=ON, 2=OFF
 local UseAEHeals = 0 -- 0=SET, 1=ON, 2=OFF
 local RezState = 0 -- 0=SET, 1=ON, 2=OFF
@@ -183,6 +184,7 @@ local function loadSettings()
             RaidMode = settings.RaidMode or RaidMode
             UseAlliance = settings.UseAlliance or UseAlliance
             UseMelee = settings.UseMelee or UseMelee
+            UseDS = settings.UseDS or UseDS
             UseCures = settings.UseCures or UseCures
             UseAEHeals = settings.UseAEHeals or UseAEHeals
             --BYOS = settings.BYOS or BYOS
@@ -226,6 +228,7 @@ local function saveSettings()
         RaidMode = RaidMode,
         UseAlliance = UseAlliance,
         UseMelee = UseMelee,
+        UseDS = UseDS,
         UseCures = UseCures,
         UseAEHeals = UseAEHeals,
         --BYOS = BYOS,
@@ -1342,6 +1345,52 @@ local function drawCWTNTab()
             mq.cmdf("%s usemelee off", getCWTNBind())
             print("Set Melee to OFF for all")
         end
+    end
+    imgui.PopID()
+    imgui.PopStyleColor()
+
+    imgui.SameLine()
+    local dsText = "DS: "
+    local dsStateText = { "SET", "ON", "OFF" }
+    local dsButtonState = UseDS + 1
+
+    -- Set text color based on state
+    local dsStateColor
+    if UseDS == 0 then
+        dsStateColor = { 0.5, 0.5, 0.5, 1.0 } -- Grey for SET
+    elseif UseDS == 1 then
+        dsStateColor = { 0.0, 1.0, 0.0, 1.0 } -- Green for ON
+    else
+        dsStateColor = { 1.0, 0.0, 0.0, 1.0 } -- Red for OFF
+    end
+
+    -- Draw "DS:" in gold
+    imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+    imgui.Text(dsText)
+    imgui.PopStyleColor()
+
+    -- Draw the state text with appropriate color
+    imgui.SameLine(0, 0)
+    imgui.PushStyleColor(ImGuiCol.Text, unpack(dsStateColor))
+    imgui.PushID("ds_button")
+    if imgui.Button(dsStateText[dsButtonState]) then
+        UseDS = (UseDS + 1) % 3
+        if UseDS == 1 then
+            mq.cmd("/multiline ; /dga /blockspell remove me 71723 ; /dga /blockspell remove me 72608 ; /dga /blockspell remove me 71603 ; /dga /blockspell remove me 71401")
+            print("Set DS to ON")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDS On")
+        elseif UseDS == 2 then
+            mq.cmd("/multiline ; /dga /blockspell add me 71723 ; /dga /blockspell add me 72608 ; /dga /blockspell add me 71603 ; /dga /blockspell add me 71401")
+            print("Set DS to OFF")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDS Off")
+        end
+    end
+    if imgui.IsItemHovered() then
+        imgui.BeginTooltip()
+        imgui.PushStyleColor(ImGuiCol.Text, 1.0, 0.84, 0.0, 1.0) -- Gold color
+        imgui.Text("Blocks all DS and turns off UseDS in plugins")
+        imgui.PopStyleColor()
+        imgui.EndTooltip()
     end
     imgui.PopID()
     imgui.PopStyleColor()
