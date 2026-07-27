@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.869 Started")
+BL.info("RaidPrep v1.870 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -1379,10 +1379,14 @@ local function drawCWTNTab()
             mq.cmd("/multiline ; /dga /blockspell remove me 71723 ; /dga /blockspell remove me 72608 ; /dga /blockspell remove me 71603 ; /dga /blockspell remove me 71401")
             print("Set DS to ON")
             mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDS On")
+            --mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseVeilDS On")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseSkinDS On")
         elseif UseDS == 2 then
             mq.cmd("/multiline ; /dga /blockspell add me 71723 ; /dga /blockspell add me 72608 ; /dga /blockspell add me 71603 ; /dga /blockspell add me 71401")
             print("Set DS to OFF")
             mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseDS Off")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseVeilDS Off")
+            mq.cmd("/noparse /dga /docommand /${Me.Class.ShortName} UseSkinDS Off")
         end
     end
     if imgui.IsItemHovered() then
