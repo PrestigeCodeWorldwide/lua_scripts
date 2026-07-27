@@ -3,7 +3,7 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("EchoGear Script v1.0 Started")
+BL.info("EchoGear Script v1.1 Started")
 mq.cmd("/plugin boxr load")
 
 -- Configuration: which slots to manage
@@ -140,10 +140,15 @@ local function equip_item(slotName)
         return false
     end
 
-    -- Check if cursor is free
+    -- Check if cursor is free, if not clear it
     if mq.TLO.Cursor() then
-        BL.info("Cursor not free, cannot equip " .. slotName)
-        return false
+        BL.info("Cursor not free, running /autoinventory to clear")
+        mq.cmd('/autoinventory')
+        mq.delay('500ms')
+        if mq.TLO.Cursor() then
+            BL.info("Cursor still not free after /autoinventory")
+            return false
+        end
     end
 
     -- Find the item in inventory
@@ -190,6 +195,13 @@ end
 
 -- Remove all configured slots
 local function unequip_all()
+    -- Clear cursor before starting
+    if mq.TLO.Cursor() then
+        BL.info("Cursor not free, running /autoinventory to clear before unequipping")
+        mq.cmd('/autoinventory')
+        mq.delay('500ms')
+    end
+
     for _, slotName in ipairs(config.slots) do
         remove_and_stow(slotName)
     end
@@ -198,7 +210,10 @@ end
 -- Equip all configured slots
 local function equip_all()
     for _, slotName in ipairs(config.slots) do
-        equip_item(slotName)
+        local success, err = pcall(equip_item, slotName)
+        if not success then
+            BL.info("Error equipping " .. slotName .. ": " .. tostring(err) .. ", continuing to next item")
+        end
     end
 end
 
