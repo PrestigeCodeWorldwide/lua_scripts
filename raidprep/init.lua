@@ -11,7 +11,7 @@ local burnsUI = require("raidprep.burns")
 local addclickyUI = require("raidprep.addclicky")
 local epicsUI = require("raidprep.epics")
 
-BL.info("RaidPrep v1.870 Started")
+BL.info("RaidPrep v1.871 Started")
 mq.cmd("/plugin boxr load")
 
 local openGUI = true
@@ -322,6 +322,8 @@ local scriptTooltips = {
 
     -- Shattering of Ro scripts
     ["Colossus"] = "Runs toons away from stone emote during the Colossus raid",
+    ["EchoRaid"] = "Handles the low HP callout on Echo of Hate raid",
+    ["EchoGear"] = "Un-equips and re-equips gear on Echo of Hate raid",
     ["Spitetangle"] = "Handles posion call out and rogues disarm traps during the Spitetangle raid",
     ["Xanaxbar"] = "Turns off all AE healing during the Xanaxbar raid",
     ["TheEgg"] = "Handles the run away during the Tallgongast, The Egg raid",
