@@ -3,12 +3,13 @@ local mq = require("mq")
 ---@type BL
 local BL = require("biggerlib")
 
-BL.info("Rez script v1.03 loaded.")
+BL.info("Rez script v1.04 loaded.")
 --mq.cmd("/dga /rez accept off")
 
 local rezAccepted = false
 local lastCheckTime = 0
 local rezAcceptTime = 0
+local rezWindowOpenTime = 0
 
 -- Main function to handle rez logic
 local function checkRezWindow()
@@ -25,19 +26,30 @@ local function checkRezWindow()
         -- Check if this is a rez confirmation by looking at the dialog text
         local dialogText = mq.TLO.Window("ConfirmationDialogBox").Child("CD_TextOutput").Text()
         if dialogText and (string.find(dialogText:lower(), "resurrect") or string.find(dialogText:lower(), "rejuvenation") or string.find(dialogText:lower(), "reviviscence") ) then
-            local yesButton = mq.TLO.Window("ConfirmationDialogBox").Child("Yes_Button")
-            if yesButton() and yesButton.Enabled() then
-                -- Click Yes to accept rez
-                yesButton.LeftMouseUp()
-                rezAccepted = true
-                rezAcceptTime = currentTime
-                BL.info("Clicked Yes to accept rez")
+            -- Set window open time if not set
+            if rezWindowOpenTime == 0 then
+                rezWindowOpenTime = currentTime
+            end
+            -- Wait 500ms before clicking Yes to ensure window is fully loaded
+            if (currentTime - rezWindowOpenTime) >= 800 then
+                local yesButton = mq.TLO.Window("ConfirmationDialogBox").Child("Yes_Button")
+                if yesButton() and yesButton.Enabled() then
+                    -- Click Yes to accept rez
+                    yesButton.LeftMouseUp()
+                    rezAccepted = true
+                    rezAcceptTime = currentTime
+                    rezWindowOpenTime = 0
+                    BL.info("Clicked Yes to accept rez")
+                end
             end
         end
+    else
+        -- Reset window open time if window is closed
+        rezWindowOpenTime = 0
     end
     
     -- Step 2: Check if rez was accepted and we need to click Respawn
-    if rezAccepted and (currentTime - rezAcceptTime) >= 1000 then
+    if rezAccepted and (currentTime - rezAcceptTime) >= 2000 then
         -- Check if the respawn window is open
         if mq.TLO.Window("RespawnWnd").Open() then
             -- Check if resurrect option is selected (should be auto-selected after clicking Yes)
