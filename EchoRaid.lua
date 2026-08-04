@@ -3,30 +3,117 @@ local mq = require('mq')
 --- @type BL
 local BL = require("biggerlib")
 
-BL.info("EchoOfHate Script v1.0 Started")
+-- Parse command line arguments
+local args = {...}
+local targetName = args[1] or nil
+local myName = mq.TLO.Me.CleanName()
+local running = true
+
+BL.info("EchoOfHate Script v1.1 Started")
 mq.cmd("/plugin boxr load")
 
-local MitesDebuff = "Clinging Mites"
-local MiteNPCName = "crushing ball"
+if targetName then
+    BL.info("Target character: " .. targetName)
+    if targetName:lower() == myName:lower() then
+        BL.info("Crystal events enabled for " .. myName)
+    else
+        BL.info("Crystal events disabled - not target character")
+    end
+else
+    BL.info("No target character specified - crystal events disabled")
+end
 
-local MechanicEmote = "#*#The Echo recognizes the weakest among you: #1#, #2#, #3#, and #4#.#*#"
-local FirstMechanicLocation = "/nav locyx 7.80, 118.95"
-local SecondMechanicLocation = "/nav locyx  123.52, 3.38"
-local ThirdMechanicLocation = "/nav locyx 7.03, -112.76"
-local FourthMechanicLocation = "/nav locyx -124.78, 3.20"
-  
-local function EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, nameFour) 
+mq.bind("/stopecho", function()
+    running = false
+    BL.info("EchoRaid stopping gracefully...")
+end)
+
+local LowHPEmote = "#*#The Echo recognizes the weakest among you: #1#, #2#, #3#, and #4#.#*#"
+local FirstLocation = "/nav locyx 7.80, 118.95"
+local SecondLocation = "/nav locyx  123.52, 3.38"
+local ThirdLocation = "/nav locyx 7.03, -112.76"
+local FourthLocation = "/nav locyx -124.78, 3.20"
+
+local function NorthCrystal(line, arg1, arg2, arg3, arg4, arg5)
+    BL.info("Running to North Crystal")
+    BL.cmd.pauseAutomation()
+    mq.cmd("/nav door id 96")  --/nav door id 96
+    BL.WaitForNav()
+    mq.cmd("/doortarget")
+    mq.delay(300)
+    mq.cmd("/click left door")
+    BL.cmd.resumeAutomation()
+end
+
+local function SouthCrystal(line, arg1, arg2, arg3, arg4, arg5)
+    BL.info("Running to South Crystal")
+    BL.cmd.pauseAutomation()
+    mq.cmd("/nav door id 94")  --/nav door id 94
+    BL.WaitForNav()
+    mq.cmd("/doortarget")
+    mq.delay(300)
+    mq.cmd("/click left door")
+    BL.cmd.resumeAutomation()
+end
+
+local function EastCrystal(line, arg1, arg2, arg3, arg4, arg5)
+    BL.info("Running to East Crystal")
+    BL.cmd.pauseAutomation()
+    mq.cmd("/nav door id 93")  --/nav door id 93
+    BL.WaitForNav()
+    mq.cmd("/doortarget")
+    mq.delay(300)
+    mq.cmd("/click left door")
+    BL.cmd.resumeAutomation()
+end
+
+local function WestCrystal(line, arg1, arg2, arg3, arg4, arg5)
+    BL.info("Running to West Crystal")
+    BL.cmd.pauseAutomation()
+    mq.cmd("/nav door id 95")  --/nav door id 95
+    BL.WaitForNav()
+    mq.cmd("/doortarget")
+    mq.delay(300)
+    mq.cmd("/click left door")
+    BL.cmd.resumeAutomation()
+end
+
+-- Crystal configuration mapping
+local CrystalConfig = {
+    north = {
+        event = "NorthCrystal",
+        pattern = "#*#The Echo starts to gather all of its self-loathing#*#",
+        func = NorthCrystal
+    },
+    south = {
+        event = "SouthCrystal",
+        pattern = "#*#The Echo roils with hatred for all that are not it and focuses#*#",
+        func = SouthCrystal
+    },
+    east = {
+        event = "EastCrystal",
+        pattern = "#*#The Echo burns with hatred of the weak and focuses#*#",
+        func = EastCrystal
+    },
+    west = {
+        event = "WestCrystal",
+        pattern = "#*#The Echo glares with rage at all of its opponents and focuses#*#",
+        func = WestCrystal
+    }
+}
+
+local function EventHandlerLowHPEmote(line, nameOne, nameTwo, nameThree, nameFour) 
     local myName = mq.TLO.Me.CleanName()
     local waypointCommand = nil
     
     if myName == nameOne then
-        waypointCommand = FirstMechanicLocation
+        waypointCommand = FirstLocation
     elseif myName == nameTwo then
-        waypointCommand = SecondMechanicLocation
+        waypointCommand = SecondLocation
     elseif myName == nameThree then
-        waypointCommand = ThirdMechanicLocation
+        waypointCommand = ThirdLocation
     elseif myName == nameFour then
-        waypointCommand = FourthMechanicLocation
+        waypointCommand = FourthLocation
     else
         -- I wasn't called out, do nothing
     end
@@ -41,7 +128,7 @@ local function EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, name
         -- navigate to safe spot
         mq.cmd(waypointCommand)
         -- 25 seconds or if debuff fades early
-        mq.delay(30000)
+        mq.delay(16000)
         -- finished, resume
         --BL.cmd.resumeAutomation()
         BL.cmd.StandIfFeigned()
@@ -52,32 +139,25 @@ local function EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, name
 end
 
 mq.event(
-    "MechanicEmote",
-    MechanicEmote,
+    "LowHPEmote",
+    LowHPEmote,
     function(line, nameOne, nameTwo, nameThree, nameFour)
-        EventHandlerMechanicEmote(line, nameOne, nameTwo, nameThree, nameFour)
+        EventHandlerLowHPEmote(line, nameOne, nameTwo, nameThree, nameFour)
     end
 )
 
-local function HandleMitesMechanic()
-    -- if we have the debuff, navigate to crushing ball
-    if BL.IHaveBuff(MitesDebuff) then
-        BL.cmd.pauseAutomation()
-        
-        -- continue trying to nav to crushing ball until debuff drops
-        while BL.IHaveBuff(MitesDebuff) do
-            mq.cmdf("/nav spawn npc %s", MiteNPCName)
-            mq.delay(1000)
-        end
-        
-        -- Debuff is gone, resume
-        BL.cmd.resumeAutomation()
+-- Register crystal events only if target name matches current character
+if targetName and targetName:lower() == myName:lower() then
+    for crystalName, config in pairs(CrystalConfig) do
+        mq.event(config.event, config.pattern, config.func)
     end
+    BL.info("Registered crystal events for: " .. myName)
+else
+    BL.info("Crystal events not registered - character not targeted")
 end
 
-while true do
-    BL.checkChestSpawn("a_weathered_chest")
-    --HandleMitesMechanic()
+while running do
+    BL.checkChestSpawn("a_twisted_chest")
     mq.doevents()
     mq.delay(123)
 end
