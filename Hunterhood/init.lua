@@ -22,6 +22,12 @@ local zLowValue = -9999 -- State variable for Z-Low (max range)
 local distanceSettingsEnabled = true -- Always enabled
 local prioritizeNamedMobs = true -- Prioritize named mobs over placeholders when enabled
 local checkGroupDistance = true -- Check if group members are within 120 feet before engaging
+local autoResumeEnabled = false -- Auto resume navigation after 5 seconds if stopped
+local autoResumeTime = 0 -- Time when navigation stopped for auto resume
+local wasNavActiveBeforeStop = false -- Track if navigation was active before stop
+local stopButtonClicked = false -- Track if stop was clicked intentionally
+local previousNavActive = false -- Track previous navActive state for movement detection
+local previousMQNavActive = false -- Track previous MQ navigation active state
 local referenceX = 0 -- Static reference X coordinate for drawing circle on map
 local referenceY = 0 -- Static reference Y coordinate for drawing circle on map
 local referenceZ = 0 -- Static reference Z coordinate for drawing circle on map
@@ -34,7 +40,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.229 loaded')
+BL.info('HunterHood v2.30 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -54,6 +60,8 @@ local function triggerPanic()
     
     -- Immediate actions (can be done in ImGui thread)
     navActive = false
+    wasNavActiveBeforeStop = false -- Disable auto resume on panic
+    autoResumeTime = 0
     helpers.hideReferenceCircle() -- Clean up reference circle when stopping
     navCoroutine = nil
     mq.cmd("/nav stop")
@@ -139,6 +147,8 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     if #checkedMobs == 0 then
                         printf("\ayNo mobs selected - stopping navigation")
                         navActive = false
+                        wasNavActiveBeforeStop = false -- Disable auto resume when no mobs selected
+                        autoResumeTime = 0
                         return
                     end
 
@@ -1127,6 +1137,35 @@ local function RenderOptionsWindow()
                 ImGui.PopStyleColor(1)
             end
             
+            -- Auto Resume checkbox
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+            
+            -- Set text color based on checkbox state
+            if autoResumeEnabled then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
+            end
+            
+            local newAutoResumeEnabled = ImGui.Checkbox("Auto Resume", autoResumeEnabled)
+            if newAutoResumeEnabled ~= autoResumeEnabled then
+                autoResumeEnabled = newAutoResumeEnabled
+            end
+            
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+            
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Automatically resume navigation 5 seconds after breaking it by movement")
+                ImGui.PopStyleColor(1)
+            end
+            
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
@@ -1511,6 +1550,9 @@ local function renderHoodTab()
     if navActive then
         if ImGui.Button("STOP##ExecuteAction") then
             navActive = false
+            stopButtonClicked = true -- Mark that stop was intentional
+            wasNavActiveBeforeStop = false -- Don't auto-resume on button click
+            autoResumeTime = 0
             helpers.hideReferenceCircle() -- Clean up reference circle when stopping
             navCoroutine = nil
             mq.cmd("/nav stop")
@@ -1520,6 +1562,10 @@ local function renderHoodTab()
         local shouldStartNavigation = false
         if ImGui.Button("Start##ExecuteAction") then
             shouldStartNavigation = true
+            -- Reset auto resume flags when manually starting
+            wasNavActiveBeforeStop = false
+            autoResumeTime = 0
+            stopButtonClicked = false
         end
         
         -- Handle navigation start logic outside of ImGui button
@@ -2254,12 +2300,32 @@ while Open do
         updateHunterTab()
         oldZone = currentZone
     end
+    
+    -- Get current MQ navigation status
+    local currentMQNavActive = mq.TLO.Navigation.Active() or false
+    
+    -- Detect if navigation stopped by movement (not button click)
+    -- This happens when MQ navigation goes from active to inactive without stop button being clicked
+    if previousMQNavActive and not currentMQNavActive and navActive and not stopButtonClicked then
+        -- Navigation stopped without button click - likely due to movement
+        wasNavActiveBeforeStop = true
+        autoResumeTime = os.clock() + 5.0 -- Set resume time for 5 seconds from now
+        printf("\ayNavigation stopped by movement - auto-resume in 5 seconds")
+    end
+    
+    -- Update previous navActive state
+    previousNavActive = navActive
+    previousMQNavActive = currentMQNavActive
+    stopButtonClicked = false -- Reset stop button flag after checking
+    
     -- Update navigation coroutine
     if navCoroutine and coroutine.status(navCoroutine) ~= "dead" then
         local success, err = coroutine.resume(navCoroutine)
         if not success then
             printf("\arNavigation error: %s", tostring(err))
             navActive = false
+            wasNavActiveBeforeStop = false -- Disable auto resume on error
+            autoResumeTime = 0
         end
     end
     
@@ -2304,6 +2370,43 @@ while Open do
                     printf("\ayGroup is now invisible, panic complete")
                     panicInvisActive = false
                 end
+            end
+        end
+    end
+    
+    -- Auto resume logic
+    if autoResumeEnabled and wasNavActiveBeforeStop then
+        local currentTime = os.clock()
+        if currentTime >= autoResumeTime then
+            -- Check if any mobs are selected first
+            local hasCheckedMobs = false
+            if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
+                for _, spawn in ipairs(hoodAch.Spawns) do
+                    if mobCheckboxes[spawn.originalName] then
+                        hasCheckedMobs = true
+                        break
+                    end
+                end
+            end
+            
+            if hasCheckedMobs then
+                -- Check if group needs invisibility before starting navigation
+                if useInvis and helpers.groupNeedsInvis() then
+                    printf("\ayGroup members need invisibility, casting...")
+                    mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+                end
+                navActive = true
+                wasNavActiveBeforeStop = false -- Reset the flag
+                -- Capture current position as static reference point
+                referenceX = mq.TLO.Me.X() or 0
+                referenceY = mq.TLO.Me.Y() or 0
+                referenceZ = mq.TLO.Me.Z() or 0
+                -- Show reference circle when navigation starts
+                helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
+                navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
+                printf("\ayAuto-resumed navigation to selected mobs")
+            else
+                wasNavActiveBeforeStop = false -- Reset if no mobs selected
             end
         end
     end
