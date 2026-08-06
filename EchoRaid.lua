@@ -128,7 +128,7 @@ local function EventHandlerLowHPEmote(line, nameOne, nameTwo, nameThree, nameFou
         -- navigate to safe spot
         mq.cmd(waypointCommand)
         -- 25 seconds or if debuff fades early
-        mq.delay(16000)
+        mq.delay(19000)
         -- finished, resume
         --BL.cmd.resumeAutomation()
         BL.cmd.StandIfFeigned()
