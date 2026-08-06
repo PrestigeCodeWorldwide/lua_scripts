@@ -1471,8 +1471,8 @@ local function drawCWTNTab()
     imgui.NewLine()
 
     if imgui.Button("D-Glyph") then
-        mq.cmdf("%s /alt act 5100", getCWTNBind())
-        mq.cmdf("%s /alt buy 5100", getCWTNBind())
+        mq.cmdf("%s /alt act 5105", getCWTNBind())
+        mq.cmdf("%s /alt buy 5105", getCWTNBind())
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
@@ -1483,8 +1483,8 @@ local function drawCWTNTab()
     imgui.SameLine()
 
     if imgui.Button("P-Glyph") then
-        mq.cmdf("%s /alt act 5303", getCWTNBind())
-        mq.cmdf("%s /alt buy 5303", getCWTNBind())
+        mq.cmdf("%s /alt act 5305", getCWTNBind())
+        mq.cmdf("%s /alt buy 5305", getCWTNBind())
     end
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
