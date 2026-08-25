@@ -3,13 +3,14 @@ local mq = require('mq')
 local ImGui = require 'ImGui'
 local BL = require 'biggerlib'
 
-BL.info("ChainCast v1.1 loaded")
+BL.info("ChainCast v1.2 loaded")
 
 local wasCasting = nil
 -- Configuration
 local config = {
 	aaId = "",
 	spellGem = "",
+	abilityName = "",
 	maxAttempts = 0,
 	enabled = false,
 	currentAttempts = 0,
@@ -21,7 +22,7 @@ local config = {
 		x = 100,
 		y = 100,
 		width = 300,
-		height = 280
+		height = 320
 	}
 }
 
@@ -74,6 +75,14 @@ local function DoCast()
 				mq.cmd("/stopcast")
 				--mq.cmd("/stopsong")
 			end
+		elseif config.abilityName ~= "" then
+			mq.cmd('/doability "' .. config.abilityName .. '"')
+			config.lastCastTime = now
+			config.currentAttempts = config.currentAttempts + 1
+			if config.autoInv then
+				mq.delay(100)
+				mq.cmd("/autoinv")
+			end
 		end
 	end
 
@@ -86,7 +95,7 @@ end
 local function OnImGuiFrame()
 	if not config.window.open then return end
 
-	ImGui.SetNextWindowSize(300, 250, ImGuiCond.FirstUseEver)
+	ImGui.SetNextWindowSize(300, 320, ImGuiCond.FirstUseEver)
 	ImGui.SetNextWindowPos(100, 100, ImGuiCond.FirstUseEver)
 
 	if ImGui.Begin("Chain Caster", config.window.open) then
@@ -117,6 +126,7 @@ local function OnImGuiFrame()
 				config.aaId = newAaId
 				if newAaId ~= "" then
 					config.spellGem = ""
+					config.abilityName = ""
 				end
 			end
 		end
@@ -130,7 +140,20 @@ local function OnImGuiFrame()
 				config.spellGem = newSpellGem
 				if newSpellGem ~= "" then
 					config.aaId = ""
+					config.abilityName = ""
 				end
+			end
+		end
+
+		-- Ability Name input
+		ImGui.Text("Ability Name:")
+		ImGui.SameLine()
+		local newAbilityName = ImGui.InputText("##abilityname", config.abilityName or "")
+		if newAbilityName ~= nil then
+			config.abilityName = newAbilityName
+			if newAbilityName ~= "" then
+				config.aaId = ""
+				config.spellGem = ""
 			end
 		end
 
