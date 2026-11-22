@@ -1,11 +1,85 @@
--- v1.139
+-- v1.14
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
 local ph_list = {
     -- Format: ["Zone ID"] = { ["Named Mob"] = {"Placeholder1", "Placeholder2", ...} }
 
-    --------- SoR Zo es ---------
+    --------- FoF Zones ---------
+
+    [888] = { -- Plane of Love
+        ["A Devoted Diary"] = { "ph_1" },
+        ["Amalithea"] = { "ph_2" },
+        ["Amphiba"] = { "ph_3" },
+        ["Bzzt, Worker Leader"] = { "ph_4" },
+        ["Ethimelle the Lost"] = { "ph_5" },
+        ["Faithwing"] = { "ph_6" },
+        ["Hopestone"] = { "ph_7" },
+        ["Sir Leighton Clark"] = { "ph_8" },
+        ["Sister Alanya"] = { "ph_9" },
+        ["The Thornmother"] = {"ph_10" },
+    },
+
+    [889] = { -- Plane of Desire
+        ["Bo`bark the Twisted"] = { "ph_1" },
+        ["Do`uge the Sea Turtle"] = { "ph_2" },
+        ["Ga`rot Uproot"] = { "ph_3" },
+        ["Kaelfor"] = { "ph_4" },
+        ["Lo`for the Enraged"] = { "ph_5" },
+        ["Luo Zheng the Wise"] = { "ph_6" },
+        ["Major Rao`kan"] = { "ph_7" },
+        ["Per`sai the Neophyte"] = { "ph_8" },
+        ["Ver`tose the Flame Enchantress"] = {"ph_9" },
+        ["Vorgal the Devourer"] = {"ph_10" },
+    },
+
+    [890] = { -- Plane of Greed
+        ["Apostetrios"] = { "ph_1" },
+        ["Eica"] = { "ph_2" },
+        ["Gildedfang"] = { "ph_3" },
+        ["Goldflecked Guardian"] = { "ph_4" },
+        ["Rapacian"] = { "ph_5" },
+        ["Sephriah Mourningstar"] = { "ph_6" },
+        ["Viscountess Emilia Wrayburn"] = { "ph_7" },
+        ["Whisker"] = {"ph_8" },
+    },
+
+    [891] = { -- Plane of Madness
+        ["Crevin the Undying"] = { "ph_1" },
+        ["Grothrix the Desecrator"] = { "ph_2" },
+        ["Krelor the Doomsayer"] = { "ph_3" },
+        ["Ku`thok the Severing Glare"] = { "ph_4" },
+        ["Liknel the Anguished"] = { "ph_5" },
+        ["Skrektch the Psychowrithe"] = { "ph_6" },
+        ["Sylthrix the Spiralweaver"] = { "ph_7" },
+        ["Ytel the Glutton"] = {"ph_8" },
+    },
+
+    [892] = { -- Plane of Luck
+        ["Graln the Honeybound"] = { "ph_1" },
+        ["Krazhul the Deep Tide"] = { "ph_2" },
+        ["Silthra the Current"] = { "ph_3" },
+        ["Skrit of the Shifting Palm"] = { "ph_4" },
+        ["Ssraeth the Dreadcoil"] = { "ph_5" },
+        ["Thraxis the Watcher"] = { "ph_6" },
+        ["Varkesh the Longstride"] = { "ph_7" },
+        ["Xilthak the Sandreaver"] = {"ph_8" },
+    },
+
+    [893] = { -- Plane of Guile
+        ["Gorvath Stonefist"] = { "ph_1" },
+        ["Grimjaw"] = { "ph_2" },
+        ["Kharvek the Hollow"] = { "ph_3" },
+        ["Krazik Shadowstep"] = { "ph_4" },
+        ["Skarrik Bloodfang"] = { "ph_5" },
+        ["Tharvok Ironhand"] = { "ph_6" },
+        ["Varruk the Whispered"] = { "ph_7" },
+        ["Vekziz the Unseen"] = {"ph_8" },
+        ["Zizzik the Crooked"] = {"ph_9" },
+        ["Zorveth Ironmaw"] = {"ph_10" },
+    },
+
+    --------- SoR Zones ---------
     [879] = { -- Candlemaker's Workshop
         ["Caiser the Lava Dweller"] = { "a molten slug" },
         ["Captain Foley"] = { "a solusek knight" },
@@ -56,7 +130,7 @@ local ph_list = {
         ["Whisper"] = { "a forgotten spiritlight" },
         ["Windshear"] = { "shattered debris" },
     },
-    
+
     [883] = { -- The Vortex
         ["Azureflutter"] = { "a satin laced monarch" },
         ["Chromaire"] = { "a bloated tropicaura vulture" },
@@ -1420,7 +1494,7 @@ local ph_list = {
         ["Guggles"] = { "a diseased oashim" },
         ["The Record Master"] = { "a record keeper" },
     },
-    
+
     [734] = { -- East Sepulcher
     --No Achievements for this zone
     },

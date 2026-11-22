@@ -23,6 +23,8 @@ local distanceSettingsEnabled = true -- Always enabled
 local prioritizeNamedMobs = true -- Prioritize named mobs over placeholders when enabled
 local checkGroupDistance = true -- Check if group members are within 120 feet before engaging
 local autoResumeEnabled = false -- Auto resume navigation after 5 seconds if stopped
+local autoRemoveEnabled = false -- Auto uncheck named mobs whose achievement objective is already complete
+local autoRemoveNextCheck = 0 -- Throttle timestamp for the Auto Remove check
 local autoResumeTime = 0 -- Time when navigation stopped for auto resume
 local wasNavActiveBeforeStop = false -- Track if navigation was active before stop
 local stopButtonClicked = false -- Track if stop was clicked intentionally
@@ -40,7 +42,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.30 loaded')
+BL.info('HunterHood v2.32 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -55,9 +57,9 @@ local panicInvisState = "casting" -- "casting" or "retrying"
 -- Panic function - emergency stop when non-guild players detected
 local function triggerPanic()
     if panicTriggered then return end -- Only trigger once per session
-    
+
     printf("\arPANIC! Non-guild player detected - Stopping all navigation!")
-    
+
     -- Immediate actions (can be done in ImGui thread)
     navActive = false
     wasNavActiveBeforeStop = false -- Disable auto resume on panic
@@ -66,7 +68,7 @@ local function triggerPanic()
     navCoroutine = nil
     mq.cmd("/nav stop")
     currentTarget = nil
-    
+
     -- Start invisibility process using main loop timing
     if useInvis then
         panicInvisAttempts = 0
@@ -75,10 +77,10 @@ local function triggerPanic()
         panicInvisState = "casting"
         printf("\ayEnsuring group invisibility for safety...")
     end
-    
+
     panicTriggered = true
     printf("\arPanic mode activated - Navigation stopped. Auto-disabling panic checkbox.")
-    
+
     -- Automatically uncheck panic checkbox after triggering
     panicEnabled = false
 end
@@ -161,7 +163,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     -- First collect all valid candidates within reference point range
                     local validCandidates = {}
                     local totalChecked = 0
-                    
+
                     -- Collect all valid spawns (both named and placeholders) within reference range
                     for _, mob in ipairs(checkedMobs) do
                         -- Check named mob first
@@ -175,7 +177,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                 local zInRange, zDiff = helpers.checkZDistance(spawn.ID(), zHighValue, zLowValue, referenceZ)
                                 local hasPath = helpers.hasValidPath(spawn)
                                 local playerDistance = spawn.Distance3D() or 0
-                                
+
                                 if (not distanceSettingsEnabled or (zInRange and refDistance2D <= pullRadius)) and hasPath then
                                     table.insert(validCandidates, {spawn = spawn, isNamed = true})
                                 end
@@ -196,7 +198,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                         local zInRange, zDiff = helpers.checkZDistance(phSpawn.ID(), zHighValue, zLowValue, referenceZ)
                                         local hasPath = helpers.hasValidPath(phSpawn)
                                         local playerDistance = phSpawn.Distance3D() or 0
-                                        
+
                                         if (not distanceSettingsEnabled or (zInRange and refDistance2D <= pullRadius)) and hasPath then
                                             table.insert(validCandidates, {spawn = phSpawn, isNamed = false})
                                         end
@@ -205,13 +207,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             end
                         end
                     end
-                    
+
                     -- Now select the closest spawn to PLAYER from the valid candidates
                     if prioritizeNamedMobs then
                         -- First try to find closest named mob
                         local closestNamedSpawn = nil
                         local closestNamedDistance = math.huge
-                        
+
                         for _, candidate in ipairs(validCandidates) do
                             if candidate.isNamed then
                                 local playerDistance = candidate.spawn.Distance3D() or math.huge
@@ -221,9 +223,9 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                                 end
                             end
                         end
-                        
+
                         closestSpawn = closestNamedSpawn
-                        
+
                         -- If no named found, find closest placeholder
                         if not closestSpawn then
                             local closestPHDistance = math.huge
@@ -394,7 +396,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                     -- Check if we're already in combat or have dangerous adds - if so, skip distance check
                     local inCombat = mq.TLO.Me.Combat()
                     local hasDangerousAdds = false
-                    
+
                     -- Check if any extended targets are dangerous adds (not PCs)
                     local xtargetCount = mq.TLO.Me.XTarget() or 0
                     if xtargetCount > 0 then
@@ -409,7 +411,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                             end
                         end
                     end
-                    
+
                     local skipDistanceCheck = inCombat or hasDangerousAdds
 
                     --if skipDistanceCheck then
@@ -438,7 +440,7 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                         -- Continuously navigate to target if it's more than 20 feet away while waiting for group
                         local mobDistance = currentTarget and currentTarget() and not currentTarget.Dead() and
                         currentTarget.Distance3D() or math.huge
-                        
+
                         if mobDistance > 20 then
                             -- Always navigate to keep up with mobile target
                             printf("\ayTarget is %.1f feet away, continuing navigation...", mobDistance)
@@ -496,13 +498,13 @@ local function navigateToTargets(hoodAch, mobCheckboxes, nameMap)
                 if useInvis and helpers.groupNeedsInvis() then
                     printf("\ayNo valid targets - ensuring group invisibility...")
                     helpers.castGroupInvisibility()
-                    
+
                     -- Wait for cast to complete before sitting
                     for i = 1, 5 do -- 0.5 second delay for cast
                         if not navActive then break end
                         coroutine.yield()
                     end
-                    
+
                     if not mq.TLO.Me.Sitting() then
                         mq.cmd("/sit")
                     end
@@ -572,6 +574,90 @@ local mobCheckboxes = {}
 local hasInitialized = false
 --local lastHoodUpdate = 0
 --local HOOD_UPDATE_INTERVAL = 1000 -- Update every second
+
+-- User-added named NPCs for the Hood tab, keyed by zone ID as a string (newest first)
+local customNpcInput = ""
+local CUSTOM_NAMED_FILE = string.format('%s/HunterHood-CustomNamed.lua', mq.configDir)
+local customNamedByZone = {}
+do
+    local ok, saved = pcall(dofile, CUSTOM_NAMED_FILE)
+    if ok and type(saved) == 'table' then
+        customNamedByZone = saved
+    end
+end
+
+local function getCustomNamed(zoneID)
+    if not zoneID then return {} end
+    return customNamedByZone[tostring(zoneID)] or {}
+end
+
+local function buildCustomSpawn(name)
+    local mappedName = nameMap[name] or name
+    return {
+        name = mappedName,
+        done = false,
+        id = helpers.findSpawn(mappedName, nameMap) or 0,
+        isCustom = true,
+    }
+end
+
+local function hoodListHasName(name)
+    local target = (nameMap[name] or name):lower()
+    for _, spawn in ipairs(hoodAch.Spawns) do
+        if spawn.name:lower() == target then
+            return true
+        end
+    end
+    return false
+end
+
+local function addCustomNamed(zoneID, name)
+    if not zoneID or type(name) ~= 'string' then return false end
+    name = name:match('^%s*(.-)%s*$')
+    if name == '' or hoodListHasName(name) then return false end
+
+    local key = tostring(zoneID)
+    local list = customNamedByZone[key]
+    if not list then
+        list = {}
+        customNamedByZone[key] = list
+    end
+
+    table.insert(list, 1, name)
+    table.insert(hoodAch.Spawns, 1, buildCustomSpawn(name))
+    mq.pickle(CUSTOM_NAMED_FILE, customNamedByZone)
+    return true
+end
+
+local function removeCustomNamed(zoneID, name)
+    if not zoneID or type(name) ~= 'string' then return false end
+
+    local target = (nameMap[name] or name):lower()
+    local key = tostring(zoneID)
+    local list = customNamedByZone[key]
+    if list then
+        for i = #list, 1, -1 do
+            local storedName = list[i]
+            if type(storedName) == 'string' and (nameMap[storedName] or storedName):lower() == target then
+                table.remove(list, i)
+            end
+        end
+        if #list == 0 then
+            customNamedByZone[key] = nil
+        end
+    end
+
+    for i = #hoodAch.Spawns, 1, -1 do
+        local spawn = hoodAch.Spawns[i]
+        if spawn.isCustom and spawn.name:lower() == target then
+            table.remove(hoodAch.Spawns, i)
+        end
+    end
+
+    mobCheckboxes[name] = nil
+    mq.pickle(CUSTOM_NAMED_FILE, customNamedByZone)
+    return true
+end
 
 local function updateHunterTab()
     myHunterSpawn = {}
@@ -649,7 +735,7 @@ local function textEnabled(spawn)
     ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
 
     local selSpawn = ImGui.Selectable(spawn, false, ImGuiSelectableFlags.AllowDoubleClick)
-    
+
     -- Handle right-click targeting
     if ImGui.IsItemClicked(1) then -- Right click (button 1)
         helpers.targetMobOrPH(spawn, mq.TLO.Zone.ID(), nameMap)
@@ -802,28 +888,28 @@ local function createLines(spawn)
 
     -- Draw the checkbox
     drawCheckBox(spawn)
-    
+
     --[[ -- Commented out PH count display for Hunter tab
     -- Get PH count and display it
     local zoneID = mq.TLO.Zone.ID()
     local phs = {}
-    
+
     -- First try with the exact name
     local rawPhs = ph_list.getPlaceholders(spawn, zoneID)
-    
+
     -- If no placeholders found, try with the mapped name
     if (not rawPhs or #rawPhs == 0) and nameMap[spawn] then
         rawPhs = ph_list.getPlaceholders(nameMap[spawn], zoneID) or {}
     end
-    
+
     -- Process the placeholders we found
     for _, ph in ipairs(rawPhs or {}) do
         table.insert(phs, ph)
     end
-    
+
     local totalSpawned = 0
     local phCounts = {}
-    
+
     for _, ph in ipairs(phs) do
         local phID = helpers.findSpawn(ph, nameMap)
         if phID > 0 then
@@ -839,7 +925,7 @@ local function createLines(spawn)
             end
         end
     end
-    
+
     -- Display PH count if any are spawned
     if totalSpawned > 0 then
         ImGui.SameLine()
@@ -849,7 +935,7 @@ local function createLines(spawn)
         ImGui.SameLine()
     end
     --]] -- End commented section
-    
+
     -- Draw the mob name
     textEnabled(spawn)
 end
@@ -863,10 +949,10 @@ local function hoodPopupmenu()
     ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.33, 0.33, 0.33, 0.5)
     ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
 
-    if ImGui.Selectable('Stop HunterHood') then 
-        Open = false 
+    if ImGui.Selectable('Stop HunterHood') then
+        Open = false
     end
-    
+
     ImGui.PopStyleColor(3)
     ImGui.EndPopup()
 end
@@ -915,33 +1001,33 @@ end
 
 local function InfoLine()
     ImGui.Separator()
-    
+
     -- Make the icon clickable with black background and no border
     ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)           -- Black background
     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 0, 0, 1)      -- Black background on hover
     ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
     ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1) -- Original icon color
     ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
-    
+
     if ImGui.Button('\xee\x9f\xbc##pc_count_info') then
         mq.cmd("/who pc")
     end
-    
+
     -- Handle right-click for / command
     if ImGui.IsItemClicked(1) then -- Right click (button 1)
         mq.cmd("/")
     end
-    
+
     ImGui.PopStyleVar(1)  -- Pop the border style
     ImGui.PopStyleColor(4) -- Pop the colors
-    
+
     if ImGui.IsItemHovered() then
         ImGui.BeginTooltip()
         ImGui.Text("Left click for /who PC")
         ImGui.Text("Right click for /")
         ImGui.EndTooltip()
     end
-    
+
     ImGui.SameLine()
     local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
     local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
@@ -1005,10 +1091,10 @@ end
 local function RenderOptionsWindow()
     if showOptionsWindow then
         ImGui.SetNextWindowSize(175, 305, ImGuiCond.FirstUseEver)
-        
+
         -- Only remove title bar, keep resize functionality
         local windowFlags = ImGuiWindowFlags.NoTitleBar
-        
+
         -- Use a dummy variable for the open state to avoid conflicts
         local dummyOpen = true
         if ImGui.Begin('HunterHood Settings', dummyOpen, windowFlags) then
@@ -1016,16 +1102,16 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             --ImGui.Text("HunterHood Options")
             ImGui.PopStyleColor(1)
-            
+
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
-            
+
             -- Navigation Settings
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Navigation Settings:")
             ImGui.PopStyleColor(1)
-            
+
             -- Style the checkbox to match theme
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1033,29 +1119,29 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             -- Set text color based on checkbox state
             if useInvis then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
             else
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
             end
-            
+
             local newUseInvis = ImGui.Checkbox("Use Invis", useInvis)
             if newUseInvis ~= useInvis then
                 useInvis = newUseInvis
                 helpers.setUseInvis(useInvis)
             end
-            
+
             ImGui.PopStyleColor(6) -- Pop all checkbox colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Use Invis while navigating between mobs")
                 ImGui.PopStyleColor(1)
             end
-            
+
             -- Show priority invis character next to checkbox
             if useInvis then
                 local invisMethod = helpers.getBestInvisMethod()
@@ -1072,10 +1158,10 @@ local function RenderOptionsWindow()
                     ImGui.PopStyleColor(1)
                 end
             end
-            
+
             -- Add spacing before next checkbox
             ImGui.Spacing()
-            
+
             -- Style the checkbox for prioritize named mobs
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1083,31 +1169,31 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             -- Set text color based on checkbox state
             if prioritizeNamedMobs then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
             else
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
             end
-            
+
             local newPrioritizeNamed = ImGui.Checkbox("Prioritize Named", prioritizeNamedMobs)
             if newPrioritizeNamed ~= prioritizeNamedMobs then
                 prioritizeNamedMobs = newPrioritizeNamed
             end
-            
+
             ImGui.PopStyleColor(6) -- Pop all checkbox colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Always target named mobs over placeholders, even if placeholders are closer")
                 ImGui.PopStyleColor(1)
             end
-            
+
             -- Add spacing before next checkbox
             ImGui.Spacing()
-            
+
             -- Style the checkbox for group distance check
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1115,28 +1201,28 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             -- Set text color based on checkbox state
             if checkGroupDistance then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
             else
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
             end
-            
+
             local newCheckGroupDistance = ImGui.Checkbox("Group Watch", checkGroupDistance)
             if newCheckGroupDistance ~= checkGroupDistance then
                 checkGroupDistance = newCheckGroupDistance
             end
-            
+
             ImGui.PopStyleColor(6) -- Pop all checkbox colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Wait for all group members to be within 120 feet before engaging mobs")
                 ImGui.PopStyleColor(1)
             end
-            
+
             -- Auto Resume checkbox
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1144,37 +1230,67 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             -- Set text color based on checkbox state
             if autoResumeEnabled then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
             else
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
             end
-            
+
             local newAutoResumeEnabled = ImGui.Checkbox("Auto Resume", autoResumeEnabled)
             if newAutoResumeEnabled ~= autoResumeEnabled then
                 autoResumeEnabled = newAutoResumeEnabled
             end
-            
+
             ImGui.PopStyleColor(6) -- Pop all checkbox colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Automatically resume navigation 5 seconds after breaking it by movement")
                 ImGui.PopStyleColor(1)
             end
-            
+
+            -- Auto Remove checkbox
+            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
+            ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1) -- Dark gray hover
+            ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
+            ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
+            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
+
+            -- Set text color based on checkbox state
+            if autoRemoveEnabled then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when checked
+            else
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when unchecked
+            end
+
+            local newAutoRemoveEnabled = ImGui.Checkbox("Auto Remove", autoRemoveEnabled)
+            if newAutoRemoveEnabled ~= autoRemoveEnabled then
+                autoRemoveEnabled = newAutoRemoveEnabled
+                autoRemoveNextCheck = 0 -- Check immediately when enabled
+            end
+
+            ImGui.PopStyleColor(6) -- Pop all checkbox colors
+            ImGui.PopStyleVar(1) -- Pop the border style
+
+            if ImGui.IsItemHovered() then
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
+                ImGui.SetTooltip("Automatically uncheck named mobs once their achievement objective is complete")
+                ImGui.PopStyleColor(1)
+            end
+
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
-            
+
             -- Z-Axis Settings for PH Handling
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Distance Settings:")
             ImGui.PopStyleColor(1)
-            
+
             -- Max Range for Pulling
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1182,7 +1298,7 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
             local oldPullRadius = pullRadius
             pullRadius = ImGui.InputInt("##maxrange", pullRadius)
@@ -1193,15 +1309,15 @@ local function RenderOptionsWindow()
                 -- Update custom circle
                 helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
             end
-            
+
             ImGui.SameLine()
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Range")
             ImGui.PopStyleColor(1)
-            
+
             ImGui.PopStyleColor(5) -- Pop Max Range input field colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             -- Z-High input field
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1209,7 +1325,7 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
             local oldZHigh = zHighValue
             zHighValue = ImGui.InputInt("##zhigh", zHighValue)
@@ -1219,15 +1335,15 @@ local function RenderOptionsWindow()
                     zHighValue = 1
                 end
             end
-            
+
             ImGui.SameLine()
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Z-High")
             ImGui.PopStyleColor(1)
-            
+
             ImGui.PopStyleColor(5) -- Pop Z-High input field colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             -- Z-Low input field with same styling
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1235,7 +1351,7 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
             local oldZLow = zLowValue
             zLowValue = ImGui.InputInt("##zlow", zLowValue)
@@ -1245,24 +1361,24 @@ local function RenderOptionsWindow()
                     zLowValue = -1
                 end
             end
-            
+
             ImGui.SameLine()
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Z-Low")
             ImGui.PopStyleColor(1)
-            
+
             ImGui.PopStyleColor(5) -- Pop Z-Low input field colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
-            
+
             -- Panic Detection Settings
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Everybody Panic!:")
             ImGui.PopStyleColor(1)
-            
+
             -- Style for checkbox to match theme
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1270,28 +1386,28 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             -- Set text color based on checkbox state
             if panicEnabled then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when enabled (panic)
             else
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when disabled
             end
-            
+
             local newPanicEnabled = ImGui.Checkbox("Panic", panicEnabled)
             if newPanicEnabled ~= panicEnabled then
                 panicEnabled = newPanicEnabled
             end
-            
+
             ImGui.PopStyleColor(6) -- Pop all checkbox colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Stop navigation & cast invis when non-guild players enter range")
                 ImGui.PopStyleColor(1)
             end
-            
+
             -- Add Sound checkbox next to Panic
             ImGui.SameLine()
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
@@ -1300,31 +1416,31 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.CheckMark, 0.2, 0.6, 1.0, 1) -- Bright blue matching Hood tab
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             -- Set text color based on checkbox state
             if panicSoundEnabled then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green when enabled (sound active)
             else
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.5, 0.5, 0.5, 1) -- Greyed out when disabled
             end
-            
+
             local newPanicSoundEnabled = ImGui.Checkbox("Sound", panicSoundEnabled)
             if newPanicSoundEnabled ~= panicSoundEnabled then
                 panicSoundEnabled = newPanicSoundEnabled
             end
-            
+
             ImGui.PopStyleColor(6) -- Pop all checkbox colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Play sound when non-guild players enter range")
                 ImGui.PopStyleColor(1)
             end
-            
+
             -- Add spacing before range input
             ImGui.Spacing()
-            
+
             -- Range input with stepper (matching Z-High/Low style)
             ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1) -- Add visible border
             ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1) -- Black background
@@ -1332,7 +1448,7 @@ local function RenderOptionsWindow()
             ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1) -- Darker gray active
             ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text (same as Use Invis when checked)
             ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- Gold border
-            
+
             ImGui.SetNextItemWidth(100) -- Width for input field with built-in +/- buttons
             local oldPanicRange = panicRange
             panicRange = ImGui.InputInt("##panicrange", panicRange)
@@ -1340,25 +1456,25 @@ local function RenderOptionsWindow()
                 -- Ensure panicRange stays within bounds (50-500)
                 panicRange = math.max(50, math.min(9999, panicRange))
             end
-            
+
             ImGui.SameLine()
             ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold text
             ImGui.Text("Range")
             ImGui.PopStyleColor(1)
-            
+
             ImGui.PopStyleColor(5) -- Pop range input field colors
             ImGui.PopStyleVar(1) -- Pop the border style
-            
+
             if ImGui.IsItemHovered() then
                 ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Gold tooltip text
                 ImGui.SetTooltip("Detection range for non-guild players (50-9999)")
                 ImGui.PopStyleColor(1)
             end
-            
+
             -- Always show non-guild count for awareness (untethered from panic checkbox)
             ImGui.Spacing()
             local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
-            
+
             -- Show count with different color based on panic state
             if panicEnabled then
                 ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1) -- Red text for warning when panic enabled
@@ -1367,12 +1483,12 @@ local function RenderOptionsWindow()
             end
             ImGui.Text(string.format("Non-Guild in Range: %d", nonGuildCount))
             ImGui.PopStyleColor(1)
-            
+
             ImGui.PushStyleColor(ImGuiCol.Separator, 0.973, 0.741, 0.129, 1) -- Gold separator
             ImGui.Separator()
             ImGui.PopStyleColor(1)
         end
-        
+
         ImGui.End()
     end
 end
@@ -1466,7 +1582,39 @@ local function updateHoodAchievement(zoneID)
         i = i + 1
     until #hoodAch.Spawns >= achCount
 
+    -- Prepend user-added named NPCs so they always appear at the top (newest first)
+    local customNames = getCustomNamed(zoneID)
+    for i = #customNames, 1, -1 do
+        local customName = customNames[i]
+        if type(customName) == 'string' and customName ~= '' then
+            table.insert(hoodAch.Spawns, 1, buildCustomSpawn(customName))
+        end
+    end
+
     return true
+end
+
+-- Auto Remove: uncheck named mobs whose Hunter achievement objective is already complete
+local function autoRemoveCompletedNamed()
+    if not autoRemoveEnabled or hoodAch.ID <= 0 then return end
+
+    local now = mq.gettime()
+    if now < autoRemoveNextCheck then return end
+    autoRemoveNextCheck = now + 1000
+
+    local ach = myAch(hoodAch.ID)
+    if not ach or not ach() then return end
+
+    for _, spawn in ipairs(hoodAch.Spawns) do
+        if not spawn.isCustom and mobCheckboxes[spawn.name] then
+            local objectiveName = spawn.originalName or spawn.name
+            local objective = ach.Objective(objectiveName)
+            if objective and objective() and objective.Completed() then
+                mobCheckboxes[spawn.name] = false
+                printf('\ayAuto Remove: unchecking \ag%s\ay (achievement already complete)', spawn.name)
+            end
+        end
+    end
 end
 
 local function renderHoodTab()
@@ -1520,17 +1668,17 @@ local function renderHoodTab()
         ImGui.EndCombo()
     end
     ImGui.SameLine(0, 2)
-    
+
     ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0) -- Transparent background
     ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 0.5) -- Slight hover
     ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1) -- Orange color like tabs
-    
+
     if ImGui.Button('\xef\x80\x93##options_gear') then
         showOptionsWindow = not showOptionsWindow -- Toggle options window
     end
-    
+
     ImGui.PopStyleColor(3)
-    
+
     if ImGui.IsItemHovered() then
         ImGui.BeginTooltip()
         ImGui.Text("Toggle Settings Window")
@@ -1546,7 +1694,7 @@ local function renderHoodTab()
         ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1) -- Gray for go
         ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- White text
     end
-    
+
     if navActive then
         if ImGui.Button("STOP##ExecuteAction") then
             navActive = false
@@ -1567,7 +1715,7 @@ local function renderHoodTab()
             autoResumeTime = 0
             stopButtonClicked = false
         end
-        
+
         -- Handle navigation start logic outside of ImGui button
         if shouldStartNavigation then
             -- Check if any mobs are selected first
@@ -1580,7 +1728,7 @@ local function renderHoodTab()
                     end
                 end
             end
-            
+
             if not hasCheckedMobs then
                 printf("\arNo mobs selected for navigation!")
             else
@@ -1601,7 +1749,7 @@ local function renderHoodTab()
             end
         end
     end
-    
+
     ImGui.PopStyleColor(2) -- Pop button and text colors
     if ImGui.IsItemHovered() then
         ImGui.SetTooltip("Start/Stop navigation to selected mobs")
@@ -1722,26 +1870,26 @@ local function renderHoodTab()
         ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
         ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1) -- Original icon color
         ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
-        
+
         if ImGui.Button('\xee\x9f\xbc##pc_count_hood') then
             mq.cmd("/who")
         end
-        
+
         -- Handle right-click for / command
         if ImGui.IsItemClicked(1) then -- Right click (button 1)
             mq.cmd("/")
         end
-        
+
         ImGui.PopStyleVar(1)  -- Pop the border style
         ImGui.PopStyleColor(4) -- Pop the colors
-        
+
         if ImGui.IsItemHovered() then
             ImGui.BeginTooltip()
             ImGui.Text("Left click for /who")
             ImGui.Text("Right click for /")
             ImGui.EndTooltip()
         end
-        
+
         ImGui.SameLine(0, 4) -- Slightly reduced from default
         local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
         local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
@@ -1805,16 +1953,19 @@ local function renderHoodTab()
 
         local availX, availY = ImGui.GetContentRegionAvail()
         -- Header col 1: Completed (check status dynamically)
-        local completed, total = 0, #hoodAch.Spawns
+        local completed, total = 0, 0
         if hoodAch.ID > 0 then
             local ach = myAch(hoodAch.ID)
-            if ach and ach() then
-                for _, spawn in ipairs(hoodAch.Spawns) do
-                    -- Use the original achievement objective name to check completion
-                    local objectiveName = spawn.originalName or spawn.name
-                    local objective = ach.Objective(objectiveName)
-                    if objective and objective() and objective.Completed() then
-                        completed = completed + 1
+            for _, spawn in ipairs(hoodAch.Spawns) do
+                if not spawn.isCustom then
+                    total = total + 1
+                    if ach and ach() then
+                        -- Use the original achievement objective name to check completion
+                        local objectiveName = spawn.originalName or spawn.name
+                        local objective = ach.Objective(objectiveName)
+                        if objective and objective() and objective.Completed() then
+                            completed = completed + 1
+                        end
                     end
                 end
             end
@@ -1831,8 +1982,54 @@ local function renderHoodTab()
         ImGui.SetColumnWidth(0, col1Width)             -- Left side for "Completed" text
         ImGui.SetColumnWidth(1, col2Width + col3Width) -- Right side for "Check All"
 
-        -- Left column: Completed text
+        -- Left column: Completed text + add named NPC button
         ImGui.Text(completedText)
+        ImGui.SameLine(0, 6)
+        ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 0.6)
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.2, 0.2, 0.2, 0.8)
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)
+        if ImGui.Button("+##add_named_npc", 18, 0) then
+            customNpcInput = ""
+            ImGui.OpenPopup("##add_named_npc_popup")
+        end
+        ImGui.PopStyleVar()
+        ImGui.PopStyleColor(4)
+        if ImGui.IsItemHovered() then
+            ImGui.SetTooltip("Add a named NPC to this list")
+        end
+
+        -- Popup for manually adding a named NPC
+        if ImGui.BeginPopup("##add_named_npc_popup") then
+            ImGui.TextColored(0.973, 0.741, 0.129, 1, "Add Named NPC")
+            ImGui.Separator()
+            ImGui.SetNextItemWidth(200)
+            if ImGui.IsWindowAppearing() then
+                ImGui.SetKeyboardFocusHere()
+            end
+            local newName, _ = ImGui.InputText("##add_named_npc_input", customNpcInput)
+            if newName ~= nil then
+                customNpcInput = newName
+            end
+
+            local addClicked = ImGui.Button("Add##add_named_npc_confirm")
+            ImGui.SameLine()
+            if ImGui.Button("Cancel##add_named_npc_cancel") then
+                ImGui.CloseCurrentPopup()
+            end
+
+            if addClicked then
+                if addCustomNamed(hoodAch.zoneID, customNpcInput) then
+                    printf('\ayAdded named NPC \ag%s\ay to the Hood list', customNpcInput)
+                    customNpcInput = ""
+                    ImGui.CloseCurrentPopup()
+                else
+                    printf('\arCould not add "%s" - name is empty or already in the list', customNpcInput)
+                end
+            end
+            ImGui.EndPopup()
+        end
 
         -- Right column: Check All checkbox
         ImGui.NextColumn()
@@ -1864,10 +2061,11 @@ local function renderHoodTab()
 
 
         -- Mob rows
+        local customToRemove = nil
         for _, spawn in ipairs(hoodAch.Spawns) do
             -- Column 1: completion + name (check status dynamically)
             local isCompleted = false
-            if hoodAch.ID > 0 then
+            if not spawn.isCustom and hoodAch.ID > 0 then
                 local ach = myAch(hoodAch.ID)
                 if ach and ach() then
                     -- Use the original achievement objective name to check completion
@@ -1888,15 +2086,15 @@ local function renderHoodTab()
 
             -- Get PH count and display it
             local phs = {}
-            
+
             -- First try with the exact name
             local rawPhs = ph_list.getPlaceholders(spawn.name, hoodAch.zoneID)
-            
+
             -- If no placeholders found, try with the mapped name
             if (not rawPhs or #rawPhs == 0) and nameMap[spawn.name] then
                 rawPhs = ph_list.getPlaceholders(nameMap[spawn.name], hoodAch.zoneID) or {}
             end
-            
+
             -- Fallback: Try the same method as the tooltip
             if (not rawPhs or #rawPhs == 0) then
                 local allZoneMobs = ph_list.getNamedMobsInZone(hoodAch.zoneID)
@@ -1913,15 +2111,15 @@ local function renderHoodTab()
                     end
                 end
             end
-            
+
             -- Process the placeholders we found
             for _, ph in ipairs(rawPhs or {}) do
                 table.insert(phs, ph)
             end
-            
+
             local totalSpawned = 0
             local phCounts = {}
-            
+
             for _, ph in ipairs(phs) do
                 local phID = helpers.findSpawn(ph, nameMap)
                 if phID > 0 then
@@ -1937,7 +2135,7 @@ local function renderHoodTab()
                     end
                 end
             end
-            
+
             -- Display PH count (always show for consistent spacing)
             ImGui.SameLine()
             ImGui.SetWindowFontScale(0.9)
@@ -1960,8 +2158,14 @@ local function renderHoodTab()
             end
 
             ImGui.PushID("mob_" .. tostring(spawn.id or 0) .. "_" .. spawn.name)
-            local selected = ImGui.Selectable(spawn.name, false, ImGuiSelectableFlags.AllowDoubleClick)
-            
+            -- Leave room for the remove button on custom entries
+            local nameWidth = 0
+            if spawn.isCustom then
+                local availW = ImGui.GetContentRegionAvail()
+                nameWidth = math.max(availW - 22, 60)
+            end
+            local selected = ImGui.Selectable(spawn.name, false, ImGuiSelectableFlags.AllowDoubleClick, nameWidth, 0)
+
             -- Handle right-click targeting
             if ImGui.IsItemClicked(1) then -- Right click (button 1)
                 helpers.targetMobOrPH(spawn.name, hoodAch.zoneID, nameMap)
@@ -2050,13 +2254,13 @@ local function renderHoodTab()
                         if phSpawn() and not phSpawn.Dead() then
                             local cleanName = phSpawn.CleanName() or phName
                             local distance = phSpawn.Distance3D() or math.huge
-                            
+
                             -- Track nearest PH
                             if distance < nearestPHDistance then
                                 nearestPHDistance = distance
                                 nearestPHName = cleanName
                             end
-                            
+
                             if not phSeen[cleanName] then
                                 phSeen[cleanName] = true
                                 -- Count all instances of this PH in the zone
@@ -2107,6 +2311,26 @@ local function renderHoodTab()
                 end
             end
 
+            -- Custom entries get a small remove button to the right of the name
+            if spawn.isCustom then
+                ImGui.SameLine(0, 2)
+                ImGui.PushID("remove_custom_" .. spawn.name)
+                ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.5, 0.1, 0.1, 0.6)
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.7, 0.1, 0.1, 1)
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.9, 0.3, 0.3, 1)
+                ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)
+                if ImGui.Button("x", 16, 0) then
+                    customToRemove = spawn.name
+                end
+                ImGui.PopStyleVar()
+                ImGui.PopStyleColor(4)
+                ImGui.PopID()
+                if ImGui.IsItemHovered() then
+                    ImGui.SetTooltip("Remove " .. spawn.name .. " from this list")
+                end
+            end
+
             ImGui.NextColumn()
 
             -- Column 2: checkbox
@@ -2123,6 +2347,12 @@ local function renderHoodTab()
             ImGui.PopStyleColor(2)
             ImGui.EndGroup()
             ImGui.NextColumn()
+        end
+
+        -- Remove after the row loop so ipairs is not disturbed mid-iteration
+        if customToRemove then
+            removeCustomNamed(hoodAch.zoneID, customToRemove)
+            printf('\ayRemoved named NPC \ag%s\ay from the Hood list', customToRemove)
         end
 
         -- Restore original style
@@ -2191,7 +2421,7 @@ local function HunterHUD()
                 if ImGui.BeginPopupContextItem('hood_tab_popup') then
                     hoodPopupmenu()
                 end
-                
+
                 lastTab = currentTab
                 currentTab = "Hood"
 
@@ -2221,21 +2451,21 @@ local function HunterHUD()
 
         ImGui.End()
     end
-    
+
     -- Non-guild player detection and sound - runs regardless of which tab is active
     local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
-    
+
     -- Play sound only if sound is enabled and count changes
     if panicSoundEnabled and nonGuildCount > 0 and nonGuildCount ~= lastNonGuildCount then
         helpers.playSound("panic.wav")
     end
-    
+
     -- Trigger panic if enabled and non-guild detected, but only when no mobs on xtarget
     if panicEnabled and nonGuildCount > 0 and not panicTriggered then
         -- Check if any mobs are on xtarget
         local xtargetCount = mq.TLO.Me.XTarget() or 0
         local hasMobsOnXTarget = false
-        
+
         for i = 1, xtargetCount do
             local target = mq.TLO.Me.XTarget(i)
             if target() and target.ID() > 0 then
@@ -2246,22 +2476,22 @@ local function HunterHUD()
                 end
             end
         end
-        
+
         -- Only trigger panic if no mobs are on xtarget
         if not hasMobsOnXTarget then
             triggerPanic()
         end
     end
-    
+
     -- Reset panic trigger when panic is re-enabled (after auto-uncheck)
     if panicEnabled and panicTriggered then
         panicTriggered = false
         panicCoroutine = nil -- Stop any ongoing invisibility coroutine
         printf("\ayPanic mode reset - Ready to trigger again.")
     end
-    
+
     lastNonGuildCount = nonGuildCount
-    
+
     -- Render the options window if it's open
     RenderOptionsWindow()
 end
@@ -2300,10 +2530,13 @@ while Open do
         updateHunterTab()
         oldZone = currentZone
     end
-    
+
+    -- Auto Remove completed named mobs from the active checklist
+    autoRemoveCompletedNamed()
+
     -- Get current MQ navigation status
     local currentMQNavActive = mq.TLO.Navigation.Active() or false
-    
+
     -- Detect if navigation stopped by movement (not button click)
     -- This happens when MQ navigation goes from active to inactive without stop button being clicked
     if previousMQNavActive and not currentMQNavActive and navActive and not stopButtonClicked then
@@ -2312,12 +2545,12 @@ while Open do
         autoResumeTime = os.clock() + 5.0 -- Set resume time for 5 seconds from now
         printf("\ayNavigation stopped by movement - auto-resume in 5 seconds")
     end
-    
+
     -- Update previous navActive state
     previousNavActive = navActive
     previousMQNavActive = currentMQNavActive
     stopButtonClicked = false -- Reset stop button flag after checking
-    
+
     -- Update navigation coroutine
     if navCoroutine and coroutine.status(navCoroutine) ~= "dead" then
         local success, err = coroutine.resume(navCoroutine)
@@ -2328,11 +2561,11 @@ while Open do
             autoResumeTime = 0
         end
     end
-    
+
     -- Update panic invisibility process
     if panicInvisActive then
         local currentTime = os.clock()
-        
+
         -- Check if it's time for next action
         if currentTime >= panicInvisNextAction then
             if panicInvisState == "casting" then
@@ -2341,7 +2574,7 @@ while Open do
                 printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", panicInvisAttempts)
                 mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
                 mq.cmd("/squelch /alt act 231")
-                
+
                 if panicInvisAttempts >= 5 then
                     printf("\arFailed to ensure group is invisible after 5 attempts")
                     panicInvisActive = false
@@ -2357,7 +2590,7 @@ while Open do
                     printf("\ayGroup needs invisibility - casting... (Attempt %d/5)", panicInvisAttempts + 1)
                     mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
                     mq.cmd("/squelch /alt act 231")
-                    
+
                     panicInvisAttempts = panicInvisAttempts + 1
                     if panicInvisAttempts >= 5 then
                         printf("\arFailed to ensure group is invisible after 5 attempts")
@@ -2373,7 +2606,7 @@ while Open do
             end
         end
     end
-    
+
     -- Auto resume logic
     if autoResumeEnabled and wasNavActiveBeforeStop then
         local currentTime = os.clock()
@@ -2388,7 +2621,7 @@ while Open do
                     end
                 end
             end
-            
+
             if hasCheckedMobs then
                 -- Check if group needs invisibility before starting navigation
                 if useInvis and helpers.groupNeedsInvis() then
@@ -2410,6 +2643,6 @@ while Open do
             end
         end
     end
-    
+
     mq.delay(100)
 end

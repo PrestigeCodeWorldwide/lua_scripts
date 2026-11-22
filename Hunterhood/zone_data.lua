@@ -1,4 +1,4 @@
--- v1.13
+-- v1.15
 -- Zone data for Hunterhood
 local function createZoneData(mq)
     local zoneMap = {
@@ -57,6 +57,14 @@ local function createZoneData(mq)
 
     -- Expansion zone lists
     local zone_lists = {
+        ["Favors of Fortune"] = {
+            {id = 888, name = function() return getZoneDisplayName(888) end, shortname = "polove"},
+            {id = 889, name = function() return getZoneDisplayName(889) end, shortname = "podesire"},
+            {id = 890, name = function() return getZoneDisplayName(890) end, shortname = "pogreed"},
+            {id = 891, name = function() return getZoneDisplayName(891) end, shortname = "pomad"},
+            {id = 892, name = function() return getZoneDisplayName(892) end, shortname = "poluck"},
+            {id = 893, name = function() return getZoneDisplayName(893) end, shortname = "poguile"},
+    },
         ["Shattering of Ro"] = {
             {id = 879, name = function() return getZoneDisplayName(879) end, shortname = "candlemakers"},
             {id = 880, name = function() return getZoneDisplayName(880) end, shortname = "embattledpogrowth"},
@@ -360,7 +368,7 @@ local function createZoneData(mq)
     }
 
     -- Expansion display order
-    local combo_items = { "Shattering of Ro","The Outer Brood", "Laurion's Song", "Night of Shadows", "Terror of Luclin", "Claws of Veeshan", 
+    local combo_items = { "Favors of Fortune", "Shattering of Ro","The Outer Brood", "Laurion's Song", "Night of Shadows", "Terror of Luclin", "Claws of Veeshan",
     "Torment of Velious", "The Burning Lands", "Ring of Scale", "Empires of Kunark", "The Broken Mirror", "The Darkened Sea", "Call of the Forsaken", "Rain of Fear", "Veil of Alaris",
     "House of Thule", "Underfoot", "Seeds of Destruction", "Secrets of Faydwer", "The Buried Sea", "The Serpent's Spine", "Prophecy of Ro", "Depths of Darkhollow",
     "Dragons of Norrath", "Omens of War", "Gates of Discord","Debug" }
