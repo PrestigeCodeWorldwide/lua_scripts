@@ -1,4 +1,4 @@
--- v1.14
+-- v1.15
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -8,16 +8,16 @@ local ph_list = {
     --------- FoF Zones ---------
 
     [888] = { -- Plane of Love
-        ["A Devoted Diary"] = { "ph_1" },
-        ["Amalithea"] = { "ph_2" },
-        ["Amphiba"] = { "ph_3" },
-        ["Bzzt, Worker Leader"] = { "ph_4" },
-        ["Ethimelle the Lost"] = { "ph_5" },
-        ["Faithwing"] = { "ph_6" },
-        ["Hopestone"] = { "ph_7" },
-        ["Sir Leighton Clark"] = { "ph_8" },
-        ["Sister Alanya"] = { "ph_9" },
-        ["The Thornmother"] = {"ph_10" },
+        ["A Devoted Diary"] = { "a crazed journal" },
+        ["Amalithea"] = { "a doubting naturist" },
+        ["Amphiba"] = { "a lovely anuran" },
+        ["Bzzt, Worker Leader"] = { "a worker supervisor" },
+        ["Ethimelle the Lost"] = { "a dedicated scornbound" },
+        ["Faithwing"] = { "an elder amourfly" },
+        ["Hopestone"] = { "a crystalline golem" },
+        ["Sir Leighton Clark"] = { "a Marr-sworn sentinel" },
+        ["Sister Alanya"] = { "a tearful raincaller" },
+        ["The Thornmother"] = {"a ravenous flower" },
     },
 
     [889] = { -- Plane of Desire
@@ -34,14 +34,14 @@ local ph_list = {
     },
 
     [890] = { -- Plane of Greed
-        ["Apostetrios"] = { "ph_1" },
-        ["Eica"] = { "ph_2" },
-        ["Gildedfang"] = { "ph_3" },
-        ["Goldflecked Guardian"] = { "ph_4" },
-        ["Rapacian"] = { "ph_5" },
-        ["Sephriah Mourningstar"] = { "ph_6" },
-        ["Viscountess Emilia Wrayburn"] = { "ph_7" },
-        ["Whisker"] = {"ph_8" },
+        ["Apostetrios"] = { "an attentive civilian" },
+        ["Eica"] = { "a deadly spider" },
+        ["Gildedfang"] = { "a wolf beta" },
+        ["Goldflecked Guardian"] = { "a watchful guardian" },
+        ["Rapacian"] = { "raging gold" },
+        ["Sephriah Mourningstar"] = { "a skillful bandit" },
+        ["Viscountess Emilia Wrayburn"] = { "an affluent attendant" },
+        ["Whisker"] = {"a shadowed goon" },
     },
 
     [891] = { -- Plane of Madness
