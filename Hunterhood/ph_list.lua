@@ -1,4 +1,4 @@
--- v1.15
+-- v1.16
 -- Placeholder mob list for Hunterhood
 -- Maps named mobs to their placeholder mobs with zone aware context
 
@@ -21,16 +21,16 @@ local ph_list = {
     },
 
     [889] = { -- Plane of Desire
-        ["Bo`bark the Twisted"] = { "ph_1" },
-        ["Do`uge the Sea Turtle"] = { "ph_2" },
-        ["Ga`rot Uproot"] = { "ph_3" },
-        ["Kaelfor"] = { "ph_4" },
-        ["Lo`for the Enraged"] = { "ph_5" },
-        ["Luo Zheng the Wise"] = { "ph_6" },
-        ["Major Rao`kan"] = { "ph_7" },
-        ["Per`sai the Neophyte"] = { "ph_8" },
-        ["Ver`tose the Flame Enchantress"] = {"ph_9" },
-        ["Vorgal the Devourer"] = {"ph_10" },
+        ["Bo`bark the Twisted"] = { "a rotted tender" },
+        ["Do`uge the Sea Turtle"] = { "a frothing sea turtle" },
+        ["Ga`rot Uproot"] = { "a rolling shambler" },
+        ["Kaelfor"] = { "a dryad grovewarden" },
+        ["Lo`for the Enraged"] = { "a whirling sandman" },
+        ["Luo Zheng the Wise"] = { "a solace kirin" },
+        ["Major Rao`kan"] = { "an emberheart sentinel" },
+        ["Per`sai the Neophyte"] = { "a protective siren" },
+        ["Ver`tose the Flame Enchantress"] = {"a pyrilen flametosser" },
+        ["Vorgal the Devourer"] = {"a carnal lasher" },
     },
 
     [890] = { -- Plane of Greed
@@ -45,38 +45,38 @@ local ph_list = {
     },
 
     [891] = { -- Plane of Madness
-        ["Crevin the Undying"] = { "ph_1" },
-        ["Grothrix the Desecrator"] = { "ph_2" },
-        ["Krelor the Doomsayer"] = { "ph_3" },
-        ["Ku`thok the Severing Glare"] = { "ph_4" },
-        ["Liknel the Anguished"] = { "ph_5" },
-        ["Skrektch the Psychowrithe"] = { "ph_6" },
-        ["Sylthrix the Spiralweaver"] = { "ph_7" },
-        ["Ytel the Glutton"] = {"ph_8" },
+        ["Crevin the Undying"] = { "a forsaken warden" },
+        ["Grothrix the Desecrator"] = { "a frothing monstrosity" },
+        ["Krelor the Doomsayer"] = { "an infernal nekhon" },
+        ["Ku`thok the Severing Glare"] = { "a mind piercer" },
+        ["Liknel the Anguished"] = { "a forsaken banshee" },
+        ["Skrektch the Psychowrithe"] = { "an unsated fleshtendril" },
+        ["Sylthrix the Spiralweaver"] = { "a web tyrant" },
+        ["Ytel the Glutton"] = {"a devouring amalgamation" },
     },
 
     [892] = { -- Plane of Luck
-        ["Graln the Honeybound"] = { "ph_1" },
-        ["Krazhul the Deep Tide"] = { "ph_2" },
-        ["Silthra the Current"] = { "ph_3" },
-        ["Skrit of the Shifting Palm"] = { "ph_4" },
-        ["Ssraeth the Dreadcoil"] = { "ph_5" },
-        ["Thraxis the Watcher"] = { "ph_6" },
-        ["Varkesh the Longstride"] = { "ph_7" },
-        ["Xilthak the Sandreaver"] = {"ph_8" },
+        ["Graln the Honeybound"] = { "a honeybound bear" },
+        ["Krazhul the Deep Tide"] = { "a deeptide shark" },
+        ["Silthra the Current"] = { "a slipcurrent fish" },
+        ["Skrit of the Shifting Palm"] = { "a shifting palm monkey" },
+        ["Ssraeth the Dreadcoil"] = { "a dreadcoil viper" },
+        ["Thraxis the Watcher"] = { "a watchful owlbear" },
+        ["Varkesh the Longstride"] = { "a longstride wolf" },
+        ["Xilthak the Sandreaver"] = {"a sandreaver scarab" },
     },
 
     [893] = { -- Plane of Guile
-        ["Gorvath Stonefist"] = { "ph_1" },
-        ["Grimjaw"] = { "ph_2" },
-        ["Kharvek the Hollow"] = { "ph_3" },
-        ["Krazik Shadowstep"] = { "ph_4" },
-        ["Skarrik Bloodfang"] = { "ph_5" },
-        ["Tharvok Ironhand"] = { "ph_6" },
-        ["Varruk the Whispered"] = { "ph_7" },
-        ["Vekziz the Unseen"] = {"ph_8" },
-        ["Zizzik the Crooked"] = {"ph_9" },
-        ["Zorveth Ironmaw"] = {"ph_10" },
+        ["Gorvath Stonefist"] = { "a cruel giant" },
+        ["Grimjaw"] = { "a rabid war boar" },
+        ["Kharvek the Hollow"] = { "a vile dead" },
+        ["Krazik Shadowstep"] = { "an ogre shadowstalker" },
+        ["Skarrik Bloodfang"] = { "a savage worg" },
+        ["Tharvok Ironhand"] = { "a blackened knight" },
+        ["Varruk the Whispered"] = { "a cunning ogre" },
+        ["Vekziz the Unseen"] = {"a goblin shadowstalker" },
+        ["Zizzik the Crooked"] = {"a devious goblin" },
+        ["Zorveth Ironmaw"] = {"a warlike orc" },
     },
 
     --------- SoR Zones ---------
