@@ -16,6 +16,8 @@ local helpers = require("Hunterhood.helpers").new(myAch) -- Pass myAch to helper
 local navCoroutine = nil
 local navActive = false
 local showOptionsWindow = false -- New options window state
+local hoodControlsCollapsed = false -- Hide the toolbar above the Completed header when true
+local hideUncheckedMobs = false -- Show only mobs that are checked for navigation
 local pullRadius = 9999 -- State variable for pull radius (max range)
 local zHighValue = 9999 -- State variable for Z-High (max range)
 local zLowValue = -9999 -- State variable for Z-Low (max range)
@@ -42,7 +44,7 @@ local lastNonGuildCount = 0 -- Track previous count to detect changes
 local panicTriggered = false -- Track if panic has been triggered this session
 local panicCoroutine = nil -- Coroutine for panic invisibility logic
 
-BL.info('HunterHood v2.32 loaded')
+BL.info('HunterHood v2.40 loaded')
 -- Play startup sound
 --helpers.playSound("hood.wav")
 -- Reset pull radius on script startup
@@ -529,7 +531,7 @@ local notDone = mq.FindTextureAnimation('A_TransparentCheckBoxNormal')
 
 -- Some WindowFlags
 local WindowFlags = bit.bor(ImGuiWindowFlags.NoTitleBar, ImGuiWindowFlags.NoResize, ImGuiWindowFlags.AlwaysAutoResize)
-local HoodWindowFlags = bit.bor(ImGuiWindowFlags.NoTitleBar, ImGuiWindowFlags.NoScrollbar)
+local HoodWindowFlags = bit.bor(ImGuiWindowFlags.NoTitleBar, ImGuiWindowFlags.NoScrollbar, ImGuiWindowFlags.AlwaysAutoResize)
 
 -- print format function
 local function printf(...)
@@ -1617,6 +1619,10 @@ local function autoRemoveCompletedNamed()
     end
 end
 
+-- Forward declaration: renderHoodTab uses this before the shared helper is
+-- defined alongside the compact-mode widgets.
+local toggleHoodNavigation
+
 local function renderHoodTab()
     -- Initialize with first zone's achievement if not already loaded
     if not hasInitialized and #combo_items > 0 then
@@ -1649,6 +1655,27 @@ local function renderHoodTab()
     end
 
 
+    -- Column widths are used by both the status bar and the Completed header,
+    -- so keep them outside the collapsible toolbar block.
+    local windowWidth = select(1, ImGui.GetContentRegionAvail())
+    local col1MinWidth = 202
+    local col2Width = 70                               -- Increased significantly to handle large distances
+    local remainingSpace = windowWidth - col2Width - 20 -- Slightly reduce the padding
+    local col1Width = math.max(col1MinWidth, remainingSpace * 0.2)
+    local col3Width = remainingSpace - col1Width
+
+    -- Build the visible mob list once; its size drives the auto-fit child height
+    local mobsToDraw = {}
+    for _, spawn in ipairs(hoodAch.Spawns) do
+        if not hideUncheckedMobs or mobCheckboxes[spawn.name] then
+            table.insert(mobsToDraw, spawn)
+        end
+    end
+    local rowHeight = math.max(ImGui.GetTextLineHeightWithSpacing(), ImGui.GetFrameHeightWithSpacing())
+    local mobListHeight = rowHeight * (#mobsToDraw + 1) + 16
+
+    -- Everything below (down to the Completed header) can be collapsed away
+    if not hoodControlsCollapsed then
     -- Expansion selector combo
     ImGui.SetNextItemWidth(190)
     if ImGui.BeginCombo("##:", combo_items[selected_index]) then
@@ -1692,62 +1719,11 @@ local function renderHoodTab()
         ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 1, 1) -- White text
     else
         ImGui.PushStyleColor(ImGuiCol.Button, 0.2, 0.2, 0.2, 1) -- Gray for go
-        ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- White text
+        ImGui.PushStyleColor(ImGuiCol.Text, 0, 1, 0, 1) -- Green text
     end
 
-    if navActive then
-        if ImGui.Button("STOP##ExecuteAction") then
-            navActive = false
-            stopButtonClicked = true -- Mark that stop was intentional
-            wasNavActiveBeforeStop = false -- Don't auto-resume on button click
-            autoResumeTime = 0
-            helpers.hideReferenceCircle() -- Clean up reference circle when stopping
-            navCoroutine = nil
-            mq.cmd("/nav stop")
-            printf("\ayStopped navigation")
-        end
-    else
-        local shouldStartNavigation = false
-        if ImGui.Button("Start##ExecuteAction") then
-            shouldStartNavigation = true
-            -- Reset auto resume flags when manually starting
-            wasNavActiveBeforeStop = false
-            autoResumeTime = 0
-            stopButtonClicked = false
-        end
-
-        -- Handle navigation start logic outside of ImGui button
-        if shouldStartNavigation then
-            -- Check if any mobs are selected first
-            local hasCheckedMobs = false
-            if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
-                for _, spawn in ipairs(hoodAch.Spawns) do
-                    if mobCheckboxes[spawn.originalName] then
-                        hasCheckedMobs = true
-                        break
-                    end
-                end
-            end
-
-            if not hasCheckedMobs then
-                printf("\arNo mobs selected for navigation!")
-            else
-                -- Check if group needs invisibility before starting navigation
-                if useInvis and helpers.groupNeedsInvis() then
-                    printf("\ayGroup members need invisibility, casting...")
-                    mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
-                end
-                navActive = true
-                -- Capture current position as static reference point
-                referenceX = mq.TLO.Me.X() or 0
-                referenceY = mq.TLO.Me.Y() or 0
-                referenceZ = mq.TLO.Me.Z() or 0
-                -- Show reference circle when navigation starts
-                helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
-                navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
-                printf("\ayStarted navigation to selected mobs")
-            end
-        end
+    if ImGui.Button((navActive and "STOP" or "Start") .. "##ExecuteAction") then
+        toggleHoodNavigation()
     end
 
     ImGui.PopStyleColor(2) -- Pop button and text colors
@@ -1843,115 +1819,13 @@ local function renderHoodTab()
     end
     ImGui.PopStyleColor(2)
     ImGui.PopStyleColor(4)
+    end -- end collapsible toolbar above the Completed header
 
     -- Display achievement mob list
     if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
         -- Reduce frame padding to make checkboxes smaller
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 4, 2)
 
-        local windowWidth = select(1, ImGui.GetContentRegionAvail())
-        local col1MinWidth = 202
-        local col2Width = 70                               -- Increased significantly to handle large distances
-        local remainingSpace = windowWidth - col2Width - 20 -- Slightly reduce the padding
-        local col1Width = math.max(col1MinWidth, remainingSpace * 0.2)
-        local col3Width = remainingSpace - col1Width
-
-        ImGui.Columns(3, "##mob_columns_header", false)
-        ImGui.SetColumnWidth(0, col1Width)
-        ImGui.SetColumnWidth(1, col2Width)
-        ImGui.SetColumnWidth(2, col3Width)
-
-
-
-        -- Status bar with slightly reduced spacing
-        -- Make the icon clickable with black background and no border
-        ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 1)           -- Black background
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0, 0, 0, 1)      -- Black background on hover
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 1)       -- Black background when pressed
-        ImGui.PushStyleColor(ImGuiCol.Text, 0.690, 0.553, 0.259, 1) -- Original icon color
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)           -- No border
-
-        if ImGui.Button('\xee\x9f\xbc##pc_count_hood') then
-            mq.cmd("/who")
-        end
-
-        -- Handle right-click for / command
-        if ImGui.IsItemClicked(1) then -- Right click (button 1)
-            mq.cmd("/")
-        end
-
-        ImGui.PopStyleVar(1)  -- Pop the border style
-        ImGui.PopStyleColor(4) -- Pop the colors
-
-        if ImGui.IsItemHovered() then
-            ImGui.BeginTooltip()
-            ImGui.Text("Left click for /who")
-            ImGui.Text("Right click for /")
-            ImGui.EndTooltip()
-        end
-
-        ImGui.SameLine(0, 4) -- Slightly reduced from default
-        local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
-        local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
-
-        if pcs > 50 then
-            ImGui.TextColored(0.95, 0.05, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
-        elseif pcs > 25 then
-            ImGui.TextColored(0.95, 0.95, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
-        elseif pcs > 0 then
-            ImGui.TextColored(0.05, 0.95, 0.05, 1, tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
-        else
-            ImGui.TextDisabled(tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")")
-        end
-
-        ImGui.SameLine(0, 4) -- Slightly reduced from default
-        ImGui.TextDisabled('|')
-
-        -- Add group invis status with slightly reduced spacing
-        if mq.TLO.Group() ~= nil then
-            for i = 0, mq.TLO.Group.Members() do
-                local member = mq.TLO.Group.Member(i)
-                if member.Present() and not member.Mercenary() then
-                    ImGui.SameLine(0, 3) -- Slightly reduced from default
-                    if not member.Invis() then
-                        ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F' .. (i + 1))
-                    else
-                        ImGui.TextDisabled('F' .. (i + 1))
-                    end
-                end
-            end
-        else
-            if not mq.TLO.Me.Invis() then
-                ImGui.SameLine(0, 4) -- Slightly reduced from default
-                ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F1')
-            end
-        end
-
-        -- Add distance to nav target if navigating and we have a current target
-        if mq.TLO.Navigation.Active() and currentNavTarget and currentNavTarget() then
-            local dist = currentNavTarget.Distance3D() or 0
-            if dist > 0 then
-                -- Move to column 2 for distance display
-                ImGui.NextColumn()
-                ImGui.SameLine(0, 8)
-                ImGui.TextColored(0.5, 0.5, 0.5, 0.7, '|')
-                ImGui.SameLine(0, 5)
-                if dist > 500 then
-                    ImGui.TextColored(1.0, 0.2, 0.2, 1, ('%.0f'):format(dist))  -- Red for very far
-                elseif dist > 150 then
-                    ImGui.TextColored(0.95, 0.5, 0.0, 1, ('%.0f'):format(dist)) -- Orange for far
-                else
-                    ImGui.TextColored(0.0, 0.95, 0.0, 1, ('%.0f'):format(dist)) -- Green for close
-                end
-                -- Stay in column 2, the main content will move to column 3
-            end
-        end
-
-        ImGui.NextColumn()
-        ImGui.Columns(1)
-        ImGui.Separator()
-
-        local availX, availY = ImGui.GetContentRegionAvail()
         -- Header col 1: Completed (check status dynamically)
         local completed, total = 0, 0
         if hoodAch.ID > 0 then
@@ -1972,10 +1846,10 @@ local function renderHoodTab()
         end
 
         local completedText = string.format("Completed ( %d/%d )", completed, total)
-        local availX, availY = ImGui.GetContentRegionAvail()
 
-        -- Start the child window first
-        ImGui.BeginChild("MobList", 0, availY, ImGuiChildFlags.Border)
+        -- Size the child to its rows instead of the leftover window height so
+        -- the whole window can auto-grow/shrink with the visible mob count.
+        ImGui.BeginChild("MobList", 0, mobListHeight, ImGuiChildFlags.Border)
 
         -- Create a row for the completed text and check all
         ImGui.Columns(2, "##header_columns", false)
@@ -1998,6 +1872,39 @@ local function renderHoodTab()
         ImGui.PopStyleColor(4)
         if ImGui.IsItemHovered() then
             ImGui.SetTooltip("Add a named NPC to this list")
+        end
+
+        -- Gold circle toggle: hollow = show all, filled = show only checked mobs
+        ImGui.SameLine(0, 4)
+        ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 0.6)
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.2, 0.2, 0.2, 0.8)
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)
+        local circleIcon = hideUncheckedMobs and '\xef\x84\x91' or '\xef\x84\x8c' -- filled / hollow
+        if ImGui.Button(circleIcon .. "##hide_unchecked_mobs", 18, 0) then
+            hideUncheckedMobs = not hideUncheckedMobs
+        end
+        ImGui.PopStyleVar()
+        ImGui.PopStyleColor(4)
+        if ImGui.IsItemHovered() then
+            ImGui.SetTooltip(hideUncheckedMobs and "Show all mobs" or "Show only checked mobs")
+        end
+
+        -- Collapse arrow beside the + button: hides the toolbar above this header
+        ImGui.SameLine(0, 4)
+        ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 0.6)
+        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.2, 0.2, 0.2, 0.8)
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
+        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)
+        if ImGui.Button((hoodControlsCollapsed and ">" or "v") .. "##collapse_hood_controls", 18, 0) then
+            hoodControlsCollapsed = not hoodControlsCollapsed
+        end
+        ImGui.PopStyleVar()
+        ImGui.PopStyleColor(4)
+        if ImGui.IsItemHovered() then
+            ImGui.SetTooltip(hoodControlsCollapsed and "Show header controls" or "Hide header controls")
         end
 
         -- Popup for manually adding a named NPC
@@ -2060,9 +1967,9 @@ local function renderHoodTab()
         ImGui.SetColumnWidth(2, col3Width)
 
 
-        -- Mob rows
+        -- Mob rows (mobsToDraw is filtered above for the circle toggle)
         local customToRemove = nil
-        for _, spawn in ipairs(hoodAch.Spawns) do
+        for _, spawn in ipairs(mobsToDraw) do
             -- Column 1: completion + name (check status dynamically)
             local isCompleted = false
             if not spawn.isCustom and hoodAch.ID > 0 then
@@ -2367,6 +2274,153 @@ local function renderHoodTab()
     end
 end
 
+-- Hood status readouts (PC count, invis flags, nav distance). Drawn beside the
+-- Hood tab in normal mode, and at the top of the window in compact mode. The
+-- clickable /who icon is intentionally omitted.
+local function drawHoodStatusCompact()
+    local pcs = mq.TLO.SpawnCount('pc')() - mq.TLO.SpawnCount('group pc')()
+    local nonGuildCount = helpers.checkNonGuildInRange(panicRange)
+    local countText = tostring(pcs) .. " (" .. tostring(nonGuildCount) .. ")"
+    if pcs > 50 then
+        ImGui.TextColored(0.95, 0.05, 0.05, 1, countText)
+    elseif pcs > 25 then
+        ImGui.TextColored(0.95, 0.95, 0.05, 1, countText)
+    elseif pcs > 0 then
+        ImGui.TextColored(0.05, 0.95, 0.05, 1, countText)
+    else
+        ImGui.TextColored(0.6, 0.6, 0.6, 1, countText)
+    end
+
+    ImGui.SameLine(0, 4)
+    ImGui.TextDisabled('|')
+
+    if mq.TLO.Group() ~= nil then
+        for i = 0, mq.TLO.Group.Members() do
+            local member = mq.TLO.Group.Member(i)
+            if member.Present() and not member.Mercenary() then
+                ImGui.SameLine(0, 3)
+                if not member.Invis() then
+                    ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F' .. (i + 1))
+                else
+                    ImGui.TextColored(0.5, 0.5, 0.5, 1, 'F' .. (i + 1))
+                end
+            end
+        end
+    elseif not mq.TLO.Me.Invis() then
+        ImGui.SameLine(0, 4)
+        ImGui.TextColored(0.0, 0.95, 0.0, 1, 'F1')
+    end
+
+    -- Nav distance is the last item on the full status line too
+    if mq.TLO.Navigation.Active() and currentNavTarget and currentNavTarget() then
+        local dist = currentNavTarget.Distance3D() or 0
+        if dist > 0 then
+            ImGui.SameLine(0, 5)
+            ImGui.TextDisabled('|')
+            ImGui.SameLine(0, 5)
+            if dist > 500 then
+                ImGui.TextColored(1.0, 0.2, 0.2, 1, ('%.0f'):format(dist))
+            elseif dist > 150 then
+                ImGui.TextColored(0.95, 0.5, 0.0, 1, ('%.0f'):format(dist))
+            else
+                ImGui.TextColored(0.0, 0.95, 0.0, 1, ('%.0f'):format(dist))
+            end
+        end
+    end
+end
+
+-- Shared Hood body styling for both the tabbed and compact views.
+local function drawHoodTabContents()
+    ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1)
+    ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1)
+    ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1)
+    ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
+    ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1)
+    ImGui.PushStyleColor(ImGuiCol.PopupBg, 0, 0, 0, 0.95)
+    ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.33, 0.33, 0.33, 0.5)
+    ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
+    ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.5)
+
+    renderHoodTab()
+
+    ImGui.PopStyleVar(1)
+    ImGui.PopStyleColor(8)
+end
+
+-- Shared start/stop logic for the full toolbar button and the compact circle.
+toggleHoodNavigation = function()
+    if navActive then
+        navActive = false
+        stopButtonClicked = true -- Mark that stop was intentional
+        wasNavActiveBeforeStop = false -- Don't auto-resume on button click
+        autoResumeTime = 0
+        helpers.hideReferenceCircle()
+        navCoroutine = nil
+        mq.cmd("/nav stop")
+        printf("\ayStopped navigation")
+        return
+    end
+
+    local hasCheckedMobs = false
+    if hoodAch.ID > 0 and #hoodAch.Spawns > 0 then
+        for _, spawn in ipairs(hoodAch.Spawns) do
+            if mobCheckboxes[spawn.name] then
+                hasCheckedMobs = true
+                break
+            end
+        end
+    end
+
+    if not hasCheckedMobs then
+        printf("\arNo mobs selected for navigation!")
+        return
+    end
+
+    -- Reset auto resume flags when manually starting
+    wasNavActiveBeforeStop = false
+    autoResumeTime = 0
+    stopButtonClicked = false
+
+    if useInvis and helpers.groupNeedsInvis() then
+        printf("\ayGroup members need invisibility, casting...")
+        mq.cmd("/squelch /noparse /docommand /dgza /alt act 231")
+    end
+
+    navActive = true
+    -- Capture current position as static reference point
+    referenceX = mq.TLO.Me.X() or 0
+    referenceY = mq.TLO.Me.Y() or 0
+    referenceZ = mq.TLO.Me.Z() or 0
+    -- Show reference circle when navigation starts
+    helpers.showReferenceCircle(referenceX, referenceY, referenceZ, pullRadius)
+    navCoroutine = navigateToTargets(hoodAch, mobCheckboxes, nameMap)
+    printf("\ayStarted navigation to selected mobs")
+end
+
+-- Filled green = start available, filled red = running (click to stop).
+local function drawHoodNavToggleCircle()
+    local circleIcon = '\xef\x84\x91'
+    ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.1, 0.1, 0.1, 0.6)
+    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.2, 0.2, 0.2, 0.8)
+    if navActive then
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.90, 0.15, 0.15, 1)
+    else
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.10, 0.90, 0.20, 1)
+    end
+    ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0)
+
+    if ImGui.Button(circleIcon .. "##compact_nav_toggle", 18, 0) then
+        toggleHoodNavigation()
+    end
+
+    ImGui.PopStyleVar()
+    ImGui.PopStyleColor(4)
+    if ImGui.IsItemHovered() then
+        ImGui.SetTooltip(navActive and "Stop navigation" or "Start navigation to selected mobs")
+    end
+end
+
 
 local function HunterHUD()
     if ShowUI then
@@ -2375,9 +2429,9 @@ local function HunterHUD()
         -- Use different window flags based on active tab
         local activeWindowFlags = (currentTab == "Hood") and HoodWindowFlags or WindowFlags
 
-        -- Set window size for Hood tab before Begin
-        if currentTab == "Hood" and lastTab ~= "Hood" then
-            ImGui.SetNextWindowSize(hoodWindowSize.width, hoodWindowSize.height, ImGuiCond.Always)
+        -- The Hood tab auto-fits its mob list; pin the width so columns stay aligned
+        if currentTab == "Hood" then
+            ImGui.SetNextWindowSizeConstraints(280, 80, 280, 2000)
         end
 
         Open, _ = ImGui.Begin('HunterHUD', Open, activeWindowFlags)
@@ -2390,63 +2444,78 @@ local function HunterHUD()
 
         ImGui.PopStyleColor()
 
-        if ImGui.BeginTabBar("HunterHUDTabs") then
-            ImGui.PushStyleColor(ImGuiCol.Tab, 0, 0, 0, 1)              -- inactive tab bg
-            ImGui.PushStyleColor(ImGuiCol.TabActive, 0, 0, 0, 1)        -- active tab bg
-            ImGui.PushStyleColor(ImGuiCol.TabHovered, 0.1, 0.1, 0.1, 1) -- hovered tab bg
-            ImGui.PushStyleColor(ImGuiCol.TabUnfocused, 0, 0, 0, 1)
-            ImGui.PushStyleColor(ImGuiCol.TabUnfocusedActive, 0, 0, 0, 1)
-            ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)   -- orange text
-            ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- orange border
-            ImGui.PushStyleColor(ImGuiCol.BorderShadow, 0, 0, 0, 0)       -- clean border (no shadow)
+        if hoodControlsCollapsed and currentTab == "Hood" then
+            -- Compact Hood mode: no tab buttons at all. Only the status
+            -- readouts and the Hood mob list remain. The > arrow in the list
+            -- header restores the tabs.
+            drawHoodStatusCompact()
 
-            -- ensure borders are visible
-            ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.5)
+            -- Start/stop circle pinned to the far right of the compact top row
+            ImGui.SameLine()
+            local navCircleWidth = 18
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail() - navCircleWidth)
+            drawHoodNavToggleCircle()
 
-            -- Hunter tab
-            if ImGui.BeginTabItem("Hunter") then
-                lastTab = currentTab
-                currentTab = "Hunter"
-                RenderTitle()
-                if curHunterAch.ID then
-                    RenderHunter()
-                end
-                InfoLine()
-                ImGui.EndTabItem()
-            end
+            ImGui.Separator()
+            drawHoodTabContents()
+        else
+            local hoodTabRightX, hoodTabTopY = nil, nil
 
-            -- Hood tab
-            if ImGui.BeginTabItem("Hood") then
-                -- Add right-click context menu for the Hood tab
-                if ImGui.BeginPopupContextItem('hood_tab_popup') then
-                    hoodPopupmenu()
-                end
+            if ImGui.BeginTabBar("HunterHUDTabs") then
+                ImGui.PushStyleColor(ImGuiCol.Tab, 0, 0, 0, 1)              -- inactive tab bg
+                ImGui.PushStyleColor(ImGuiCol.TabActive, 0, 0, 0, 1)        -- active tab bg
+                ImGui.PushStyleColor(ImGuiCol.TabHovered, 0.1, 0.1, 0.1, 1) -- hovered tab bg
+                ImGui.PushStyleColor(ImGuiCol.TabUnfocused, 0, 0, 0, 1)
+                ImGui.PushStyleColor(ImGuiCol.TabUnfocusedActive, 0, 0, 0, 1)
+                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)   -- orange text
+                ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1) -- orange border
+                ImGui.PushStyleColor(ImGuiCol.BorderShadow, 0, 0, 0, 0)       -- clean border (no shadow)
 
-                lastTab = currentTab
-                currentTab = "Hood"
-
-                -- Tab styling
-                ImGui.PushStyleColor(ImGuiCol.FrameBg, 0, 0, 0, 1)
-                ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, 0.1, 0.1, 0.1, 1)
-                ImGui.PushStyleColor(ImGuiCol.FrameBgActive, 0.2, 0.2, 0.2, 1)
-                ImGui.PushStyleColor(ImGuiCol.Text, 0.973, 0.741, 0.129, 1)
-                ImGui.PushStyleColor(ImGuiCol.Border, 0.973, 0.741, 0.129, 1)
-                ImGui.PushStyleColor(ImGuiCol.PopupBg, 0, 0, 0, 0.95)
-                ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.33, 0.33, 0.33, 0.5)
-                ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.0, 0.66, 0.33, 0.5)
+                -- ensure borders are visible
                 ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.5)
 
-                renderHoodTab()
+                -- Hunter tab
+                if ImGui.BeginTabItem("Hunter") then
+                    lastTab = currentTab
+                    currentTab = "Hunter"
+                    RenderTitle()
+                    if curHunterAch.ID then
+                        RenderHunter()
+                    end
+                    InfoLine()
+                    ImGui.EndTabItem()
+                end
+
+                -- Hood tab
+                if ImGui.BeginTabItem("Hood") then
+                    -- Remember the tab button's rect so status can sit beside it
+                    hoodTabRightX = select(1, ImGui.GetItemRectMax())
+                    hoodTabTopY = select(2, ImGui.GetItemRectMin())
+
+                    -- Add right-click context menu for the Hood tab
+                    if ImGui.BeginPopupContextItem('hood_tab_popup') then
+                        hoodPopupmenu()
+                    end
+
+                    lastTab = currentTab
+                    currentTab = "Hood"
+
+                    drawHoodTabContents()
+                    ImGui.EndTabItem()
+                end
+
+                -- Status readouts live beside the Hood tab in non-compact mode;
+                -- they were removed from the tab body.
+                if currentTab == "Hood" and hoodTabRightX then
+                    ImGui.SetCursorScreenPos(hoodTabRightX + 12, hoodTabTopY + 3)
+                    drawHoodStatusCompact()
+                end
 
                 ImGui.PopStyleVar(1)
                 ImGui.PopStyleColor(8)
-                ImGui.EndTabItem()
+
+                ImGui.EndTabBar()
             end
-
-            ImGui.PopStyleVar(1)
-            ImGui.PopStyleColor(8)
-
-            ImGui.EndTabBar()
         end
 
         ImGui.End()
